@@ -37,6 +37,7 @@ class OilInvestmentCompetitionTests(unittest.TestCase):
 
     def test_all_institutions_settle_against_the_same_turn(self) -> None:
         session = OilInvestmentCompetitionSession(self.macro_run)
+        self.assertEqual(10_000_000.0, session.initial_equity_usd)
         opening = session.payload(
             as_of_year=2030,
             as_of_month=1,

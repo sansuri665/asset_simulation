@@ -29,6 +29,7 @@ from .oil_trading_strategy import (
     build_oil_strategy_decision,
     settle_oil_strategy_turn,
 )
+from .institution_organization import initial_proprietary_capital_usd
 from .random_stream import normal
 from .registry import load_registered_assets, sha256_json
 
@@ -261,11 +262,7 @@ class OilInvestmentCompetitionSession:
         self.seed = int(run.seed)
         self.lock = threading.Lock()
         self.participants = build_competition_participants(self.seed)
-        self.initial_equity_usd = float(
-            load_registered_assets()["oil_trading_strategy_config"][
-                "initial_reference_equity_usd"
-            ]
-        )
+        self.initial_equity_usd = initial_proprietary_capital_usd()
         self._reset_runtime()
 
     def _reset_runtime(self) -> None:

@@ -21,6 +21,9 @@ from asset_simulation.model.oil_strategy_risk import (
 from asset_simulation.model.oil_trading_strategy import (
     build_oil_strategy_decision,
 )
+from asset_simulation.model.institution_organization import (
+    initial_proprietary_capital_usd,
+)
 
 
 class OilStrategyRiskTests(unittest.TestCase):
@@ -107,7 +110,7 @@ class OilStrategyRiskTests(unittest.TestCase):
             partial["riskBudget"]["gross_market_cap_lots"],
         )
         self.assertEqual(
-            900_000_000.0,
+            0.30 * initial_proprietary_capital_usd(),
             partial["riskBudget"]["allocated_strategy_capital_usd"],
         )
         self.assertLess(

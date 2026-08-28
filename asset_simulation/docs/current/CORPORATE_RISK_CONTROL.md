@@ -2,7 +2,7 @@
 
 > 状态：策略风控 v0.1 与公司风控 v0.2 已运行并接入四机构竞技；玩家审批和多策略组合尚未实现  
 > 权威范围：CRO 任命、单策略风险审阅、决策委员会批准与资金授权、公司组合总风控  
-> 代码基线：策略风控 `asset-simulation-oil-strategy-risk-v0.1.0`、公司风控 `asset-simulation-corporate-risk-control-v0.2.0`、交易策略 v1.1.0、服务 v5.41  
+> 代码基线：策略风控 `asset-simulation-oil-strategy-risk-v0.1.0`、公司风控 `asset-simulation-corporate-risk-control-v0.2.0`、交易策略 v1.2.0、服务 v5.41
 > 最近核对：2026-08-26
 
 ## 部门位置

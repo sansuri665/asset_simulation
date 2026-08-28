@@ -52,6 +52,7 @@ Seed + 注册配置
 - 运行架构：[`current/RUNTIME_ARCHITECTURE.md`](current/RUNTIME_ARCHITECTURE.md)
 - 游戏与 Viewer：[`current/VIEWER_PROJECTION.md`](current/VIEWER_PROJECTION.md)
 - 投资决策竞技：[`current/OIL_INVESTMENT_COMPETITION.md`](current/OIL_INVESTMENT_COMPETITION.md)
+- 机构组织基线：[`current/INSTITUTION_ORGANIZATION.md`](current/INSTITUTION_ORGANIZATION.md)
 - 正式账户与收益校准：[`current/OIL_FORMAL_ACCOUNT_AND_CALIBRATION.md`](current/OIL_FORMAL_ACCOUNT_AND_CALIBRATION.md)
 
 代码与注册 JSON 契约始终高于文档；`design/` 只能描述未完成路线，`archive/` 只保留历史。

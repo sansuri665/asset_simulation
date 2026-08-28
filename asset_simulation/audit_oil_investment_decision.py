@@ -39,10 +39,11 @@ from .model.oil_strategy_research import (
     generate_oil_strategy_research_roster,
 )
 from .model.registry import load_registered_assets
+from .model.institution_organization import initial_proprietary_capital_usd
 
 
 TURNS_PER_YEAR = 24
-INITIAL_EQUITY_USD = 3_000_000_000.0
+INITIAL_EQUITY_USD = initial_proprietary_capital_usd()
 DEFAULT_ROSTER_SEED = 20_260_825
 DEFAULT_CANDIDATE_COUNT = 5
 DEFAULT_BLOCK_TURNS = 6

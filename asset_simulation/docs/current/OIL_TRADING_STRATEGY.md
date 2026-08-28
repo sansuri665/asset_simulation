@@ -2,7 +2,7 @@
 
 > 状态：策略研究、跨回合观点失效、策略／公司两层风控、投委会系统代理、交易部、收益归因和逐回合结算已接入四机构竞技；玩家自主审批、正式存档和可选信号引擎尚未实现  
 > 权威范围：策略研究八维偏好、观点失效、风控建议与资金授权、单合约延续／回归信号、连续换手、换月、全成本执行、收益归因与逐回合盯市  
-> 代码基线：策略研究 `asset-simulation-oil-strategy-research-v0.2.0`、策略风控 `asset-simulation-oil-strategy-risk-v0.1.0`、公司风控 `asset-simulation-corporate-risk-control-v0.2.0`、交易部 `asset-simulation-oil-execution-desk-v0.2.0`、交易策略 `asset-simulation-oil-trading-strategy-v1.1.0`
+> 代码基线：策略研究 `asset-simulation-oil-strategy-research-v0.2.0`、策略风控 `asset-simulation-oil-strategy-risk-v0.1.0`、公司风控 `asset-simulation-corporate-risk-control-v0.2.0`、交易部 `asset-simulation-oil-execution-desk-v0.2.0`、交易策略 `asset-simulation-oil-trading-strategy-v1.2.0`
 > 最近核对：2026-08-29
 
 ## 产品位置
@@ -362,7 +362,7 @@ Seed 0／42／99 的前12回合审计中，全0审慎政策累计裁剪41,290／
 - 公式：`model/oil_trading_strategy.py`
 - 观点失效：`model/oil_strategy_thesis.py`
 - 行情分段审计：`audit_oil_direction_regimes.py`
-- 配置：`config/oil_trading_strategy_v1.1.json`
+- 配置：`config/oil_trading_strategy_v1.2.json`
 - 契约：`contracts/oil_trading_strategy_v8.json`
 - 测试：`tests/test_oil_strategy_research.py`、`tests/test_corporate_risk_control.py`、`tests/test_oil_execution_desk.py`、`tests/test_oil_trading_strategy.py`
 - API：`server.py` 的 `/api/oil-strategy-research-roster`、`/api/corporate-risk-roster` 与 `/api/oil-execution-desk-roster`

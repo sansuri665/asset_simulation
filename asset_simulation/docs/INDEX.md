@@ -33,6 +33,7 @@
 | [`current/OIL_TRADING_STRATEGY.md`](current/OIL_TRADING_STRATEGY.md) | 策略研究、目标仓位、换手、成本与结算 | `model/oil_strategy_research.py`、`model/oil_trading_strategy.py` |
 | [`current/CORPORATE_RISK_CONTROL.md`](current/CORPORATE_RISK_CONTROL.md) | 公司 CRO、审批、回撤状态与报告 | `model/corporate_risk_control.py` |
 | [`current/OIL_INVESTMENT_COMPETITION.md`](current/OIL_INVESTMENT_COMPETITION.md) | 玩家与3家 AI 的随机任命、账户、排名和回合报告 | `model/oil_investment_competition.py` |
+| [`current/INSTITUTION_ORGANIZATION.md`](current/INSTITUTION_ORGANIZATION.md) | 1000万美元自营资本、Investment Decision 治理层和五部门组织壳 | `model/institution_organization.py`、`config/institution_organization_v0.1.json` |
 | [`current/OIL_FORMAL_ACCOUNT_AND_CALIBRATION.md`](current/OIL_FORMAL_ACCOUNT_AND_CALIBRATION.md) | 现金／保证金、追保强平、收益分布、现实锚点和校准门禁 | `model/oil_futures_account.py`、`audit_oil_formal_account_calibration.py` |
 | [`current/MODEL_QUALITY_AUDIT.md`](current/MODEL_QUALITY_AUDIT.md) | 全球、期限结构、策略交叉和风控审计证据 | `audit_*.py` |
 | [`components/GLOBAL_ORDINARY_CYCLE.md`](components/GLOBAL_ORDINARY_CYCLE.md) | 无命名事件的全球普通周期 | `model/real_economy.py`、`model/impulses.py` |

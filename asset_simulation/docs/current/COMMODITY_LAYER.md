@@ -92,7 +92,7 @@ v0.7 发布统一的“全球巨型机构”参与者限额。常态单合约净
 - 短期预测：`model/oil_short_term_forecast.py`、`model/oil_forecast_research_profile.py`、`config/oil_short_term_forecast_v0.2.json`、`contracts/oil_short_term_forecast_v2.json`
 - 策略研究：`model/oil_strategy_research.py`、`config/oil_strategy_research_v0.2.json`、`contracts/oil_strategy_research_v2.json`
 - 策略风控：`model/oil_strategy_risk.py`、`config/oil_strategy_risk_v0.1.json`、`contracts/oil_strategy_risk_v1.json`
-- 基础策略：`model/oil_trading_strategy.py`、`model/oil_strategy_thesis.py`、`config/oil_trading_strategy_v1.1.json`、`contracts/oil_trading_strategy_v8.json`
+- 基础策略：`model/oil_trading_strategy.py`、`model/oil_strategy_thesis.py`、`config/oil_trading_strategy_v1.2.json`、`contracts/oil_trading_strategy_v8.json`
 - 投资决策竞技：`model/oil_investment_competition.py`
 - 目录：`viewer/static/data/commodities.json`
 - 全球石油 owner 仍是 `model/oil_commodity.py`

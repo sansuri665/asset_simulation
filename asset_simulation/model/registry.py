@@ -47,7 +47,7 @@ OIL_STRATEGY_RISK_CONTRACT_PATH = (
     PACKAGE_ROOT / "contracts" / "oil_strategy_risk_v1.json"
 )
 OIL_TRADING_STRATEGY_CONFIG_PATH = (
-    PACKAGE_ROOT / "config" / "oil_trading_strategy_v1.1.json"
+    PACKAGE_ROOT / "config" / "oil_trading_strategy_v1.2.json"
 )
 OIL_TRADING_STRATEGY_CONTRACT_PATH = (
     PACKAGE_ROOT / "contracts" / "oil_trading_strategy_v8.json"
@@ -57,6 +57,12 @@ OIL_FUTURES_ACCOUNT_CONFIG_PATH = (
 )
 OIL_FUTURES_ACCOUNT_CONTRACT_PATH = (
     PACKAGE_ROOT / "contracts" / "oil_futures_account_v1.json"
+)
+INSTITUTION_ORGANIZATION_CONFIG_PATH = (
+    PACKAGE_ROOT / "config" / "institution_organization_v0.1.json"
+)
+INSTITUTION_ORGANIZATION_CONTRACT_PATH = (
+    PACKAGE_ROOT / "contracts" / "institution_organization_v1.json"
 )
 
 
@@ -110,6 +116,12 @@ def load_registered_assets() -> dict[str, Any]:
     oil_trading_strategy_contract = load_json(OIL_TRADING_STRATEGY_CONTRACT_PATH)
     oil_futures_account_config = load_json(OIL_FUTURES_ACCOUNT_CONFIG_PATH)
     oil_futures_account_contract = load_json(OIL_FUTURES_ACCOUNT_CONTRACT_PATH)
+    institution_organization_config = load_json(
+        INSTITUTION_ORGANIZATION_CONFIG_PATH
+    )
+    institution_organization_contract = load_json(
+        INSTITUTION_ORGANIZATION_CONTRACT_PATH
+    )
     return {
         "config": config,
         "config_hash": sha256_json(config),
@@ -166,6 +178,16 @@ def load_registered_assets() -> dict[str, Any]:
         "oil_futures_account_contract": oil_futures_account_contract,
         "oil_futures_account_contract_hash": sha256_json(
             oil_futures_account_contract
+        ),
+        "institution_organization_config": institution_organization_config,
+        "institution_organization_config_hash": sha256_json(
+            institution_organization_config
+        ),
+        "institution_organization_contract": (
+            institution_organization_contract
+        ),
+        "institution_organization_contract_hash": sha256_json(
+            institution_organization_contract
         ),
     }
 

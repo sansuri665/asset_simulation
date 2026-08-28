@@ -1,0 +1,64 @@
+{
+  "schema_version": "asset-simulation-institution-organization-config-v1",
+  "config_id": "asset-simulation-institution-organization-base-v0.1.0",
+  "model_version": "asset-simulation-institution-organization-v0.1.0",
+  "institution_type": "proprietary_trading_firm",
+  "capital_base": {
+    "initial_proprietary_capital_usd": 10000000.0,
+    "runtime_capital_owner": "institution_organization_v1",
+    "market_capacity_binding_expected_at_initial_scale": false,
+    "external_aum_enabled": false,
+    "fund_management_company_split_enabled": false,
+    "management_fee_model_enabled": false,
+    "operating_company_cash_model_enabled": false
+  },
+  "governance_layers": {
+    "investment_decision": {
+      "display_name": "Investment Decision",
+      "layer_type": "governance_not_department",
+      "runtime_owner_compatibility_id": "investment_decision_committee_system_proxy",
+      "current_scope": [
+        "risk_policy_approval",
+        "strategy_capital_authorization"
+      ],
+      "single_strategy_default_capital_authorization_pct": 100.0,
+      "member_roster_enabled": false,
+      "voting_enabled": false,
+      "personnel_capability_model_enabled": false,
+      "player_interaction_enabled": false,
+      "multi_strategy_allocation_enabled": false
+    }
+  },
+  "departments": [
+    {
+      "department_id": "forecast_research",
+      "display_name": "预测研究部",
+      "status": "runtime"
+    },
+    {
+      "department_id": "investment_strategy",
+      "display_name": "投资策略部",
+      "status": "runtime"
+    },
+    {
+      "department_id": "corporate_risk",
+      "display_name": "公司风险管理部",
+      "status": "runtime"
+    },
+    {
+      "department_id": "trading_execution",
+      "display_name": "交易执行部",
+      "status": "runtime"
+    },
+    {
+      "department_id": "administration",
+      "display_name": "行政部",
+      "status": "shell_only",
+      "runtime_logic_enabled": false,
+      "personnel_model_enabled": false,
+      "cost_model_enabled": false,
+      "payroll_enabled": false,
+      "recruiting_system_enabled": false
+    }
+  ]
+}

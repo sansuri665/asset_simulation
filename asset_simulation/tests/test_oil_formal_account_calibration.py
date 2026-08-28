@@ -23,6 +23,29 @@ class OilFormalAccountCalibrationTests(unittest.TestCase):
         self.assertTrue(self.report["ok"])
 
     def test_distribution_and_capacity_are_reproducible(self) -> None:
+        self.assertEqual(
+            "asset-simulation-oil-formal-account-calibration-v2",
+            self.report["schemaVersion"],
+        )
+        self.assertEqual(
+            10_000_000.0,
+            self.report["scope"]["initial_proprietary_capital_usd"],
+        )
+        self.assertFalse(
+            self.report["calibrationDiagnostics"][
+                "market_capacity_binding_expected_at_initial_scale"
+            ]
+        )
+        self.assertFalse(
+            self.report["calibrationDiagnostics"][
+                "capacity_efficiency_decay_gate_applicable"
+            ]
+        )
+        self.assertTrue(
+            self.report["realismGates"][
+                "capacity_efficiency_decay_matches_declared_scale_expectation"
+            ]
+        )
         self.assertEqual(2, self.report["scope"]["scenario_count"])
         self.assertEqual(2, len(self.report["scenarios"]))
         self.assertEqual(1, len(self.report["capacityComparisons"]))

@@ -17,8 +17,9 @@
 | `oil_strategy_risk_v1` | 策略风控 v0.1.0 | 单策略风险审阅、投委会批准与资金授权 |
 | `corporate_risk_control_v2` | 公司风控 v0.2.0 | 六维公司总要求和组合目标审批 |
 | `oil_execution_desk_v2` | 交易部 v0.2.0 | 六维能力、三维风格和任命 |
-| `oil_trading_strategy_v8` | 交易策略 v1.1.0 | 观点失效、意图、两层风控、周执行、换月、TCA和收益归因 |
+| `oil_trading_strategy_v8` | 交易策略 v1.2.0 | 观点失效、意图、两层风控、周执行、换月、TCA和收益归因 |
 | `oil_futures_account_v1` | 正式期货账户 v0.1.0 | 现金、受限保证金、可用资金、追保、强平、利息／融资和破产状态 |
+| `institution_organization_v1` | 机构组织 v0.1.0 | 1000万美元自营资本、Investment Decision治理壳和五部门组织壳 |
 
 投资决策竞技 v0.5.0 当前使用服务响应 schema 和结果 identity；账户字段由已注册的 `oil_futures_account_v1` 约束。正式持久存档前仍应为竞技会话、任命和报告历史建立独立版本化契约。
 
@@ -124,7 +125,7 @@
 
 ## 9. 交易策略与账户
 
-`oil_trading_strategy_v8` 当前运行模型为 v1.1.0：
+`oil_trading_strategy_v8` 当前运行模型为 v1.2.0：
 
 - 决策委员会先设置策略资金授权，资金部署倾向只作用于这笔资金；
 - 策略研究在延续／回归光谱上组合冻结预测与已可见历史，形成理想意图；

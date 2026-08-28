@@ -38,8 +38,9 @@ Viewer 任务再完整读取 `server.py`、相关 HTML/CSS、`viewer/static/js/a
 | 策略风控审阅 | `current/CORPORATE_RISK_CONTROL.md` + Oil Trading Strategy | `model/oil_strategy_risk.py`、`config/oil_strategy_risk_v0.1.json`、`contracts/oil_strategy_risk_v1.json` |
 | 公司级风控部 | `current/CORPORATE_RISK_CONTROL.md` + Oil Trading Strategy | `model/corporate_risk_control.py`、`config/corporate_risk_control_v0.2.json`、`contracts/corporate_risk_control_v2.json` |
 | 投资决策竞技 | `current/OIL_INVESTMENT_COMPETITION.md` + Oil Trading Strategy | `model/oil_investment_competition.py`、`server.py`、游戏前端 |
-| 原油基础交易策略 | `current/OIL_TRADING_STRATEGY.md` + Oil Short-Term Forecast + Commodity Layer | 策略研究、观点失效、策略／公司风控、投委会代理与交易部 owner + `model/oil_trading_strategy.py`、`model/oil_strategy_thesis.py`、`config/oil_trading_strategy_v1.1.json`、`contracts/oil_trading_strategy_v8.json` |
+| 原油基础交易策略 | `current/OIL_TRADING_STRATEGY.md` + Oil Short-Term Forecast + Commodity Layer | 策略研究、观点失效、策略／公司风控、投委会代理与交易部 owner + `model/oil_trading_strategy.py`、`model/oil_strategy_thesis.py`、`config/oil_trading_strategy_v1.2.json`、`contracts/oil_trading_strategy_v8.json` |
 | 原油完整回合交易 | Oil Investment Competition + Oil Trading Strategy | 玩家与三家 AI 的随机任命、账户、排行榜和回合报告已运行；正式持久化和可操作投委会仍是未来设计 |
+| 机构组织壳 | `current/INSTITUTION_ORGANIZATION.md` | `model/institution_organization.py`、`config/institution_organization_v0.1.json`、`contracts/institution_organization_v1.json`；当前为1000万美元自营盘，行政部仅为shell |
 | 资产参考 | Contracts + ADR-002 | `model/asset_reference.py` |
 | 资本市场 | `design/FUTURE_LAYERS.md` + ADR-006 | 未注册契约 `capital_market_minimum_v1` |
 | Viewer | `current/VIEWER_PROJECTION.md` | `server.py`、完整前端 |

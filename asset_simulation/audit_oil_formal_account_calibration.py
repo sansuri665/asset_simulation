@@ -34,9 +34,13 @@ from .model.oil_trading_strategy import (
     settle_oil_strategy_turn,
 )
 from .model.registry import load_registered_assets, sha256_json
+from .model.institution_organization import (
+    initial_proprietary_capital_usd,
+    resolve_institution_organization,
+)
 
 
-CALIBRATION_VERSION = "asset-simulation-oil-formal-account-calibration-v0.1.0"
+CALIBRATION_VERSION = "asset-simulation-oil-formal-account-calibration-v0.2.0"
 DEFAULT_SEEDS = (42, 2026, 7777, 9001, 314159, 271828)
 DEFAULT_AUTHORIZATIONS = (35.0, 60.0, 85.0)
 DEFAULT_STYLES = ("reversion", "balanced", "continuation")
@@ -151,9 +155,7 @@ def _run_scenario(
     authorization_pct: float,
 ) -> dict[str, Any]:
     assets = load_registered_assets()
-    initial_equity = float(
-        assets["oil_trading_strategy_config"]["initial_reference_equity_usd"]
-    )
+    initial_equity = initial_proprietary_capital_usd(assets)
     account = create_oil_futures_account(
         account_id=f"CAL-{seed}-{style_label}-{authorization_pct:g}",
         initial_cash_usd=initial_equity,
@@ -402,6 +404,12 @@ def build_oil_formal_account_calibration_report(
 ) -> dict[str, Any]:
     if horizon_years <= 0:
         raise ValueError("calibration horizon must be positive")
+    assets = load_registered_assets()
+    organization_config, _ = resolve_institution_organization(assets)
+    capital_base = organization_config["capital_base"]
+    capacity_binding_expected = bool(
+        capital_base["market_capacity_binding_expected_at_initial_scale"]
+    )
     profiles = _strategy_style_profiles()
     unknown = set(styles) - set(profiles)
     if unknown:
@@ -515,8 +523,10 @@ def build_oil_formal_account_calibration_report(
         "median_execution_cost_between_0_and_50_bps": 0.0
         <= distributions["execution_cost_bps_of_traded_notional"]["median"]
         <= 50.0,
-        "capacity_efficiency_decay_in_at_least_60_pct_of_pairs": (
-            not capacity or capacity_efficiency_decay_share >= 0.60
+        "capacity_efficiency_decay_matches_declared_scale_expectation": (
+            not capacity_binding_expected
+            or not capacity
+            or capacity_efficiency_decay_share >= 0.60
         ),
         "higher_authorization_cost_not_lower_in_at_least_80_pct_of_pairs": (
             not capacity or capacity_cost_increase_share >= 0.80
@@ -524,7 +534,7 @@ def build_oil_formal_account_calibration_report(
     }
     result = {
         "ok": all(hard_gates.values()),
-        "schemaVersion": "asset-simulation-oil-formal-account-calibration-v1",
+        "schemaVersion": "asset-simulation-oil-formal-account-calibration-v2",
         "scope": {
             "seeds": list(map(int, seeds)),
             "horizon_years": int(horizon_years),
@@ -535,6 +545,10 @@ def build_oil_formal_account_calibration_report(
             "same_forecast_profile_across_scenarios": True,
             "same_market_and_forecast_path_within_seed": True,
             "configured_forecast_score_used_by_strategy": False,
+            "institution_type": organization_config["institution_type"],
+            "initial_proprietary_capital_usd": initial_proprietary_capital_usd(
+                assets
+            ),
         },
         "realityAnchors": {
             "contract_size_bbl": 1000,
@@ -563,6 +577,12 @@ def build_oil_formal_account_calibration_report(
             "capacity_efficiency_decay_share_pct": (
                 100.0 * capacity_efficiency_decay_share
             ),
+            "market_capacity_binding_expected_at_initial_scale": (
+                capacity_binding_expected
+            ),
+            "capacity_efficiency_decay_gate_applicable": (
+                capacity_binding_expected
+            ),
             "capacity_cost_increase_share_pct": (
                 100.0 * capacity_cost_increase_share
             ),
@@ -573,12 +593,14 @@ def build_oil_formal_account_calibration_report(
         "realism_gate_pass": all(realism_gates.values()),
         "scenarios": rows,
     }
-    assets = load_registered_assets()
     identity = {
-        "schema_version": "asset-simulation-oil-formal-account-calibration-identity-v1",
+        "schema_version": "asset-simulation-oil-formal-account-calibration-identity-v2",
         "model_version": CALIBRATION_VERSION,
         "oil_account_config_hash": assets["oil_futures_account_config_hash"],
         "oil_strategy_config_hash": assets["oil_trading_strategy_config_hash"],
+        "institution_organization_config_hash": assets[
+            "institution_organization_config_hash"
+        ],
         "oil_futures_config_hash": assets["oil_futures_overlay_config_hash"],
         "result_hash": sha256_json(result),
     }

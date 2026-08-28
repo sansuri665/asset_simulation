@@ -41,11 +41,15 @@ from .oil_strategy_thesis import (
     evaluate_oil_strategy_thesis_state,
     resolve_oil_strategy_thesis_state,
 )
+from .institution_organization import (
+    initial_proprietary_capital_usd,
+    validate_strategy_capital_reference,
+)
 from .registry import load_registered_assets, sha256_json
 
 
 OIL_TRADING_STRATEGY_MODEL_VERSION = (
-    "asset-simulation-oil-trading-strategy-v1.1.0"
+    "asset-simulation-oil-trading-strategy-v1.2.0"
 )
 STRATEGY_CONTRACT_ID = "oil_trading_strategy_v8"
 ROLE_ORDER = ("main", "next_main")
@@ -95,6 +99,7 @@ def _validate_registered_assets() -> tuple[dict[str, Any], dict[str, Any], dict[
     contract = assets["oil_trading_strategy_contract"]
     if config["model_version"] != OIL_TRADING_STRATEGY_MODEL_VERSION:
         raise ValueError("registered oil trading strategy config version mismatch")
+    validate_strategy_capital_reference(config, assets=assets)
     if contract["contract_id"] != STRATEGY_CONTRACT_ID:
         raise ValueError("registered oil trading strategy contract id mismatch")
     signal = config["signal"]
@@ -1185,7 +1190,7 @@ def build_oil_strategy_decision(
         str(key): int(value) for key, value in raw_positions.items()
     }
     current_equity = float(
-        config["initial_reference_equity_usd"]
+        initial_proprietary_capital_usd(assets)
         if equity_usd is None
         else equity_usd
     )
@@ -3471,7 +3476,7 @@ def simulate_oil_trading_strategy(
         else resolve_corporate_risk_profile(strategy_risk_profile)
     )
     positions: dict[str, int] = {}
-    initial_equity = float(config["initial_reference_equity_usd"])
+    initial_equity = initial_proprietary_capital_usd(assets)
     equity = initial_equity
     current_market = oil_futures_payload(
         global_run,

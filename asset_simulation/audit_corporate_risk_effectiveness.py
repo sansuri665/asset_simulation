@@ -36,6 +36,7 @@ from .model.oil_short_term_forecast import (
     generate_institution_profile_for_score_range,
 )
 from .model.registry import load_registered_assets
+from .model.institution_organization import initial_proprietary_capital_usd
 
 
 TURNS_PER_YEAR = 24
@@ -267,8 +268,7 @@ def _simulate_seed(
     forecast.oil_futures_payload = cached_market
     trading.oil_futures_payload = cached_market
     try:
-        config = load_registered_assets()["oil_trading_strategy_config"]
-        initial_equity = float(config["initial_reference_equity_usd"])
+        initial_equity = initial_proprietary_capital_usd()
         neutral_strategy_risk_profile = build_default_corporate_risk_profile()
         accounts = [
             [_new_account(initial_equity) for _ in risk_profiles]

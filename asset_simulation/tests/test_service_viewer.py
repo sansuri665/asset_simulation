@@ -585,6 +585,7 @@ class ServiceAndViewerTests(unittest.TestCase):
             "current/COMMODITY_LAYER.md",
             "current/CORPORATE_RISK_CONTROL.md",
             "current/OIL_INVESTMENT_COMPETITION.md",
+            "current/INSTITUTION_ORGANIZATION.md",
             "components/GLOBAL_ORDINARY_CYCLE.md",
             "design/FUTURE_LAYERS.md",
             "decisions/ADR-001-ANNUAL-SEQUENCING.md",
@@ -610,6 +611,7 @@ class ServiceAndViewerTests(unittest.TestCase):
         self.assertIn("model/corporate_risk_control.py", guide)
         self.assertIn("model/oil_strategy_risk.py", guide)
         self.assertIn("model/oil_investment_competition.py", guide)
+        self.assertIn("model/institution_organization.py", guide)
         self.assertIn("`limit: 100` 只能报告为“前 100 行”", guide)
         self.assertIn("失败的 Read 也必须在报告中列出", guide)
         self.assertIn("不得宣称“可独立实施变更”", guide)
@@ -624,6 +626,7 @@ class ServiceAndViewerTests(unittest.TestCase):
         self.assertIn("corporate_risk_control_v2", contracts_doc)
         self.assertIn("oil_strategy_risk_v1", contracts_doc)
         self.assertIn("oil_trading_strategy_v8", contracts_doc)
+        self.assertIn("institution_organization_v1", contracts_doc)
         self.assertEqual(
             "oil_strategy_research_v2",
             assets["oil_strategy_research_contract"]["contract_id"],

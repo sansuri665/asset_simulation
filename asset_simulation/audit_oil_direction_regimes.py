@@ -27,6 +27,7 @@ from .model.oil_trading_strategy import (
     build_oil_strategy_decision,
     settle_oil_strategy_turn,
 )
+from .model.institution_organization import initial_proprietary_capital_usd
 
 
 REGIMES = ("trend", "range", "turning")
@@ -88,7 +89,7 @@ def _replay_style(
     profile: Mapping[str, Any],
 ) -> list[dict[str, Any]]:
     positions: dict[str, int] = {}
-    equity = 3_000_000_000.0
+    equity = initial_proprietary_capital_usd()
     risk_state = None
     strategy_risk_state = None
     thesis_state = None
