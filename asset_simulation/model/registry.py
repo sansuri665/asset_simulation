@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
@@ -80,7 +81,15 @@ def load_json(path: Path) -> dict[str, Any]:
     return value
 
 
+@lru_cache(maxsize=1)
 def load_registered_assets() -> dict[str, Any]:
+    """Load immutable registered JSON assets once per process.
+
+    Callers must treat the returned mapping as read-only. Development
+    tools that edit registered JSON in a live process should call
+    ``clear_registered_assets_cache`` before rebuilding projections.
+    """
+
     config = load_json(DEFAULT_CONFIG_PATH)
     field_contract = load_json(FIELD_CONTRACT_PATH)
     commodity_overlay_config = load_json(COMMODITY_OVERLAY_CONFIG_PATH)
@@ -159,3 +168,9 @@ def load_registered_assets() -> dict[str, Any]:
             oil_futures_account_contract
         ),
     }
+
+
+def clear_registered_assets_cache() -> None:
+    """Forget cached registered assets after a development-time config edit."""
+
+    load_registered_assets.cache_clear()

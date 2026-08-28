@@ -20,6 +20,7 @@ from typing import Any, Iterable, Mapping
 from .commodity_overlay import run_commodity_overlay
 from .engine import GlobalMacroRun
 from .math_utils import clamp
+from .performance_cache import deterministic_projection_cache
 from .random_stream import normal
 from .registry import load_registered_assets, sha256_json
 
@@ -797,6 +798,7 @@ def _participant_limits_for_contract(
     }
 
 
+@deterministic_projection_cache(max_entries=16)
 def oil_futures_payload(
     global_run: GlobalMacroRun,
     *,

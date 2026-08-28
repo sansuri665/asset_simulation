@@ -14,7 +14,11 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import parse_qs, urlparse
 
-from .model.commodity_overlay import COMMODITY_MODEL_VERSION, commodities_payload
+from .model.commodity_overlay import (
+    COMMODITY_MODEL_VERSION,
+    commodities_payload,
+    run_commodity_overlay,
+)
 from .model.engine import MODEL_VERSION, GlobalMacroRun, run_global_macro
 from .model.oil_futures_overlay import OIL_FUTURES_MODEL_VERSION, oil_futures_payload
 from .model.oil_short_term_forecast import (
@@ -41,6 +45,7 @@ from .model.oil_investment_competition import (
     OIL_INVESTMENT_COMPETITION_MODEL_VERSION,
     OilInvestmentCompetitionSession,
 )
+from .model.registry import clear_registered_assets_cache
 
 
 SERVICE_ID = "asset-simulation-macro-ui-v5.41"
@@ -75,6 +80,9 @@ def clear_cache() -> None:
     with _CACHE_LOCK:
         _RUN_CACHE.clear()
         _COMPETITION_CACHE.clear()
+    run_commodity_overlay.cache_clear()
+    oil_futures_payload.cache_clear()
+    clear_registered_assets_cache()
 
 
 def cache_info() -> dict[str, int]:

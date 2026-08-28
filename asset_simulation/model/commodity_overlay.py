@@ -16,6 +16,7 @@ from typing import Any, Mapping
 from . import oil_commodity
 from .engine import GlobalMacroRun
 from .math_utils import clamp, round_record
+from .performance_cache import deterministic_projection_cache
 from .random_stream import normal
 from .registry import load_registered_assets, sha256_json
 
@@ -301,6 +302,7 @@ def _kind_row(
     return round_record(payload)
 
 
+@deterministic_projection_cache(max_entries=8)
 def run_commodity_overlay(global_run: GlobalMacroRun) -> CommodityOverlayRun:
     assets = load_registered_assets()
     config = assets["commodity_overlay_config"]
