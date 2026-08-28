@@ -15,6 +15,7 @@ from typing import Any, Iterable, Mapping
 from .engine import GlobalMacroRun
 from .math_utils import clamp
 from .oil_futures_overlay import oil_futures_payload
+from .oil_futures_world import get_oil_futures_world
 from .random_stream import normal
 from .registry import load_registered_assets, sha256_json
 
@@ -120,6 +121,21 @@ def build_institution_profile(
         raise ValueError("oil forecast institution_id must not be empty")
     profile["profile_hash"] = sha256_json(profile)
     return _round_nested(profile)
+
+
+def resolve_oil_short_term_institution_profile(
+    institution_profile: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    """Canonicalize a supplied/default profile through the normal validator."""
+
+    if institution_profile is None:
+        return build_institution_profile()
+    supplied = dict(institution_profile)
+    return build_institution_profile(
+        institution_id=str(supplied.get("institution_id", "")) or None,
+        display_name=str(supplied.get("display_name", "")) or None,
+        capability_radar=supplied.get("capability_radar"),
+    )
 
 
 def generate_institution_profile_for_score_range(
@@ -240,6 +256,8 @@ def _contract_history_through(
     cutoff_month: int,
     cutoff_half: int,
 ) -> list[dict[str, Any]]:
+    """Query indexed named-contract history without rebuilding a market payload."""
+
     max_year = max(int(row["year"]) for row in global_run.rows)
     requested = _half_turn_serial(cutoff_year, cutoff_month, cutoff_half)
     expiry = _half_turn_serial(expiry_year, expiry_month, 2)
@@ -247,23 +265,15 @@ def _contract_history_through(
     target = min(requested, expiry, run_end)
     target_month_serial, half_index = divmod(target, 2)
     target_year, target_month = _date_from_month_serial(target_month_serial)
-    payload = oil_futures_payload(
-        global_run,
+    monthly = get_oil_futures_world(global_run).contract_monthly_history(
+        contract_id=str(contract_id),
         as_of_year=target_year,
         as_of_month=target_month,
         as_of_half=half_index + 1,
     )
-    item = next(
-        (
-            row
-            for row in payload["curve"]["contracts"]
-            if str(row["contract_id"]) == str(contract_id)
-        ),
-        None,
-    )
-    if item is None:
+    if not monthly:
         raise ValueError(f"oil forecast target contract is unavailable: {contract_id}")
-    return _flatten_contract_weeks(item)
+    return _flatten_contract_weeks({"monthly": monthly})
 
 
 def _future_truth(
@@ -678,19 +688,12 @@ def generate_oil_short_term_forecast(
     as_of_half: int,
     institution_profile: Mapping[str, Any] | None = None,
     previous_vintage: Mapping[str, Any] | None = None,
+    market: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Publish one immutable half-month vintage for the two main contracts."""
 
     assets, config, contract = _validate_registered_assets()
-    if institution_profile is None:
-        profile = build_institution_profile()
-    else:
-        supplied = dict(institution_profile)
-        profile = build_institution_profile(
-            institution_id=str(supplied.get("institution_id", "")) or None,
-            display_name=str(supplied.get("display_name", "")) or None,
-            capability_radar=supplied.get("capability_radar"),
-        )
+    profile = resolve_oil_short_term_institution_profile(institution_profile)
     if previous_vintage is not None:
         previous_identity = previous_vintage.get("identity", {})
         if int(previous_identity.get("seed", -1)) != global_run.seed:
@@ -706,12 +709,27 @@ def generate_oil_short_term_forecast(
             int(previous_as_of.get("half", 0)),
         ) >= _half_turn_serial(as_of_year, as_of_month, as_of_half):
             raise ValueError("previous oil forecast vintage must precede the new vintage")
-    market = oil_futures_payload(
-        global_run,
-        as_of_year=as_of_year,
-        as_of_month=as_of_month,
-        as_of_half=as_of_half,
-    )
+    if market is None:
+        resolved_market = oil_futures_payload(
+            global_run,
+            as_of_year=as_of_year,
+            as_of_month=as_of_month,
+            as_of_half=as_of_half,
+        )
+    else:
+        resolved_market = market
+        market_as_of = resolved_market.get("asOf", {})
+        if (
+            int(market_as_of.get("year", -1)),
+            int(market_as_of.get("month", -1)),
+            int(market_as_of.get("half", -1)),
+        ) != (int(as_of_year), int(as_of_month), int(as_of_half)):
+            raise ValueError("supplied oil forecast market cutoff does not match")
+        if resolved_market.get("identity", {}).get(
+            "upstream_global_identity_hash"
+        ) != global_run.identity["identity_hash"]:
+            raise ValueError("supplied oil forecast market belongs to another world")
+    market = resolved_market
     selected = _selected_contracts(market)
     previous_map = _previous_prediction_map(previous_vintage)
     surprise = _realized_surprise(

@@ -21,11 +21,13 @@ from .model.commodity_overlay import (
 )
 from .model.engine import MODEL_VERSION, GlobalMacroRun, run_global_macro
 from .model.oil_futures_overlay import OIL_FUTURES_MODEL_VERSION, oil_futures_payload
+from .model.oil_futures_world import get_oil_futures_world
 from .model.oil_short_term_forecast import (
     OIL_SHORT_TERM_FORECAST_MODEL_VERSION,
     generate_institution_profile_for_score_range,
-    generate_oil_short_term_forecast,
+    resolve_oil_short_term_institution_profile,
 )
+from .model.oil_short_term_forecast_session import OilShortTermForecastSession
 from .model.oil_strategy_research import (
     OIL_STRATEGY_RESEARCH_MODEL_VERSION,
     generate_oil_strategy_research_roster,
@@ -52,10 +54,14 @@ SERVICE_ID = "asset-simulation-macro-ui-v5.41"
 VIEWER_ROOT = Path(__file__).resolve().parent / "viewer"
 MAX_CACHE_ENTRIES = 64
 MAX_COMPETITION_CACHE_ENTRIES = 8
+MAX_FORECAST_SESSION_CACHE_ENTRIES = 16
 GAME_START_CUTOFF = (2030, 1, 1)
 _RUN_CACHE: OrderedDict[tuple[int, int, str, str], GlobalMacroRun] = OrderedDict()
 _COMPETITION_CACHE: OrderedDict[
     tuple[int, int, str, str], OilInvestmentCompetitionSession
+] = OrderedDict()
+_FORECAST_SESSION_CACHE: OrderedDict[
+    tuple[str, str, str], OilShortTermForecastSession
 ] = OrderedDict()
 _CACHE_LOCK = threading.Lock()
 
@@ -80,8 +86,10 @@ def clear_cache() -> None:
     with _CACHE_LOCK:
         _RUN_CACHE.clear()
         _COMPETITION_CACHE.clear()
+        _FORECAST_SESSION_CACHE.clear()
     run_commodity_overlay.cache_clear()
     oil_futures_payload.cache_clear()
+    get_oil_futures_world.cache_clear()
     clear_registered_assets_cache()
 
 
@@ -120,6 +128,34 @@ def get_oil_investment_competition_session(
     return session
 
 
+def get_oil_short_term_forecast_session(
+    run: GlobalMacroRun,
+    institution_profile: dict[str, Any] | None = None,
+) -> OilShortTermForecastSession:
+    profile = resolve_oil_short_term_institution_profile(institution_profile)
+    key = (
+        str(run.identity["identity_hash"]),
+        str(profile["profile_hash"]),
+        OIL_SHORT_TERM_FORECAST_MODEL_VERSION,
+    )
+    with _CACHE_LOCK:
+        cached = _FORECAST_SESSION_CACHE.get(key)
+        if cached is not None:
+            _FORECAST_SESSION_CACHE.move_to_end(key)
+            return cached
+    session = OilShortTermForecastSession(run, profile)
+    with _CACHE_LOCK:
+        existing = _FORECAST_SESSION_CACHE.get(key)
+        if existing is not None:
+            _FORECAST_SESSION_CACHE.move_to_end(key)
+            return existing
+        _FORECAST_SESSION_CACHE[key] = session
+        _FORECAST_SESSION_CACHE.move_to_end(key)
+        while len(_FORECAST_SESSION_CACHE) > MAX_FORECAST_SESSION_CACHE_ENTRIES:
+            _FORECAST_SESSION_CACHE.popitem(last=False)
+    return session
+
+
 def build_oil_investment_competition_payload(
     *,
     seed: int,
@@ -127,12 +163,14 @@ def build_oil_investment_competition_payload(
     as_of_year: int,
     as_of_month: int,
     as_of_half: int,
+    history_limit: int | None = None,
 ) -> dict[str, Any]:
     session = get_oil_investment_competition_session(seed, years)
     return session.payload(
         as_of_year=as_of_year,
         as_of_month=as_of_month,
         as_of_half=as_of_half,
+        history_limit=history_limit,
     )
 
 
@@ -209,25 +247,13 @@ def build_oil_short_term_forecast_payload(
     as_of_half: int,
     institution_profile: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """Build the current game forecast and inherit the immediately prior vintage."""
+    """Build the same continuous vintage chain used by the competition runtime."""
 
-    previous_cutoff = _previous_half_month(as_of_year, as_of_month, as_of_half)
-    previous_vintage = None
-    if previous_cutoff is not None:
-        previous_vintage = generate_oil_short_term_forecast(
-            run,
-            as_of_year=previous_cutoff[0],
-            as_of_month=previous_cutoff[1],
-            as_of_half=previous_cutoff[2],
-            institution_profile=institution_profile,
-        )
-    return generate_oil_short_term_forecast(
-        run,
+    session = get_oil_short_term_forecast_session(run, institution_profile)
+    return session.payload(
         as_of_year=as_of_year,
         as_of_month=as_of_month,
         as_of_half=as_of_half,
-        institution_profile=institution_profile,
-        previous_vintage=previous_vintage,
     )
 
 
@@ -354,6 +380,11 @@ class AssetSimulationHandler(BaseHTTPRequestHandler):
                 as_of_year = int(_single_query(query, "year", "2030"))
                 as_of_month = int(_single_query(query, "month", "1"))
                 as_of_half = int(_single_query(query, "half", "1"))
+                history_limit = (
+                    int(_single_query(query, "historyLimit", "12"))
+                    if "historyLimit" in query
+                    else None
+                )
                 self._json(
                     HTTPStatus.OK,
                     build_oil_investment_competition_payload(
@@ -362,8 +393,19 @@ class AssetSimulationHandler(BaseHTTPRequestHandler):
                         as_of_year=as_of_year,
                         as_of_month=as_of_month,
                         as_of_half=as_of_half,
+                        history_limit=history_limit,
                     ),
                 )
+                return
+            if parsed.path == "/api/oil-investment-report":
+                query = parse_qs(parsed.query, keep_blank_values=True)
+                seed = int(_single_query(query, "seed", "42"))
+                years = int(_single_query(query, "years", "60"))
+                report_id = _single_query(query, "reportId", "")
+                if not report_id:
+                    raise ValueError("reportId is required")
+                session = get_oil_investment_competition_session(seed, years)
+                self._json(HTTPStatus.OK, session.report_payload(report_id))
                 return
             if parsed.path == "/api/oil-short-term-profile":
                 query = parse_qs(parsed.query, keep_blank_values=True)

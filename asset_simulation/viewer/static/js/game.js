@@ -23,6 +23,7 @@ const state = {
   instrumentId: "OIL-MAIN",
   futures: null,
   competition: null,
+  reportCache: {},
   selectedReportId: null,
   identity: null,
   resetArmed: false,
@@ -591,7 +592,7 @@ function renderGameChart(scrollToEnd = false) {
       `<text class="liquidity-label" x="${margin.left + 29}" y="${liquidityTop - 1}">OI</text>`,
     );
   }
-  for (let i = 0; i < bars.length; i++) {
+  for (let i = visible.start; i < visible.end; i++) {
     const bar = bars[i];
     const color = bar.close > bar.open ? UP_COLOR : bar.close < bar.open ? DOWN_COLOR : FLAT_COLOR;
     const center = x(i);
@@ -619,7 +620,13 @@ function renderGameChart(scrollToEnd = false) {
   }
   if (hasLiquidity) {
     const openInterestPoints = bars
-      .map((bar, index) => Number.isFinite(bar.openInterestLots) ? `${x(index)},${openInterestY(bar.openInterestLots)}` : null)
+      .slice(visible.start, visible.end)
+      .map((bar, offset) => {
+        const index = visible.start + offset;
+        return Number.isFinite(bar.openInterestLots)
+          ? `${x(index)},${openInterestY(bar.openInterestLots)}`
+          : null;
+      })
       .filter(Boolean)
       .join(" ");
     parts.push(`<polyline class="oi-line" points="${openInterestPoints}"/>`);
@@ -697,9 +704,11 @@ function reportLabel(report) {
 }
 
 function selectedTurnReport() {
-  const reports = state.competition?.report_history || [];
-  return reports.find((report) => report.report_id === state.selectedReportId)
-    || reports[0]
+  if (!state.selectedReportId) return null;
+  return state.reportCache[state.selectedReportId]
+    || (state.competition?.report_history || []).find(
+      (report) => report.report_id === state.selectedReportId,
+    )
     || null;
 }
 
@@ -717,7 +726,9 @@ function accountStatusLabel(status) {
 }
 
 function renderTurnReport() {
-  const reports = state.competition?.report_history || [];
+  const reports = state.competition?.report_catalog
+    || state.competition?.report_history
+    || [];
   const select = $("turnReportSelect");
   if (!reports.length) {
     state.selectedReportId = null;
@@ -846,6 +857,7 @@ async function requestCompetition(seed, turn) {
     year: String(cutoff.year),
     month: String(cutoff.month),
     half: String(cutoff.half),
+    historyLimit: "12",
   });
   const response = await fetch(`/api/oil-investment-competition?${query}`);
   const payload = await response.json();
@@ -857,6 +869,20 @@ async function requestCompetition(seed, turn) {
     throw new Error("投资决策竞技没有保持玩家与三家竞争对手");
   }
   return payload;
+}
+
+async function requestCompetitionReport(seed, reportId) {
+  const query = new URLSearchParams({
+    seed: String(seed),
+    years: "60",
+    reportId: String(reportId),
+  });
+  const response = await fetch(`/api/oil-investment-report?${query}`);
+  const payload = await response.json();
+  if (!response.ok || !payload.ok || !payload.report) {
+    throw new Error(payload.error || "回合报告装载失败");
+  }
+  return payload.report;
 }
 
 function applyFuturesPayload(payload) {
@@ -874,6 +900,9 @@ async function refreshWorld() {
   ]);
   applyFuturesPayload(futures);
   state.competition = competition;
+  for (const report of competition.report_history || []) {
+    state.reportCache[report.report_id] = report;
+  }
   state.selectedReportId = competition.latest_report?.report_id || null;
 }
 
@@ -936,6 +965,7 @@ async function loadWorld(seed) {
   const nextTurn = clamp(Number(stored.turn) || 0, 0, TOTAL_TURNS - 1);
   state.seed = seed;
   state.turn = nextTurn;
+  state.reportCache = {};
   await refreshWorld();
   $("gameSeedInput").value = String(seed);
   $("gameStatus").textContent = `游戏世界 · Seed ${seed}`;
@@ -1035,8 +1065,16 @@ $("gamePrimaryNav").addEventListener("click", (event) => {
   renderAll(false);
 });
 
-$("turnReportSelect").addEventListener("change", (event) => {
+$("turnReportSelect").addEventListener("change", async (event) => {
   state.selectedReportId = event.target.value || null;
+  if (state.selectedReportId && !selectedTurnReport()) {
+    try {
+      const report = await requestCompetitionReport(state.seed, state.selectedReportId);
+      state.reportCache[report.report_id] = report;
+    } catch (error) {
+      setMessage(error.message, "error");
+    }
+  }
   renderTurnReport();
 });
 

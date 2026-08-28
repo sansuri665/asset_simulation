@@ -360,6 +360,7 @@ class OilInvestmentCompetitionSession:
                 as_of_half=half,
                 institution_profile=profiles["forecast"],
                 previous_vintage=account["previous_vintage"],
+                market=self.current_market,
             )
             decision = build_oil_strategy_decision(
                 self.current_market,
@@ -672,8 +673,51 @@ class OilInvestmentCompetitionSession:
             row["rank"] = rank
         return rows
 
+    def _report_catalog(self) -> list[dict[str, Any]]:
+        return [
+            {
+                "report_id": report["report_id"],
+                "turn_number": report["turn_number"],
+                "from_as_of": dict(report["from_as_of"]),
+                "to_as_of": dict(report["to_as_of"]),
+                "winner_participant_id": report["winner_participant_id"],
+                "report_hash": report["report_hash"],
+            }
+            for report in reversed(self.reports)
+        ]
+
+    def report_payload(self, report_id: str) -> dict[str, Any]:
+        """Return one already-computed detailed report for lazy UI loading."""
+
+        requested = str(report_id)
+        with self.lock:
+            report = next(
+                (
+                    item
+                    for item in self.reports
+                    if str(item["report_id"]) == requested
+                ),
+                None,
+            )
+            if report is None:
+                raise ValueError(
+                    f"investment competition report is unavailable: {requested}"
+                )
+            return _round_nested(
+                {
+                    "ok": True,
+                    "schemaVersion": "asset-simulation-oil-investment-report-v1",
+                    "report": report,
+                }
+            )
+
     def payload(
-        self, *, as_of_year: int, as_of_month: int, as_of_half: int
+        self,
+        *,
+        as_of_year: int,
+        as_of_month: int,
+        as_of_half: int,
+        history_limit: int | None = None,
     ) -> dict[str, Any]:
         target = _half_turn_serial(as_of_year, as_of_month, as_of_half)
         start = _half_turn_serial(*GAME_START)
@@ -685,6 +729,18 @@ class OilInvestmentCompetitionSession:
             while self.current_serial < target:
                 self._advance_one()
             leaderboard = self._leaderboard()
+            if history_limit is not None:
+                if isinstance(history_limit, bool) or not isinstance(history_limit, int):
+                    raise ValueError("competition history_limit must be an integer")
+                if history_limit < 0 or history_limit > 240:
+                    raise ValueError("competition history_limit must be between 0 and 240")
+                visible_reports = (
+                    list(reversed(self.reports[-history_limit:]))
+                    if history_limit
+                    else []
+                )
+            else:
+                visible_reports = list(reversed(self.reports))
             result = {
                 "ok": True,
                 "schemaVersion": "asset-simulation-oil-investment-competition-v5",
@@ -701,7 +757,7 @@ class OilInvestmentCompetitionSession:
                 ],
                 "leaderboard": leaderboard,
                 "latest_report": self.reports[-1] if self.reports else None,
-                "report_history": list(reversed(self.reports)),
+                "report_history": visible_reports,
                 "governance": {
                     "selection_method": "seeded_random_draw_once_per_world",
                     "player_and_ai_use_same_runtime": True,
@@ -713,6 +769,12 @@ class OilInvestmentCompetitionSession:
                     "account_external_capital_flows_enabled": False,
                 },
             }
+            if history_limit is not None:
+                result["report_catalog"] = self._report_catalog()
+                result["report_history_limit"] = history_limit
+                result["report_history_complete"] = (
+                    len(visible_reports) == len(self.reports)
+                )
             identity = {
                 "schema_version": "asset-simulation-oil-investment-competition-identity-v5",
                 "model_version": OIL_INVESTMENT_COMPETITION_MODEL_VERSION,

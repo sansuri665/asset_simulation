@@ -798,8 +798,7 @@ def _participant_limits_for_contract(
     }
 
 
-@deterministic_projection_cache(max_entries=16)
-def oil_futures_payload(
+def _rebuild_oil_futures_payload(
     global_run: GlobalMacroRun,
     *,
     as_of_year: int,
@@ -1121,3 +1120,21 @@ def oil_futures_payload(
         "result_hash": sha256_json(result),
     }
     return _round_nested({"ok": True, "identity": identity, **result})
+
+@deterministic_projection_cache(max_entries=16)
+def oil_futures_payload(
+    global_run: GlobalMacroRun,
+    *,
+    as_of_year: int,
+    as_of_month: int,
+    as_of_half: int = 2,
+) -> dict[str, Any]:
+    """Publish one cutoff from the shared incremental futures world."""
+
+    from .oil_futures_world import get_oil_futures_world
+
+    return get_oil_futures_world(global_run).payload(
+        as_of_year=as_of_year,
+        as_of_month=as_of_month,
+        as_of_half=as_of_half,
+    )
