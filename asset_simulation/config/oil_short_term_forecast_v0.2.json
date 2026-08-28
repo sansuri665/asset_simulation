@@ -1,0 +1,177 @@
+{
+  "schema_version": "asset-simulation-oil-short-term-forecast-config-v2",
+  "config_id": "asset-simulation-oil-short-term-forecast-base-v0.2.0",
+  "model_version": "asset-simulation-oil-short-term-forecast-v0.2.0",
+  "default_institution": {
+    "institution_id": "northstar_research",
+    "display_name": "北辰研究",
+    "capability_radar": {
+      "direction": 72,
+      "path": 70,
+      "turning_points": 64,
+      "range": 68,
+      "term_structure": 73,
+      "revision": 67
+    },
+    "research_style": {
+      "trend_reversion_bias": 50,
+      "fundamental_market_bias": 50,
+      "confirmation_lead_bias": 50,
+      "confidence_style": 50,
+      "revision_style": 50
+    }
+  },
+  "capability_dimensions": [
+    "direction",
+    "path",
+    "turning_points",
+    "range",
+    "term_structure",
+    "revision"
+  ],
+  "research_style_dimensions": [
+    "trend_reversion_bias",
+    "fundamental_market_bias",
+    "confirmation_lead_bias",
+    "confidence_style",
+    "revision_style"
+  ],
+  "profile_generation": {
+    "default_score_min": 65,
+    "default_score_max": 75,
+    "minimum_total_score": 0,
+    "maximum_total_score": 100,
+    "maximum_dimension_distance_points": 30,
+    "idiosyncratic_scale_points": 3.5,
+    "latent_clip_sigma": 1.8,
+    "latent_traits": [
+      "directional_reasoning",
+      "path_modeling",
+      "turning_point_sense",
+      "volatility_modeling",
+      "curve_specialization",
+      "adaptive_learning"
+    ],
+    "latent_loadings": {
+      "direction": {
+        "directional_reasoning": 10,
+        "path_modeling": 3,
+        "turning_point_sense": 1.5,
+        "adaptive_learning": 1
+      },
+      "path": {
+        "directional_reasoning": 4,
+        "path_modeling": 10,
+        "turning_point_sense": 2.5,
+        "volatility_modeling": 2,
+        "adaptive_learning": 1
+      },
+      "turning_points": {
+        "directional_reasoning": 1.5,
+        "path_modeling": 2,
+        "turning_point_sense": 13,
+        "adaptive_learning": 4
+      },
+      "range": {
+        "path_modeling": 2.5,
+        "turning_point_sense": 1,
+        "volatility_modeling": 13.5,
+        "adaptive_learning": 1
+      },
+      "term_structure": {
+        "directional_reasoning": 1.5,
+        "path_modeling": 1,
+        "curve_specialization": 15,
+        "adaptive_learning": 1
+      },
+      "revision": {
+        "path_modeling": 1,
+        "turning_point_sense": 2,
+        "adaptive_learning": 15
+      }
+    }
+  },
+  "research_style_generation": {
+    "dimension_floor": 5,
+    "dimension_ceiling": 95,
+    "idiosyncratic_scale_points": 3.0,
+    "latent_clip_sigma": 1.8,
+    "latent_traits": [
+      "trend_orientation",
+      "market_orientation",
+      "anticipation",
+      "conviction",
+      "adaptiveness"
+    ],
+    "latent_loadings": {
+      "trend_reversion_bias": {
+        "trend_orientation": 20,
+        "market_orientation": 2
+      },
+      "fundamental_market_bias": {
+        "market_orientation": 21,
+        "trend_orientation": 2
+      },
+      "confirmation_lead_bias": {
+        "anticipation": 18,
+        "conviction": 6,
+        "adaptiveness": 2
+      },
+      "confidence_style": {
+        "conviction": 19,
+        "anticipation": 4,
+        "adaptiveness": -2
+      },
+      "revision_style": {
+        "adaptiveness": 20,
+        "conviction": -4,
+        "anticipation": 2
+      }
+    }
+  },
+  "error_model": {
+    "path_error_log_scale": 0.095,
+    "direction_error_annual_log_scale": 0.16,
+    "contract_error_log_scale": 0.028,
+    "term_structure_error_log_scale": 0.05,
+    "range_error_log_scale": 0.62,
+    "max_horizon_scale": 2.8,
+    "timing_shift_max_weeks": 3,
+    "timing_truth_mix_max": 0.82,
+    "minimum_weekly_range_log": 0.006,
+    "maximum_weekly_range_log": 0.28,
+    "confidence_base_pct": 2.2,
+    "confidence_horizon_scale_pct": 1.25,
+    "baseline_behavior": {
+      "directional_bias_annual_pct": 0.0,
+      "trend_extrapolation": 0.1,
+      "mean_reversion": 0.1,
+      "volatility_multiplier": 1.0,
+      "curve_bias_annual_pct": 0.0,
+      "timing_lead_weeks": 0.0,
+      "revision_speed": 1.0,
+      "thesis_persistence": 0.55,
+      "confidence_bias_pct": 0.0
+    }
+  },
+  "scoring": {
+    "dimension_weights": {
+      "direction": 20,
+      "path": 30,
+      "turning_points": 15,
+      "range": 15,
+      "term_structure": 15,
+      "revision": 5
+    },
+    "role_weights": {
+      "main": 0.65,
+      "next_main": 0.35
+    },
+    "path_error_scale_log": 0.085,
+    "range_error_scale_ratio": 0.55,
+    "term_structure_error_scale_log": 0.03,
+    "turning_point_error_scale_weeks": 2.5,
+    "direction_flat_threshold_log": 0.0025,
+    "revision_error_floor_log": 0.008
+  }
+}

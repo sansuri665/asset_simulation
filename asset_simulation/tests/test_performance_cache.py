@@ -6,7 +6,6 @@ from time import sleep
 import unittest
 
 from asset_simulation.model.commodity_overlay import run_commodity_overlay
-from asset_simulation.model.engine import run_global_macro
 from asset_simulation.model.oil_futures_overlay import oil_futures_payload
 from asset_simulation.model.oil_investment_competition import (
     OilInvestmentCompetitionSession,
@@ -18,6 +17,7 @@ from asset_simulation.model.registry import (
     sha256_json,
 )
 from asset_simulation.server import clear_cache
+from asset_simulation.tests.support import cached_global_run
 
 
 class PerformanceCacheTests(unittest.TestCase):
@@ -38,7 +38,7 @@ class PerformanceCacheTests(unittest.TestCase):
         self.assertEqual(first, third)
 
     def test_commodity_projection_reuses_identical_world(self) -> None:
-        run = run_global_macro(42, 6)
+        run = cached_global_run(42, 6)
         first = run_commodity_overlay(run)
         second = run_commodity_overlay(run)
         self.assertIs(first, second)
@@ -47,7 +47,7 @@ class PerformanceCacheTests(unittest.TestCase):
         self.assertGreaterEqual(info["hits"], 1)
 
     def test_oil_futures_projection_reuses_identical_cutoff(self) -> None:
-        run = run_global_macro(42, 6)
+        run = cached_global_run(42, 6)
         first = oil_futures_payload(
             run,
             as_of_year=2030,
@@ -73,7 +73,7 @@ class PerformanceCacheTests(unittest.TestCase):
         self.assertGreaterEqual(info["hits"], 1)
 
     def test_service_clear_cache_clears_downstream_projection_caches(self) -> None:
-        run = run_global_macro(42, 6)
+        run = cached_global_run(42, 6)
         run_commodity_overlay(run)
         oil_futures_payload(
             run,
@@ -102,7 +102,7 @@ class PerformanceCacheTests(unittest.TestCase):
         )
 
     def test_cache_clear_does_not_change_deterministic_market_result(self) -> None:
-        run = run_global_macro(42, 6)
+        run = cached_global_run(42, 6)
         first = oil_futures_payload(
             run,
             as_of_year=2030,
@@ -120,7 +120,7 @@ class PerformanceCacheTests(unittest.TestCase):
         self.assertEqual(first, rebuilt)
 
     def test_competition_pipeline_does_not_mutate_cached_inputs(self) -> None:
-        run = run_global_macro(42, 60)
+        run = cached_global_run(42, 60)
         assets = load_registered_assets()
         market = oil_futures_payload(
             run,

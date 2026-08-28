@@ -89,7 +89,7 @@ v0.7 发布统一的“全球巨型机构”参与者限额。常态单合约净
 - 契约：`contracts/commodity_overlay_v1.json`、`contracts/oil_futures_overlay_v8.json`
 - 期限结构审计：`audit_oil_futures_curve.py`
 - 公式：`model/commodity_overlay.py`、`model/oil_futures_overlay.py`、原油年振幅 `model/oil_commodity.py` 的 `annual_price_envelope`、月线展开 `expand_annual_to_months`、周线展开 `expand_month_to_weeks`
-- 短期预测：`model/oil_short_term_forecast.py`、`config/oil_short_term_forecast_v0.1.json`、`contracts/oil_short_term_forecast_v1.json`
+- 短期预测：`model/oil_short_term_forecast.py`、`model/oil_forecast_research_profile.py`、`config/oil_short_term_forecast_v0.2.json`、`contracts/oil_short_term_forecast_v2.json`
 - 策略研究：`model/oil_strategy_research.py`、`config/oil_strategy_research_v0.2.json`、`contracts/oil_strategy_research_v2.json`
 - 策略风控：`model/oil_strategy_risk.py`、`config/oil_strategy_risk_v0.1.json`、`contracts/oil_strategy_risk_v1.json`
 - 基础策略：`model/oil_trading_strategy.py`、`model/oil_strategy_thesis.py`、`config/oil_trading_strategy_v1.1.json`、`contracts/oil_trading_strategy_v8.json`

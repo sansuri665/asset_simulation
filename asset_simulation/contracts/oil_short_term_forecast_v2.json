@@ -1,0 +1,126 @@
+{
+  "contract_id": "oil_short_term_forecast_v2",
+  "schema_version": "asset-simulation-oil-short-term-forecast-contract-v2",
+  "role": "Synthetic forecast-research department profiles and immutable short-horizon forecasts for the current and next oil main contracts.",
+  "identity_fields": [
+    "seed",
+    "as_of_year",
+    "as_of_month",
+    "as_of_half",
+    "institution_id",
+    "vintage_id"
+  ],
+  "capability_fields": {
+    "direction": {
+      "unit": "score_0_100"
+    },
+    "path": {
+      "unit": "score_0_100"
+    },
+    "turning_points": {
+      "unit": "score_0_100"
+    },
+    "range": {
+      "unit": "score_0_100"
+    },
+    "term_structure": {
+      "unit": "score_0_100"
+    },
+    "revision": {
+      "unit": "score_0_100"
+    },
+    "capability_total_score": {
+      "unit": "score_0_100",
+      "note": "Internal weighted summary used for synthetic-demo generation constraints; not a player-facing recruitment rating."
+    }
+  },
+  "research_style_fields": {
+    "trend_reversion_bias": {
+      "unit": "preference_0_100",
+      "high_end": "trend_extrapolation"
+    },
+    "fundamental_market_bias": {
+      "unit": "preference_0_100",
+      "high_end": "market_price_action"
+    },
+    "confirmation_lead_bias": {
+      "unit": "preference_0_100",
+      "high_end": "anticipatory"
+    },
+    "confidence_style": {
+      "unit": "preference_0_100",
+      "high_end": "high_conviction"
+    },
+    "revision_style": {
+      "unit": "preference_0_100",
+      "high_end": "fast_repricing"
+    }
+  },
+  "forecast_fields": {
+    "weekly[].open": {
+      "unit": "usd_per_bbl"
+    },
+    "weekly[].high": {
+      "unit": "usd_per_bbl"
+    },
+    "weekly[].low": {
+      "unit": "usd_per_bbl"
+    },
+    "weekly[].close": {
+      "unit": "usd_per_bbl"
+    },
+    "weekly[].confidence_low": {
+      "unit": "usd_per_bbl"
+    },
+    "weekly[].confidence_high": {
+      "unit": "usd_per_bbl"
+    },
+    "weekly[].horizon_weeks": {
+      "unit": "weeks"
+    },
+    "weekly[].revision_pct": {
+      "unit": "percent"
+    }
+  },
+  "score_fields": {
+    "direction": {
+      "unit": "score_0_100"
+    },
+    "path": {
+      "unit": "score_0_100"
+    },
+    "turning_points": {
+      "unit": "score_0_100",
+      "nullable": true
+    },
+    "range": {
+      "unit": "score_0_100"
+    },
+    "term_structure": {
+      "unit": "score_0_100",
+      "nullable": true
+    },
+    "revision": {
+      "unit": "score_0_100",
+      "nullable": true
+    },
+    "overall": {
+      "unit": "score_0_100",
+      "nullable": true
+    }
+  },
+  "invariants": [
+    "capability scores are hidden runtime skill parameters and research-style scores are hidden preferences, not player-facing recruitment ratings",
+    "research-style dimensions have no total score and no style value is universally better",
+    "capability correlations arise from shared latent professional traits plus idiosyncratic variation rather than hard pairwise compatibility bonuses",
+    "research style affects only the institution forecast process and never writes directly to strategy sizing, risk approval, execution, or market prices",
+    "the forecast covers only the current main and next-main named contracts",
+    "the continuous main series remains non-tradable and is never a forecast target",
+    "each vintage predicts only weeks after its half-month information cutoff",
+    "forecast OHLC always satisfies low <= min(open, close) <= max(open, close) <= high",
+    "ordinary forecast output contains no hidden actual future bars",
+    "scores use only weeks realized by the evaluation cutoff",
+    "historical vintages remain immutable so later revisions cannot overwrite prior forecasts",
+    "the forecast and its scores never write back to oil prices, liquidity, macro rows, or player positions"
+  ]
+}

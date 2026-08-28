@@ -17,10 +17,10 @@ COMMODITY_OVERLAY_CONTRACT_PATH = PACKAGE_ROOT / "contracts" / "commodity_overla
 OIL_FUTURES_OVERLAY_CONFIG_PATH = PACKAGE_ROOT / "config" / "oil_futures_overlay_v0.8.json"
 OIL_FUTURES_OVERLAY_CONTRACT_PATH = PACKAGE_ROOT / "contracts" / "oil_futures_overlay_v8.json"
 OIL_SHORT_TERM_FORECAST_CONFIG_PATH = (
-    PACKAGE_ROOT / "config" / "oil_short_term_forecast_v0.1.json"
+    PACKAGE_ROOT / "config" / "oil_short_term_forecast_v0.2.json"
 )
 OIL_SHORT_TERM_FORECAST_CONTRACT_PATH = (
-    PACKAGE_ROOT / "contracts" / "oil_short_term_forecast_v1.json"
+    PACKAGE_ROOT / "contracts" / "oil_short_term_forecast_v2.json"
 )
 OIL_STRATEGY_RESEARCH_CONFIG_PATH = (
     PACKAGE_ROOT / "config" / "oil_strategy_research_v0.2.json"

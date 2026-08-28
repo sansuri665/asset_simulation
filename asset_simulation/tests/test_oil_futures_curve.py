@@ -4,9 +4,10 @@ import math
 import unittest
 
 from asset_simulation.audit_oil_futures_curve import audit_seed_range
-from asset_simulation.model.engine import run_global_macro
 from asset_simulation.model import oil_futures_overlay as futures
+from asset_simulation.model.oil_futures_world import get_oil_futures_world
 from asset_simulation.model.registry import load_registered_assets
+from asset_simulation.tests.support import cached_global_run
 
 
 class OilFuturesCurveTests(unittest.TestCase):
@@ -39,9 +40,18 @@ class OilFuturesCurveTests(unittest.TestCase):
             month=6,
             curve_config=self.curve_config,
         )
-        self.assertGreater(tight["convenience_yield_pct"], loose["convenience_yield_pct"])
-        self.assertLess(tight["long_slope_target_pct"], loose["long_slope_target_pct"])
-        self.assertLess(tight["near_pressure_target_pct"], loose["near_pressure_target_pct"])
+        self.assertGreater(
+            tight["convenience_yield_pct"],
+            loose["convenience_yield_pct"],
+        )
+        self.assertLess(
+            tight["long_slope_target_pct"],
+            loose["long_slope_target_pct"],
+        )
+        self.assertLess(
+            tight["near_pressure_target_pct"],
+            loose["near_pressure_target_pct"],
+        )
 
     def test_basis_is_continuous_and_zero_at_final_settlement(self) -> None:
         factors = {
@@ -50,28 +60,44 @@ class OilFuturesCurveTests(unittest.TestCase):
             "curvature_pct": 0.8,
         }
         at_expiry = futures._log_basis_pct(
-            0.0, factors=factors, curve_config=self.curve_config
+            0.0,
+            factors=factors,
+            curve_config=self.curve_config,
         )
         two_weeks = futures._log_basis_pct(
-            0.5 / 12.0, factors=factors, curve_config=self.curve_config
+            0.5 / 12.0,
+            factors=factors,
+            curve_config=self.curve_config,
         )
         one_month = futures._log_basis_pct(
-            1.0 / 12.0, factors=factors, curve_config=self.curve_config
+            1.0 / 12.0,
+            factors=factors,
+            curve_config=self.curve_config,
         )
         self.assertEqual(0.0, at_expiry)
         self.assertLess(abs(two_weeks), abs(one_month))
         self.assertTrue(math.isfinite(one_month))
 
     def test_public_payload_exposes_registered_v8_curve_inputs(self) -> None:
-        run = run_global_macro(seed=42, years=5)
+        run = cached_global_run(seed=42, years=5)
         payload = futures.oil_futures_payload(
-            run, as_of_year=2030, as_of_month=1, as_of_half=1
+            run,
+            as_of_year=2030,
+            as_of_month=1,
+            as_of_half=1,
         )
-        self.assertEqual("asset-simulation-oil-futures-response-v8", payload["schemaVersion"])
         self.assertEqual(
-            "oil_futures_overlay_v8", payload["identity"]["field_contract_id"]
+            "asset-simulation-oil-futures-response-v8",
+            payload["schemaVersion"],
         )
-        self.assertIn("convenience_yield_pct", payload["curve"]["inputs"])
+        self.assertEqual(
+            "oil_futures_overlay_v8",
+            payload["identity"]["field_contract_id"],
+        )
+        self.assertIn(
+            "convenience_yield_pct",
+            payload["curve"]["inputs"],
+        )
         self.assertAlmostEqual(
             payload["curve"]["inputs"]["long_slope_target_pct"],
             payload["curve"]["inputs"]["funding_pct"]
@@ -80,6 +106,73 @@ class OilFuturesCurveTests(unittest.TestCase):
             - payload["curve"]["inputs"]["convenience_yield_pct"],
             places=7,
         )
+
+    def test_incremental_world_matches_retained_rebuild_at_key_cutoffs(self) -> None:
+        run = cached_global_run(42, 12)
+        for year, month, half in (
+            (2030, 1, 1),
+            (2030, 1, 2),
+            (2030, 5, 1),
+            (2030, 5, 2),
+            (2031, 12, 2),
+        ):
+            with self.subTest(cutoff=(year, month, half)):
+                expected = futures._rebuild_oil_futures_payload(
+                    run,
+                    as_of_year=year,
+                    as_of_month=month,
+                    as_of_half=half,
+                )
+                actual = futures.oil_futures_payload(
+                    run,
+                    as_of_year=year,
+                    as_of_month=month,
+                    as_of_half=half,
+                )
+                self.assertEqual(expected, actual)
+
+    def test_future_extension_does_not_change_an_earlier_public_view(self) -> None:
+        run = cached_global_run(42, 12)
+        world = get_oil_futures_world(run)
+        early = futures.oil_futures_payload(
+            run,
+            as_of_year=2030,
+            as_of_month=1,
+            as_of_half=1,
+        )
+
+        world.ensure(year=2035, month=12, half=2)
+        futures.oil_futures_payload.cache_clear()
+        rebuilt_early = futures.oil_futures_payload(
+            run,
+            as_of_year=2030,
+            as_of_month=1,
+            as_of_half=1,
+        )
+
+        self.assertEqual(early, rebuilt_early)
+
+    def test_indexed_named_contract_history_matches_retained_rebuild(self) -> None:
+        run = cached_global_run(42, 12)
+        monthly = get_oil_futures_world(run).contract_monthly_history(
+            contract_id="OIL-3005",
+            as_of_year=2030,
+            as_of_month=5,
+            as_of_half=2,
+        )
+        legacy = futures._rebuild_oil_futures_payload(
+            run,
+            as_of_year=2030,
+            as_of_month=5,
+            as_of_half=2,
+        )
+        legacy_contract = next(
+            item
+            for item in legacy["curve"]["contracts"]
+            if item["contract_id"] == "OIL-3005"
+        )
+
+        self.assertEqual(legacy_contract["monthly"], monthly)
 
     def test_small_cross_seed_balance_audit_passes(self) -> None:
         report = audit_seed_range(seed_start=0, seed_end=11, years=60)

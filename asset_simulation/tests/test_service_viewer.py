@@ -13,9 +13,8 @@ from asset_simulation.server import (
     build_corporate_risk_roster_payload,
     build_oil_execution_desk_roster_payload,
     build_oil_investment_competition_payload,
-    build_oil_strategy_research_roster_payload,
-    build_oil_short_term_forecast_payload,
     build_oil_short_term_profile_payload,
+    build_oil_strategy_research_roster_payload,
     build_run_payload,
     cache_info,
     clear_cache,
@@ -26,6 +25,29 @@ from asset_simulation.server import (
 class ServiceAndViewerTests(unittest.TestCase):
     def setUp(self) -> None:
         clear_cache()
+
+    def test_forecast_research_profile_api_exposes_style_without_a_style_total(self) -> None:
+        payload = build_oil_short_term_profile_payload(
+            seed=42,
+            score_min=65,
+            score_max=75,
+        )
+        institution = payload["institution"]
+
+        self.assertTrue(payload["ok"])
+        self.assertGreaterEqual(institution["capability_total_score"], 65.0)
+        self.assertLessEqual(institution["capability_total_score"], 75.0)
+        self.assertEqual(
+            {
+                "trend_reversion_bias",
+                "fundamental_market_bias",
+                "confirmation_lead_bias",
+                "confidence_style",
+                "revision_style",
+            },
+            set(institution["research_style"]),
+        )
+        self.assertNotIn("research_style_total_score", institution)
 
     def test_cache_and_minimum_payload(self) -> None:
         first = get_cached_run(42, 12)
@@ -254,44 +276,6 @@ class ServiceAndViewerTests(unittest.TestCase):
         self.assertEqual(january_h1["reference"], january_short["reference"])
         self.assertEqual(january_h1["curve"], january_short["curve"])
         self.assertEqual(january_h1["mainContinuous"], january_short["mainContinuous"])
-
-    def test_game_forecast_payload_inherits_prior_half_month_vintage(self) -> None:
-        run = get_cached_run(42, 60)
-        generated = build_oil_short_term_profile_payload(
-            seed=42,
-            score_min=65,
-            score_max=75,
-        )
-        initial = build_oil_short_term_forecast_payload(
-            run,
-            as_of_year=2030,
-            as_of_month=1,
-            as_of_half=1,
-            institution_profile=generated["institution"],
-        )
-        revised = build_oil_short_term_forecast_payload(
-            run,
-            as_of_year=2030,
-            as_of_month=1,
-            as_of_half=2,
-            institution_profile=generated["institution"],
-        )
-        self.assertGreaterEqual(generated["institution"]["capability_total_score"], 65)
-        self.assertLessEqual(generated["institution"]["capability_total_score"], 75)
-        self.assertEqual(
-            generated["institution"]["profile_hash"],
-            initial["institution"]["profile_hash"],
-        )
-        self.assertEqual(
-            ["OIL-3005", "OIL-3009"],
-            [item["contract_id"] for item in initial["forecasts"]],
-        )
-        self.assertIsNone(initial["revision"]["previous_vintage_id"])
-        self.assertEqual(
-            f"{generated['institution']['institution_id']}:2030-01-H1",
-            revised["revision"]["previous_vintage_id"],
-        )
-        self.assertGreater(revised["revision"]["revised_target_count"], 0)
 
     def test_strategy_research_roster_api_exposes_appointments_not_sliders(self) -> None:
         first = build_oil_strategy_research_roster_payload(

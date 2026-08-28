@@ -12,7 +12,7 @@
 | `global_macro_minimum_v3` | 全球 v0.8.1 | 全球最小年度快照 |
 | `commodity_overlay_v1` | 商品 v0.1.2 | 只读商品种类、合约和合成月／周路径 |
 | `oil_futures_overlay_v8` | 原油期货 v0.8.0 | 半月01／05／09期限结构、流动性和限额 |
-| `oil_short_term_forecast_v1` | 短期预测 v0.1.3 | 双合约周线预测、能力和评分 |
+| `oil_short_term_forecast_v2` | 短期预测 v0.2.0 | 双合约周线预测、隐藏专业能力、研究风格和评分 |
 | `oil_strategy_research_v2` | 策略研究 v0.2.0 | 八维无总分负责人档案 |
 | `oil_strategy_risk_v1` | 策略风控 v0.1.0 | 单策略风险审阅、投委会批准与资金授权 |
 | `corporate_risk_control_v2` | 公司风控 v0.2.0 | 六维公司总要求和组合目标审批 |
@@ -96,7 +96,7 @@
 
 ## 5. 预测研究
 
-`oil_short_term_forecast_v1` 覆盖当前主力和下一主力两个命名合约，价格为美元／桶，能力与评分为0—100分。
+`oil_short_term_forecast_v2` 覆盖当前主力和下一主力两个命名合约，价格为美元／桶；隐藏专业能力与事后评分为0—100分，研究风格为没有总分和统一优劣方向的0—100偏好。
 
 - 半月 vintage 只包含截点后的预测周；
 - 当前普通预测对象不含未来真实行情；

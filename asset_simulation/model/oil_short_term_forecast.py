@@ -14,6 +14,12 @@ from typing import Any, Iterable, Mapping
 
 from .engine import GlobalMacroRun
 from .math_utils import clamp
+from .oil_forecast_research_profile import (
+    FORECAST_RESEARCH_STYLE_DIMENSIONS,
+    generate_forecast_research_profile,
+    research_behavior,
+    validate_research_style,
+)
 from .oil_futures_overlay import oil_futures_payload
 from .oil_futures_world import get_oil_futures_world
 from .random_stream import normal
@@ -21,7 +27,7 @@ from .registry import load_registered_assets, sha256_json
 
 
 OIL_SHORT_TERM_FORECAST_MODEL_VERSION = (
-    "asset-simulation-oil-short-term-forecast-v0.1.3"
+    "asset-simulation-oil-short-term-forecast-v0.2.0"
 )
 RADAR_DIMENSIONS = (
     "direction",
@@ -31,6 +37,7 @@ RADAR_DIMENSIONS = (
     "term_structure",
     "revision",
 )
+RESEARCH_STYLE_DIMENSIONS = FORECAST_RESEARCH_STYLE_DIMENSIONS
 ROLE_ORDER = ("main", "next_main")
 
 
@@ -76,10 +83,12 @@ def _validate_registered_assets() -> tuple[dict[str, Any], dict[str, Any], dict[
     contract = assets["oil_short_term_forecast_contract"]
     if config["model_version"] != OIL_SHORT_TERM_FORECAST_MODEL_VERSION:
         raise ValueError("registered oil short-term forecast config version mismatch")
-    if contract["contract_id"] != "oil_short_term_forecast_v1":
+    if contract["contract_id"] != "oil_short_term_forecast_v2":
         raise ValueError("registered oil short-term forecast contract id mismatch")
     if tuple(config["capability_dimensions"]) != RADAR_DIMENSIONS:
         raise ValueError("oil short-term capability dimensions are out of contract order")
+    if tuple(config["research_style_dimensions"]) != RESEARCH_STYLE_DIMENSIONS:
+        raise ValueError("oil forecast research style dimensions are out of contract order")
     weights = config["scoring"]["dimension_weights"]
     if set(weights) != set(RADAR_DIMENSIONS) or not math.isclose(
         sum(float(value) for value in weights.values()), 100.0
@@ -93,29 +102,55 @@ def build_institution_profile(
     institution_id: str | None = None,
     display_name: str | None = None,
     capability_radar: Mapping[str, float] | None = None,
+    research_style: Mapping[str, float] | None = None,
 ) -> dict[str, Any]:
-    """Resolve one institution from six direct radar values and a total score."""
+    """Resolve one hidden forecast-research profile.
+
+    Capability dimensions are skills. Research-style dimensions are preferences
+    with no total score and no universally superior endpoint.
+    """
 
     _, config, _ = _validate_registered_assets()
     default = config["default_institution"]
-    radar_source = default["capability_radar"] if capability_radar is None else capability_radar
-    radar = {key: float(value) for key, value in dict(radar_source).items()}
+    radar_source = (
+        default["capability_radar"]
+        if capability_radar is None
+        else capability_radar
+    )
+    radar = {
+        key: float(value)
+        for key, value in dict(radar_source).items()
+    }
     unknown_capabilities = set(radar) - set(RADAR_DIMENSIONS)
     if unknown_capabilities:
         raise KeyError(
             f"unknown oil forecast capability dimensions: {sorted(unknown_capabilities)}"
         )
     for key in RADAR_DIMENSIONS:
-        if key not in radar or not math.isfinite(radar[key]) or not 0.0 <= radar[key] <= 100.0:
-            raise ValueError(f"oil forecast capability {key} must be between 0 and 100")
+        if (
+            key not in radar
+            or not math.isfinite(radar[key])
+            or not 0.0 <= radar[key] <= 100.0
+        ):
+            raise ValueError(
+                f"oil forecast capability {key} must be between 0 and 100"
+            )
+    style = validate_research_style(
+        research_style,
+        default_style=default.get("research_style"),
+    )
     weights = config["scoring"]["dimension_weights"]
-    total_score = sum(float(weights[key]) * radar[key] for key in RADAR_DIMENSIONS) / 100.0
+    total_score = (
+        sum(float(weights[key]) * radar[key] for key in RADAR_DIMENSIONS)
+        / 100.0
+    )
 
     profile = {
         "institution_id": str(institution_id or default["institution_id"]),
         "display_name": str(display_name or default["display_name"]),
         "capability_radar": radar,
         "capability_total_score": total_score,
+        "research_style": style,
     }
     if not profile["institution_id"]:
         raise ValueError("oil forecast institution_id must not be empty")
@@ -126,7 +161,7 @@ def build_institution_profile(
 def resolve_oil_short_term_institution_profile(
     institution_profile: Mapping[str, Any] | None,
 ) -> dict[str, Any]:
-    """Canonicalize a supplied/default profile through the normal validator."""
+    """Canonicalize a supplied/default hidden research profile."""
 
     if institution_profile is None:
         return build_institution_profile()
@@ -135,6 +170,7 @@ def resolve_oil_short_term_institution_profile(
         institution_id=str(supplied.get("institution_id", "")) or None,
         display_name=str(supplied.get("display_name", "")) or None,
         capability_radar=supplied.get("capability_radar"),
+        research_style=supplied.get("research_style"),
     )
 
 
@@ -144,82 +180,39 @@ def generate_institution_profile_for_score_range(
     score_min: float,
     score_max: float,
 ) -> dict[str, Any]:
-    """Generate one stable six-dimensional profile inside a wished total range."""
+    """Generate one stable specialized forecast-research profile.
+
+    The score range remains only as a broad compatibility constraint for the
+    current synthetic-demo API. Specialization and research style are generated
+    by independent latent professional traits.
+    """
 
     _, config, _ = _validate_registered_assets()
-    policy = config["profile_generation"]
+    generated = generate_forecast_research_profile(
+        seed=int(seed),
+        score_min=float(score_min),
+        score_max=float(score_max),
+        capability_dimensions=RADAR_DIMENSIONS,
+        weights=config["scoring"]["dimension_weights"],
+        profile_generation=config["profile_generation"],
+        style_generation=config["research_style_generation"],
+    )
     lower = float(score_min)
     upper = float(score_max)
-    if not math.isfinite(lower) or not math.isfinite(upper):
-        raise ValueError("oil forecast requested score range must be finite")
-    if lower < float(policy["minimum_total_score"]) or upper > float(
-        policy["maximum_total_score"]
-    ):
-        raise ValueError("oil forecast requested score range must stay between 0 and 100")
-    if lower > upper:
-        raise ValueError("oil forecast requested score minimum must not exceed maximum")
-
-    address = f"oil_short_forecast.profile.{lower:.2f}.{upper:.2f}"
-    target_uniform = 0.5 * (
-        1.0 + math.erf(normal(int(seed), f"{address}.total", 0) / math.sqrt(2.0))
-    )
-    target_total = lower + (upper - lower) * target_uniform
-    weights = config["scoring"]["dimension_weights"]
-    spread = float(policy["dimension_spread_points"])
-    maximum_distance = float(policy["maximum_dimension_distance_points"])
-    raw = {
-        key: clamp(
-            normal(int(seed), f"{address}.{key}", index),
-            -maximum_distance / max(spread, 1e-9),
-            maximum_distance / max(spread, 1e-9),
-        )
-        for index, key in enumerate(RADAR_DIMENSIONS)
-    }
-    weighted_raw_mean = sum(
-        float(weights[key]) * raw[key] for key in RADAR_DIMENSIONS
-    ) / 100.0
-    floor = max(0.0, target_total - maximum_distance)
-    ceiling = min(100.0, target_total + maximum_distance)
-    radar = {
-        key: clamp(
-            target_total + spread * (raw[key] - weighted_raw_mean),
-            floor,
-            ceiling,
-        )
-        for key in RADAR_DIMENSIONS
-    }
-
-    for _ in range(8):
-        current_total = sum(
-            float(weights[key]) * radar[key] for key in RADAR_DIMENSIONS
-        ) / 100.0
-        delta = target_total - current_total
-        if abs(delta) < 1e-9:
-            break
-        adjustable = [
-            key
-            for key in RADAR_DIMENSIONS
-            if (delta > 0 and radar[key] < ceiling)
-            or (delta < 0 and radar[key] > floor)
-        ]
-        if not adjustable:
-            break
-        adjustable_weight = sum(float(weights[key]) for key in adjustable)
-        common_shift = delta * 100.0 / adjustable_weight
-        for key in adjustable:
-            radar[key] = clamp(radar[key] + common_shift, floor, ceiling)
-
     profile = build_institution_profile(
         institution_id=(
             f"generated_research_{int(seed)}_{int(round(lower * 10))}_"
             f"{int(round(upper * 10))}"
         ),
         display_name=f"合成研究机构 {abs(int(seed)) % 1_000_000:06d}",
-        capability_radar={key: round(radar[key], 2) for key in RADAR_DIMENSIONS},
+        capability_radar=generated["capability_radar"],
+        research_style=generated["research_style"],
     )
     total_score = float(profile["capability_total_score"])
     if total_score < lower - 0.01 or total_score > upper + 0.01:
-        raise ValueError("generated oil forecast profile fell outside the requested range")
+        raise ValueError(
+            "generated oil forecast profile fell outside the requested range"
+        )
     return profile
 
 
@@ -403,7 +396,7 @@ def _fresh_close_path(
     if not truth:
         return []
     radar = profile["capability_radar"]
-    behavior = error_config["baseline_behavior"]
+    behavior = research_behavior(profile, error_config)
     institution_id = str(profile["institution_id"])
     path_gap = 1.0 - float(radar["path"]) / 100.0
     direction_gap = 1.0 - float(radar["direction"]) / 100.0
@@ -432,7 +425,17 @@ def _fresh_close_path(
             int(error_config["timing_shift_max_weeks"]),
         )
     )
-    timing_mix = timing_gap * float(error_config["timing_truth_mix_max"])
+    style_timing_mix = (
+        0.30
+        * abs(float(behavior["timing_lead_weeks"]))
+        / max(1.0, float(error_config["timing_shift_max_weeks"]))
+    )
+    timing_mix = clamp(
+        timing_gap * float(error_config["timing_truth_mix_max"])
+        + style_timing_mix,
+        0.0,
+        0.95,
+    )
     direction_draw = normal(
         seed,
         f"oil_short_forecast.{institution_id}.direction",
@@ -566,7 +569,7 @@ def _forecast_contract(
         revisions.append(100.0 * (blended / old - 1.0))
 
     radar = profile["capability_radar"]
-    behavior = error_config["baseline_behavior"]
+    behavior = research_behavior(profile, error_config)
     range_gap = 1.0 - float(radar["range"]) / 100.0
     range_truth_mix = _skill_truth_mix(float(radar["range"]))
     visible_range_log = _recent_weekly_range_log(contract)
@@ -740,7 +743,9 @@ def generate_oil_short_term_forecast(
         as_of_half=as_of_half,
     )
     revision_alpha = _revision_alpha(
-        profile, surprise, config["error_model"]["baseline_behavior"]
+        profile,
+        surprise,
+        research_behavior(profile, config["error_model"]),
     )
     forecasts: list[dict[str, Any]] = []
     all_revisions: list[float] = []
@@ -834,7 +839,7 @@ def generate_oil_short_term_forecast(
         "previous_vintage_id": previous_vintage_id,
         "information_cutoff": "current_half_month_market_for_player_projection",
         "synthetic_generation_basis": (
-            "visible_history_projection_with_skill_gated_hidden_path_shape"
+            "visible_history_projection_with_skill_gated_hidden_path_and_research_style"
         ),
         "future_market_bars_in_output": False,
         "write_back": False,

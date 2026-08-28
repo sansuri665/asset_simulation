@@ -32,7 +32,7 @@ Viewer 任务再完整读取 `server.py`、相关 HTML/CSS、`viewer/static/js/a
 | 政策 / 曲线 | Runtime | `model/rates.py` |
 | 资金 / 信用 | Runtime + Contracts | `model/funding_credit.py` |
 | 石油 / 商品 | Contracts + ADR-002 + `current/COMMODITY_LAYER.md` | `model/oil_commodity.py`、`model/commodity_overlay.py`、`model/oil_futures_overlay.py`、两份 overlay 配置 |
-| 原油短期预测 | `current/OIL_SHORT_TERM_FORECAST.md` + Commodity Layer | `model/oil_short_term_forecast.py`、`config/oil_short_term_forecast_v0.1.json`、`contracts/oil_short_term_forecast_v1.json` |
+| 原油短期预测 | `current/OIL_SHORT_TERM_FORECAST.md` + Commodity Layer | `model/oil_short_term_forecast.py`、`model/oil_forecast_research_profile.py`、`config/oil_short_term_forecast_v0.2.json`、`contracts/oil_short_term_forecast_v2.json` |
 | 原油策略研究 | `current/OIL_TRADING_STRATEGY.md` + Oil Short-Term Forecast + Commodity Layer | `model/oil_strategy_research.py`、`config/oil_strategy_research_v0.2.json`、`contracts/oil_strategy_research_v2.json` |
 | 原油交易部 | `design/OIL_EXECUTION_DESK_ARCHITECTURE.md` + Oil Trading Strategy | `model/oil_execution_desk.py`、`config/oil_execution_desk_v0.1.json`、`contracts/oil_execution_desk_v1.json` |
 | 策略风控审阅 | `current/CORPORATE_RISK_CONTROL.md` + Oil Trading Strategy | `model/oil_strategy_risk.py`、`config/oil_strategy_risk_v0.1.json`、`contracts/oil_strategy_risk_v1.json` |
