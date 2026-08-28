@@ -1,9 +1,9 @@
-# 原油策略研究与基础交易策略
+# 原油投资策略部与基础交易策略
 
 > 状态：策略研究、跨回合观点失效、策略／公司两层风控、投委会系统代理、交易部、收益归因和逐回合结算已接入四机构竞技；玩家自主审批、正式存档和可选信号引擎尚未实现  
 > 权威范围：策略研究八维偏好、观点失效、风控建议与资金授权、单合约延续／回归信号、连续换手、换月、全成本执行、收益归因与逐回合盯市  
 > 代码基线：策略研究 `asset-simulation-oil-strategy-research-v0.2.0`、策略风控 `asset-simulation-oil-strategy-risk-v0.1.0`、公司风控 `asset-simulation-corporate-risk-control-v0.2.0`、交易部 `asset-simulation-oil-execution-desk-v0.1.0`、交易策略 `asset-simulation-oil-trading-strategy-v1.1.0`  
-> 最近核对：2026-08-26
+> 最近核对：2026-08-29
 
 ## 产品位置
 
@@ -38,13 +38,39 @@
 | 层级 | 当前 owner | 状态 |
 |---|---|---|
 | 预测研究 | `oil_short_term_forecast` | 已有短期双合约预测、六维能力和评分 |
-| 策略研究 | `oil_strategy_research` | 已有可任命负责人、八维只读偏好和参数映射 |
+| 投资策略部 | `oil_strategy_research`（兼容 owner 名） | 已有可任命 PM／Strategy Director、八维只读偏好和参数映射 |
 | 策略风控 | `oil_strategy_risk` | 将策略八维压力与公司 CRO 六维无总分风险偏好交叉，生成容量、波动、回撤、集中、流动性和移仓建议；偏好不代表能力 |
 | 投资决策 | `oil_trading_strategy` 内的系统代理 | 批准风险建议，并独立授权策略资金；玩家尚不能操作 |
 | 公司风控 | `corporate_risk_control` | 风控部提案、决策委员会批准、运行时按公司汇总暴露自动执行 |
 | 交易执行 | `oil_execution_desk` + `oil_trading_strategy` | 已有六维执行差异、价差、滑点、费用、穿透成交和 TCA |
 
 玩家不能提交八个自由数值。`GET /api/oil-strategy-research-roster?seed=42&count=5` 只按 Seed 发布1—8名稳定候选。竞技 Demo 会自动抽取其中一人并展示任命；未来玩家只能从候选中任命，而不是自由捏蛛网。相同 Seed 与候选序号得到相同姓名、蛛网、策略授权和哈希。蛛网表达取舍，没有总分，也没有“越高越好”。
+
+## Investment Strategy Department / PM personnel philosophy
+
+投资策略部采用 **style-first personnel system**。预测研究员的报告可以与未来真实市场直接比较，因此预测部可以有专业能力和事后准确性评分；PM 的职责则是在不确定信息下，把已经发布的研究转化为投资表达。延续或回归、快或慢、集中或分散、积极或保守都可能在不同市场状态下胜出，不存在统一正确的风格端点。
+
+```text
+latent traits
+    ↓
+eight continuous investment styles
+    ↓
+runtime strategy policy
+    ↓
+actual decisions
+    ↓
+historical track record
+    ↓
+player evaluation
+```
+
+潜在特质只负责让候选人的八维偏好形成稳定且内部相关的人设，不代表能力、alpha 或质量等级。PM 不设 `capability_total_score`、`quality_score`、`alpha_score`、`investment_skill` 或其它隐藏综合分，也不存在系统内部候选排名。**Stable behavior ≠ stable performance ranking**：趋势型 PM 在趋势阶段表现出色、在震荡或转折阶段受损，是预期的风格结果，不是人员生成失败；同一人在不同 Seed 和市场阶段的相对名次可以变化。
+
+未来招聘与履历层可以展示收益、波动、最大回撤、换手、平均持有期、资本利用率、分市场状态表现、大行情捕获、回撤后恢复以及最大单笔／单期盈亏。这些都是已发生决策的可观察 track record，用于玩家判断，不得回填为隐藏 PM skill，也不得据此给未来信号或仓位偷偷增加奖励。
+
+部门之间不计算 compatibility／matching score。预测部发布预测，投资策略部生成目标，风控部审阅并裁剪，交易部执行；协同或摩擦只通过这些真实业务接口自然产生。PM 只能读取当期可见市场、已发布预测和自身既有状态，不能读取隐藏未来。`capital_deployment` 只表示 PM 在已经获授权资本中通常愿意部署多少；公司给该策略多少资本始终由投资决策层决定。
+
+四类人员无需形式对称：预测研究部具有可测专业能力和研究风格；投资策略部当前只建模投资风格；公司风控部当前建模风险哲学，专业能力留待独立验证；交易部具有可测执行能力和执行风格。
 
 ## 已实现的单合约延续／回归方向信号
 

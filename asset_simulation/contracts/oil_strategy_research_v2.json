@@ -18,6 +18,23 @@
     "near_month_focus": {"unit": "preference_0_100"},
     "forecast_horizon": {"unit": "preference_0_100"}
   },
+  "personnel_philosophy": {
+    "system_type": "style_first",
+    "personnel_role": "PM / Strategy Director",
+    "aggregate_pm_quality_score_available": false,
+    "style_endpoints_have_universal_ordering": false,
+    "latent_traits_represent_capability": false,
+    "historical_track_record_is_observed_not_hidden_skill": true,
+    "cross_department_compatibility_score_available": false,
+    "decision_inputs": [
+      "visible_market_at_current_cutoff",
+      "published_forecast_at_current_cutoff",
+      "own_existing_strategy_state"
+    ],
+    "hidden_future_access": false,
+    "capital_allocation_owner": "investment_decision",
+    "strategy_personnel_capital_scope": "deployment_within_authorized_capital"
+  },
   "mandate_fields": {
     "continuation_weight": {"unit": "ratio_0_to_1"},
     "reversion_weight": {"unit": "ratio_0_to_1"},
@@ -33,13 +50,19 @@
   },
   "invariants": [
     "players appoint one generated personnel profile and never submit free-form radar dimensions through the service API",
-    "the eight style dimensions are preferences and have no total score or higher-is-better interpretation",
+    "the eight style dimensions are preferences and behavioral tendencies; they have no total score, skill interpretation, or higher-is-better ordering",
+    "PM personnel have no capability_total_score, quality_score, alpha_score, investment_skill, or other hidden aggregate quality level",
+    "latent traits create internally correlated and stable personalities rather than capability or alpha rankings",
+    "no style endpoint is universally superior and stable behavior does not imply a stable performance ranking across market regimes",
+    "PM quality emerges only from observable historical track record and player evaluation, never from a system-preassigned hidden skill",
+    "cross-department compatibility is never scored; forecast research, strategy, risk, and execution interact only through their business interfaces",
     "continuation and reversion weights sum to one; score 50 reproduces the prior 30 percent path-continuation baseline",
-    "capital deployment applies only inside capital allocated by the investment-decision owner and never grants extra company capital",
+    "capital deployment describes the PM tendency inside capital allocated by the investment-decision owner and never grants or reallocates company capital",
     "research institution capability scores never enter the strategy personnel generator or its mandate",
     "contract margin rates, market position limits, market execution capacity, company risk, fees, spreads, and base slippage remain external owners",
     "the same seed and candidate index generate the same personnel, radar, resolved mandate, and profile hash",
     "all resolved weights are normalized and every resolved parameter remains inside the registered mapping bounds",
-    "the profile never reads hidden future prices and never writes back to market or macro state"
+    "the PM runtime reads only the current visible market, the published forecast, and its own existing state; it never reads hidden future prices",
+    "the profile never writes back to market, forecast, or macro state"
   ]
 }

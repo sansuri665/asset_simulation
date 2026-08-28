@@ -298,6 +298,18 @@ class ServiceAndViewerTests(unittest.TestCase):
             item["appointment"]["role"] == "oil_strategy_research_director"
             for item in first["candidates"]
         ))
+        forbidden_pm_scores = {
+            "capability_total_score",
+            "quality_score",
+            "alpha_score",
+            "investment_skill",
+            "compatibility_score",
+        }
+        self.assertTrue(all(
+            item["preference_total_score"] is None
+            and forbidden_pm_scores.isdisjoint(item)
+            for item in first["candidates"]
+        ))
 
     def test_execution_desk_roster_api_exposes_continuous_appointments(self) -> None:
         first = build_oil_execution_desk_roster_payload(seed=42, candidate_count=5)
