@@ -1,0 +1,29 @@
+{
+  "contract_id": "oil_futures_overlay_v1",
+  "schema_version": "asset-simulation-oil-futures-overlay-contract-v1",
+  "role": "Read-only quarterly oil futures curve for the monthly game. It does not write back macro or commodity owners and does not create positions or orders.",
+  "identity_fields": ["seed", "as_of_year", "as_of_month", "contract_id"],
+  "curve_fields": {
+    "spot_reference_price_usd": {"unit": "usd_per_bbl", "note": "Current visible oil monthly close; reference only."},
+    "futures_price_usd": {"unit": "usd_per_bbl", "note": "Model settlement reference for one quarterly expiry."},
+    "basis_usd": {"unit": "usd_per_bbl"},
+    "basis_pct": {"unit": "percent"},
+    "annualized_carry_pct": {"unit": "percent"},
+    "months_to_expiry": {"unit": "months", "note": "Zero means the contract expires in the current month."}
+  },
+  "main_continuous_fields": {
+    "monthly": {"note": "Forward ratio-linked front-quarter OHLC through the requested cutoff. It is a non-tradable display index."},
+    "active_contract_id": {"note": "Current front-quarter contract."},
+    "adjustment": {"note": "forward_ratio_linked"}
+  },
+  "invariants": [
+    "exactly five quarterly contracts are listed",
+    "the first expiry is the current or next March, June, September, or December",
+    "an expiry-month contract converges to the visible spot reference",
+    "advancing past quarter end removes the expired contract and appends one new far contract",
+    "pricing reads the current visible oil close, previous visible closes, and the latest completed annual macro row only",
+    "no future monthly close or later annual row is read for the requested cutoff",
+    "no write-back to global macro or commodity overlay",
+    "no orders, positions, margin, or mark-to-market in v0.1.0"
+  ]
+}

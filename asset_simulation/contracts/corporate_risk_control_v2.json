@@ -1,0 +1,37 @@
+{
+  "contract_id": "corporate_risk_control_v2",
+  "schema_version": "asset-simulation-corporate-risk-control-contract-v2",
+  "role": "Risk-department proposal, decision-committee ratification and runtime enforcement of company-wide aggregate risk requirements after all strategy-level mandates.",
+  "identity_fields": ["seed", "candidate_index", "personnel_id", "profile_hash"],
+  "preference_fields": {
+    "capital_tolerance": {"unit": "continuous_preference_0_to_100"},
+    "volatility_tolerance": {"unit": "continuous_preference_0_to_100"},
+    "drawdown_tolerance": {"unit": "continuous_preference_0_to_100"},
+    "concentration_tolerance": {"unit": "continuous_preference_0_to_100"},
+    "liquidity_tolerance": {"unit": "continuous_preference_0_to_100"},
+    "roll_risk_tolerance": {"unit": "continuous_preference_0_to_100"}
+  },
+  "approval_fields": {
+    "company_risk_input_target_lots": {"unit": "lots"},
+    "company_risk_approved_target_position_lots": {"unit": "lots"},
+    "company_risk_clip_lots": {"unit": "lots"},
+    "visible_annualized_volatility": {"unit": "decimal_rate"},
+    "estimated_annualized_risk_usd": {"unit": "usd_one_sigma_proxy"},
+    "estimated_initial_margin_usd": {"unit": "usd"},
+    "drawdown_pct": {"unit": "percent"},
+    "drawdown_scale": {"unit": "ratio_0_to_1"},
+    "risk_status": {"unit": "enum_normal_watch_restricted_reduce_only"}
+  },
+  "invariants": [
+    "the risk department proposes company policy, the decision committee ratifies it, and runtime risk enforcement does not require a new vote each turn",
+    "company risk runs after every strategy-level mandate and evaluates aggregate company exposure",
+    "the company risk layer can preserve or reduce an input target but can never create a direction, enlarge absolute intent, or cross through zero",
+    "market position limits, market execution capacity, contract trading status, and settlement rules remain harder than company preferences",
+    "all volatility and liquidity estimates use information visible at the decision cutoff",
+    "drawdown scaling is continuous and risk-scale recovery is capped per half-month when prior state is supplied",
+    "reduce-only state never increases absolute exposure",
+    "the same seed and candidate index generate the same appointment, radar, proposal and profile hash",
+    "players appoint a generated CRO profile and do not submit arbitrary radar values through the service API",
+    "the risk layer never writes back to market, forecast, macro, public volume, or open interest"
+  ]
+}

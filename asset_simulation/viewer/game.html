@@ -1,0 +1,322 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Asset Simulation · 游戏运转</title>
+  <link rel="stylesheet" href="/static/css/viewer.css">
+</head>
+<body class="game-body">
+  <div class="game-app">
+    <header class="game-topbar">
+      <div class="brand game-brand">
+        <h1>Asset Simulation</h1>
+        <span id="gameStatus" class="status">正在装载游戏世界…</span>
+      </div>
+      <div class="game-top-actions">
+        <a id="backToViewer" class="terminal-link" href="/?seed=42&years=60">返回主界面</a>
+        <form id="gameSeedForm" class="game-seed-form">
+          <label class="terminal-control">Seed
+            <input id="gameSeedInput" type="number" min="0" step="1" value="42">
+          </label>
+          <button type="submit" class="terminal-button">加载 Seed</button>
+          <button id="resetGame" type="button" class="terminal-button danger-ghost">重置游戏</button>
+        </form>
+      </div>
+    </header>
+
+    <main class="game-main">
+      <section class="game-clock panel" aria-label="游戏时间轴">
+        <div class="game-clock-primary">
+          <div>
+            <span class="terminal-kicker">GLOBAL HALF-MONTH TURN</span>
+            <h2 id="gameMonth">2030年01月上半月</h2>
+            <p id="turnCounter" class="terminal-muted">第 1 / 1344 回合</p>
+          </div>
+          <div class="clock-quote">
+            <span>世界时间</span>
+            <strong id="clockCode">2030.01.H1</strong>
+          </div>
+        </div>
+
+        <div class="timeline-block">
+          <div class="observation-band">
+            <span>观察期</span>
+            <strong>2025—2029</strong>
+            <small>已完成，只读历史</small>
+          </div>
+          <div class="game-progress-band">
+            <div class="timeline-labels"><span>2030.01 H1</span><span>游戏运转</span><span>2085.12 H2</span></div>
+            <div class="timeline-track"><i id="timelineProgress"></i><b id="timelineMarker"></b></div>
+          </div>
+        </div>
+
+        <div class="turn-controls">
+          <button id="nextTurn" type="button" class="trade-primary">推进半个月</button>
+          <form id="jumpForm" class="jump-form">
+            <span class="terminal-muted">推进到</span>
+            <input id="jumpYear" aria-label="目标年份" type="number" min="2030" max="2085" value="2030">
+            <span>年</span>
+            <input id="jumpMonth" aria-label="目标月份" type="number" min="1" max="12" value="1">
+            <span>月</span>
+            <select id="jumpHalf" aria-label="目标半月">
+              <option value="1">上半月</option>
+              <option value="2">下半月</option>
+            </select>
+            <button type="submit" class="terminal-button">执行</button>
+          </form>
+          <span id="turnMessage" class="turn-message" role="status"></span>
+        </div>
+      </section>
+
+      <nav id="gamePrimaryNav" class="game-primary-nav" aria-label="游戏一级功能">
+        <button type="button" data-game-view="market" aria-pressed="true">
+          <span class="terminal-kicker">MARKET WATCH</span>
+          <strong>市场行情</strong>
+          <small>原油现货、主连与月份合约</small>
+        </button>
+        <button type="button" data-game-view="investment" aria-pressed="false">
+          <span class="terminal-kicker">INVESTMENT COMMITTEE</span>
+          <strong>投资决策</strong>
+          <small>随机任命、同场竞赛与回合报告</small>
+        </button>
+      </nav>
+
+      <section id="marketScreen" class="market-screen" aria-label="市场列表">
+        <div class="terminal-section-head">
+          <div>
+            <span class="terminal-kicker">MARKET WATCH</span>
+            <h2>市场行情</h2>
+          </div>
+          <span class="terminal-muted">行情仅显示当前回合及此前数据</span>
+        </div>
+        <form id="gameMarketPicker" class="game-market-picker" aria-label="市场品种筛选">
+          <label class="market-select-control">种类
+            <select id="gameKindSelect" aria-label="种类">
+              <option value="energy_chemicals">能源化工</option>
+            </select>
+          </label>
+          <label class="market-select-control">品种
+            <select id="gameContractSelect" aria-label="品种">
+              <option value="crude_oil">原油</option>
+            </select>
+          </label>
+        </form>
+        <div class="market-board" role="table" aria-label="商品行情列表">
+          <div class="market-board-head" role="row">
+            <span>代码 / 品种</span><span>最新价</span><span>月内涨跌</span><span>本月高 / 低</span><span>状态</span><span></span>
+          </div>
+          <div id="marketRows" class="market-rows" role="rowgroup" aria-live="polite"></div>
+        </div>
+
+        <section class="futures-panel panel" aria-label="原油01/05/09月份合约期限结构">
+          <div class="futures-panel-head">
+            <div>
+              <span class="terminal-kicker">01 / 05 / 09 FUTURES CURVE</span>
+              <h3>原油月份合约</h3>
+            </div>
+            <div class="curve-state-box">
+              <span>期限结构</span>
+              <strong id="curveState">—</strong>
+              <small id="curveStateNote">正在计算</small>
+            </div>
+          </div>
+          <div class="curve-overview">
+            <dl class="curve-metrics">
+              <div><dt>现货参考</dt><dd id="spotReference">—</dd></div>
+              <div><dt>主连映射</dt><dd id="frontContract">—</dd></div>
+              <div><dt>近端压力</dt><dd id="frontCarry">—</dd></div>
+            </dl>
+            <svg id="futuresCurveChart" class="futures-curve-chart" role="img" aria-label="四个01/05/09原油合约期限结构"></svg>
+          </div>
+          <section class="contract-specification" aria-label="标准原油期货合约规格">
+            <div class="contract-spec-head">
+              <div>
+                <span class="terminal-kicker">STANDARD CONTRACT</span>
+                <h4>标准原油期货规格</h4>
+              </div>
+              <span class="spec-reserved">账户已执行 · 玩家下单未开放</span>
+            </div>
+            <dl class="contract-spec-grid">
+              <div><dt>交易单位</dt><dd id="specContractSize">—</dd></div>
+              <div><dt>报价单位</dt><dd id="specQuoteUnit">—</dd></div>
+              <div><dt>最小变动</dt><dd id="specPriceTick">—</dd></div>
+              <div><dt>每跳价值</dt><dd id="specTickValue">—</dd></div>
+              <div><dt>初始保证金</dt><dd id="specInitialMargin">—</dd></div>
+              <div><dt>维持保证金</dt><dd id="specMaintenanceMargin">—</dd></div>
+              <div><dt>结算方式</dt><dd id="specSettlement">—</dd></div>
+              <div><dt>到期规则</dt><dd id="specExpiryRule">—</dd></div>
+            </dl>
+            <section class="institution-limit-panel" aria-label="全球巨型机构持仓与成交限额">
+              <div class="institution-limit-head">
+                <div>
+                  <span class="terminal-kicker">INSTITUTION LIMITS</span>
+                  <h5>全球巨型机构限额</h5>
+                </div>
+                <span class="spec-reserved">竞技交易与账户已执行</span>
+              </div>
+              <dl class="contract-spec-grid institution-limit-grid">
+                <div><dt>单合约持仓</dt><dd id="specSinglePositionLimit">—</dd></div>
+                <div><dt>全期限总持仓</dt><dd id="specGrossPositionLimit">—</dd></div>
+                <div><dt>单回合成交</dt><dd id="specTurnTradeLimit">—</dd></div>
+                <div><dt>到期收紧</dt><dd id="specExpiryPositionLimit">—</dd></div>
+              </dl>
+            </section>
+          </section>
+        </section>
+        <p class="market-disclaimer">六行行情都可点击查看 K 线。现货保持价格参考；主连和4个01/05/09月份合约提供全球尺度的周成交量与周末持仓量，生命周期最多16根月K、32个半月回合，目前均不可下单。</p>
+      </section>
+
+      <section id="oilScreen" class="oil-screen" hidden aria-label="原油合约行情详情">
+        <div class="oil-detail-head">
+          <button id="backToMarkets" type="button" class="terminal-button">← 行情列表</button>
+          <div class="oil-title">
+            <span id="instrumentKicker" class="terminal-kicker">OIL · MAIN CONTINUOUS</span>
+            <h2 id="instrumentTitle">原油主连</h2>
+          </div>
+          <div class="oil-tape">
+            <strong id="detailLast">—</strong>
+            <span id="detailChange">—</span>
+          </div>
+        </div>
+
+        <div class="oil-detail-grid">
+          <section class="trade-chart-panel panel">
+            <div class="trade-chart-toolbar">
+              <div>
+                <span id="chartCutoff" class="terminal-kicker">截至 2030年01月上半月</span>
+                <h3 id="gameChartTitle">原油主连 · 周 K</h3>
+              </div>
+              <div class="chart-toolbar-actions">
+                <nav id="periodNav" class="period-nav" aria-label="K线周期">
+                  <button type="button" data-period="weekly" aria-pressed="true">周 K</button>
+                  <button type="button" data-period="monthly" aria-pressed="false">月 K</button>
+                  <button type="button" data-period="annual" aria-pressed="false">年 K</button>
+                </nav>
+              </div>
+            </div>
+            <div class="game-chart-shell">
+              <div id="gameChartWrap" class="game-chart-wrap">
+                <svg id="gameChart" role="img" aria-label="原油主连周K线"></svg>
+              </div>
+              <div id="gameChartAxis" class="game-chart-axis" aria-hidden="true"></div>
+            </div>
+            <div id="visibleWindow" class="visible-window">—</div>
+          </section>
+
+          <aside class="trade-side panel">
+            <div class="trade-side-head">
+              <span id="latestBarKicker" class="terminal-kicker">LATEST BAR</span>
+              <h3 id="latestBarTitle">—</h3>
+            </div>
+            <dl class="ohlc-list">
+              <div><dt>开</dt><dd id="barOpen">—</dd></div>
+              <div><dt>高</dt><dd id="barHigh">—</dd></div>
+              <div><dt>低</dt><dd id="barLow">—</dd></div>
+              <div><dt>收</dt><dd id="barClose">—</dd></div>
+              <div><dt>振幅</dt><dd id="barRange">—</dd></div>
+              <div><dt>涨跌</dt><dd id="barChange">—</dd></div>
+            </dl>
+            <section id="liquidityMetrics" class="liquidity-metrics" hidden>
+              <div class="liquidity-side-head">
+                <span class="terminal-kicker">FUTURES LIQUIDITY</span>
+              </div>
+              <dl class="ohlc-list">
+                <div><dt id="barVolumeLabel">成交量</dt><dd id="barVolume">—</dd></div>
+                <div><dt>期末持仓</dt><dd id="barOpenInterest">—</dd></div>
+                <div><dt>持仓变化</dt><dd id="barOpenInterestChange">—</dd></div>
+              </dl>
+            </section>
+            <div class="data-boundary-note">
+              <strong>数据边界</strong>
+              <p id="dataBoundary">只显示当前回合及以前的行情。</p>
+            </div>
+            <section id="detailContractSpec" class="detail-contract-spec" hidden>
+              <span class="terminal-kicker">CONTRACT VALUE</span>
+              <h4>合约价值参考</h4>
+              <dl>
+                <div><dt>每手</dt><dd id="detailLotSize">—</dd></div>
+                <div><dt>当前名义价值</dt><dd id="detailNotional">—</dd></div>
+                <div><dt>初始保证金参考</dt><dd id="detailInitialMargin">—</dd></div>
+                <div><dt>维持保证金参考</dt><dd id="detailMaintenanceMargin">—</dd></div>
+                <div><dt>当前单合约持仓上限</dt><dd id="detailSinglePositionLimit">—</dd></div>
+                <div><dt>上限名义价值</dt><dd id="detailPositionLimitNotional">—</dd></div>
+                <div><dt>全期限总持仓上限</dt><dd id="detailGrossPositionLimit">—</dd></div>
+                <div><dt>本回合成交上限</dt><dd id="detailTurnTradeLimit">—</dd></div>
+              </dl>
+              <p id="detailSpecNote">—</p>
+            </section>
+          </aside>
+        </div>
+      </section>
+
+      <section id="investmentScreen" class="investment-screen" hidden aria-label="投资决策委员会">
+        <div class="terminal-section-head investment-section-head">
+          <div>
+            <span class="terminal-kicker">INVESTMENT COMMITTEE · DEMO 01</span>
+            <h2>投资决策</h2>
+          </div>
+          <span class="terminal-muted">玩家与竞争对手共享同一市场；当前席位由 Seed 一次性随机抽取</span>
+        </div>
+
+        <section class="committee-panel panel" aria-label="本局投资委员会随机任命">
+          <div class="committee-panel-head">
+            <div>
+              <span class="terminal-kicker">RANDOM APPOINTMENTS</span>
+              <h3>本局委员会席位</h3>
+            </div>
+            <span class="spec-reserved">预测 · 策略研究 · 公司风控 · 交易执行</span>
+          </div>
+          <div id="committeeRoster" class="committee-roster" aria-live="polite"></div>
+        </section>
+
+        <section class="competition-grid">
+          <section class="leaderboard-panel panel" aria-label="机构权益排名">
+            <div class="competition-panel-head">
+              <div>
+                <span class="terminal-kicker">LIVE LEADERBOARD</span>
+                <h3>机构权益排名</h3>
+              </div>
+              <span id="competitionTurnCount" class="terminal-muted">尚未结算</span>
+            </div>
+            <div class="competition-table" role="table" aria-label="机构权益排行榜">
+              <div class="competition-table-head" role="row">
+                <span>排名 / 机构</span><span>权益</span><span>累计收益</span><span>最大回撤</span><span>总持仓</span>
+              </div>
+              <div id="competitionLeaderboard" class="competition-table-body" role="rowgroup"></div>
+            </div>
+          </section>
+
+          <section class="turn-report-panel panel" aria-label="投资委员会回合报告">
+            <div class="competition-panel-head">
+              <div>
+                <span class="terminal-kicker">HALF-MONTH REPORT</span>
+                <h3 id="turnReportTitle">等待首个回合结算</h3>
+              </div>
+              <label class="report-select-control">历史报告
+                <select id="turnReportSelect" aria-label="选择历史回合报告" disabled>
+                  <option value="">暂无报告</option>
+                </select>
+              </label>
+            </div>
+            <div id="turnReportMarket" class="turn-report-market">推进到下一半月后，将生成第一份同场竞技报告。</div>
+            <div class="competition-table report-table" role="table" aria-label="回合损益与执行报告">
+              <div class="competition-table-head" role="row">
+                <span>机构</span><span>本回合损益</span><span>累计收益</span><span>买 / 卖</span><span>执行成本</span><span>风控</span><span>账户 / 保证金</span>
+              </div>
+              <div id="turnReportRows" class="competition-table-body" role="rowgroup"></div>
+            </div>
+            <p class="investment-boundary-note">报告由同一原油市场、各自研究报告、策略授权、公司风控、交易执行和正式现金／保证金账户共同结算。玩家及 AI 都不能反向影响公共行情。</p>
+          </section>
+        </section>
+      </section>
+
+      <footer class="game-footer">
+        <span id="gameIdentity">—</span>
+        <span>普通推进不可倒流；重置游戏是唯一回到 2030年01月上半月 的操作。</span>
+      </footer>
+    </main>
+  </div>
+  <script type="module" src="/static/js/game.js"></script>
+</body>
+</html>

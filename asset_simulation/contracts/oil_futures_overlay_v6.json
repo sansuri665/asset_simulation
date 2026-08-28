@@ -1,0 +1,50 @@
+{
+  "contract_id": "oil_futures_overlay_v6",
+  "schema_version": "asset-simulation-oil-futures-overlay-contract-v6",
+  "role": "Read-only 01/05/09 oil curve with four listed contracts, global weekly futures liquidity, and a reserved mega-institution position and turnover policy.",
+  "identity_fields": ["seed", "as_of_year", "as_of_month", "as_of_half", "instrument_id"],
+  "curve_fields": {
+    "spot_reference_price_usd": {"unit": "usd_per_bbl"},
+    "futures_price_usd": {"unit": "usd_per_bbl"},
+    "basis_usd": {"unit": "usd_per_bbl"},
+    "basis_pct": {"unit": "percent"},
+    "annualized_carry_pct": {"unit": "percent"},
+    "long_slope_pct": {"unit": "percent"},
+    "near_pressure_pct": {"unit": "log_price_percent"},
+    "curvature_pct": {"unit": "log_price_percent"}
+  },
+  "liquidity_fields": {
+    "volume_lots": {"unit": "lots", "note": "Weekly futures turnover; higher periods sum visible weeks."},
+    "open_interest_lots": {"unit": "lots", "note": "End-of-week market open interest."},
+    "open_interest_change_lots": {"unit": "lots"},
+    "futuresLiquidity.weekly[].volume_lots": {"unit": "lots"},
+    "futuresLiquidity.weekly[].open_interest_lots": {"unit": "lots"},
+    "futuresLiquidity.weekly[].turnover_ratio": {"unit": "times"}
+  },
+  "participant_limit_fields": {
+    "single_contract_open_interest_rate_pct": {"unit": "percent"},
+    "single_contract_hard_cap_lots": {"unit": "lots"},
+    "all_contract_gross_position_cap_lots": {"unit": "lots"},
+    "turn_volume_rate_pct": {"unit": "percent"},
+    "single_contract_position_limit_lots": {"unit": "lots"},
+    "turn_trade_limit_lots": {"unit": "lots"},
+    "position_limit_notional_usd": {"unit": "usd"}
+  },
+  "history_fields": {
+    "reference.monthly": {"note": "Visible spot OHLC only; no futures liquidity or participant-limit fields are added to spot."},
+    "mainContinuous.monthly": {"note": "Backward-ratio-adjusted main OHLC; liquidity and current limits come from the active source contract."},
+    "curve.contracts[].monthly": {"note": "Named OIL-YYMM price and liquidity history from listing through cutoff or expiry."}
+  },
+  "invariants": [
+    "exactly four 01/05/09 delivery-month contracts are listed",
+    "one standard lot represents 1000 barrels",
+    "the normal single-contract participant limit is the lesser of 3 percent of current open interest and 75000 lots",
+    "the all-contract gross participant cap is 150000 lots",
+    "the per-turn trade cap is 0.8 percent of the latest two visible weeks of contract volume",
+    "position limits step down to 15000 and then 8000 lots near expiry; expiry-month new trades are disabled",
+    "participant limits are published but not enforced while orders are disabled",
+    "the spot reference receives no participant-limit fields",
+    "no future weekly close, volume, open interest, or later annual macro state is used at a cutoff",
+    "no player state writes back to price, liquidity, global macro, or the commodity overlay"
+  ]
+}

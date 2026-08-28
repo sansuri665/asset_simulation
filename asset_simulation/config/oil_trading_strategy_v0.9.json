@@ -1,0 +1,74 @@
+{
+  "schema_version": "asset-simulation-oil-trading-strategy-config-v2",
+  "config_id": "asset-simulation-oil-continuation-reversion-v0.9.0",
+  "model_version": "asset-simulation-oil-trading-strategy-v0.9.0",
+  "strategy_id": "forecast_continuation_reversion_directional_edge_sized_turnover_v7",
+  "display_name": "任命制单合约延续／回归策略",
+  "initial_reference_equity_usd": 3000000000.0,
+  "strategy_research_profile_owner": "oil_strategy_research_v2",
+  "execution_desk_profile_owner": "oil_execution_desk_v1",
+  "corporate_risk_profile_owner": "corporate_risk_control_v1",
+  "signal": {
+    "minimum_uncertainty_log": 0.008,
+    "path_direction_full_strength_z": 1.0,
+    "visible_trend_lookback_weeks": 8,
+    "visible_trend_full_strength_range_multiples": 2.0,
+    "continuation_visible_trend_weight": 0.65,
+    "continuation_forecast_path_weight": 0.35,
+    "deadband_abs_signal": 0.15
+  },
+  "execution": {
+    "forced_reduction_trade_limit_utilization": 1.0,
+    "aggregate_price_method": "newly_realized_weekly_ohlc4_volume_weighted",
+    "intrawindow_path_method": "ohlc_directional_canonical_path_with_penetration",
+    "friction_enabled": true,
+    "fees_enabled": true
+  },
+  "execution_friction": {
+    "spread": {
+      "base_full_spread_ticks": {
+        "main": 2.0,
+        "next_main": 3.0,
+        "legacy_exit": 5.0
+      },
+      "reference_weekly_volume_lots": {
+        "main": 3000000.0,
+        "next_main": 1500000.0,
+        "legacy_exit": 500000.0
+      },
+      "liquidity_exponent": 0.3,
+      "volatility_exponent": 0.35,
+      "reference_weekly_volatility": 0.04,
+      "liquidity_multiplier_bounds": [0.7, 2.5],
+      "volatility_multiplier_bounds": [0.75, 2.0],
+      "full_spread_tick_bounds": [1, 20]
+    },
+    "slippage": {
+      "impact_coefficient": 0.35,
+      "urgency_multiplier_min": 0.85,
+      "urgency_multiplier_max": 1.15,
+      "maximum_slippage_bps_per_side": 75.0
+    },
+    "fees": {
+      "exchange_fee_usd_per_lot_side": 1.4,
+      "clearing_fee_usd_per_lot_side": 0.35,
+      "broker_fee_usd_per_lot_side": 0.75,
+      "cash_settlement_fee_usd_per_lot": 0.5,
+      "rebate_eligible_components": ["exchange", "broker"],
+      "rebate_lookback_turns": 24,
+      "rebate_tiers": [
+        {"minimum_trailing_gross_lots": 0, "rebate_rate": 0.0},
+        {"minimum_trailing_gross_lots": 250000, "rebate_rate": 0.1},
+        {"minimum_trailing_gross_lots": 750000, "rebate_rate": 0.2},
+        {"minimum_trailing_gross_lots": 1500000, "rebate_rate": 0.3}
+      ]
+    },
+    "round_trip_execution": {
+      "edge_quality_full_strength_pct": 0.6,
+      "signal_utilization_floor": 0.4,
+      "budget_utilization_exponent": 0.5,
+      "entry_full_fill_range_fraction": 0.2,
+      "exit_full_fill_range_fraction": 0.2
+    }
+  }
+}

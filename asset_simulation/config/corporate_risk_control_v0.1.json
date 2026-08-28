@@ -1,0 +1,71 @@
+{
+  "schema_version": "asset-simulation-corporate-risk-control-config-v1",
+  "config_id": "asset-simulation-corporate-risk-control-base-v0.1.0",
+  "model_version": "asset-simulation-corporate-risk-control-v0.1.0",
+  "appointment_role": "corporate_chief_risk_officer",
+  "neutral_baseline_score": 50.0,
+  "default_officer": {
+    "personnel_id": "default_corporate_chief_risk_officer",
+    "display_name": "顾守衡",
+    "risk_appetite_radar": {
+      "capital_tolerance": 50.0,
+      "volatility_tolerance": 50.0,
+      "drawdown_tolerance": 50.0,
+      "concentration_tolerance": 50.0,
+      "liquidity_tolerance": 50.0,
+      "roll_risk_tolerance": 50.0
+    }
+  },
+  "risk_appetite_dimensions": [
+    "capital_tolerance",
+    "volatility_tolerance",
+    "drawdown_tolerance",
+    "concentration_tolerance",
+    "liquidity_tolerance",
+    "roll_risk_tolerance"
+  ],
+  "candidate_generation": {
+    "default_candidate_count": 5,
+    "minimum_candidate_count": 1,
+    "maximum_candidate_count": 8,
+    "dimension_center": 50.0,
+    "dimension_floor": 8.0,
+    "dimension_ceiling": 92.0,
+    "idiosyncratic_scale": 4.5,
+    "latent_traits": ["risk_appetite", "loss_patience", "liquidity_discipline", "concentration_conviction"],
+    "latent_loadings": {
+      "capital_tolerance": {"risk_appetite": 18, "loss_patience": 2, "liquidity_discipline": -3, "concentration_conviction": 4},
+      "volatility_tolerance": {"risk_appetite": 14, "loss_patience": 8, "liquidity_discipline": -2, "concentration_conviction": 4},
+      "drawdown_tolerance": {"risk_appetite": 10, "loss_patience": 17, "liquidity_discipline": -2, "concentration_conviction": 3},
+      "concentration_tolerance": {"risk_appetite": 8, "loss_patience": 3, "liquidity_discipline": -3, "concentration_conviction": 18},
+      "liquidity_tolerance": {"risk_appetite": 5, "loss_patience": 7, "liquidity_discipline": -18, "concentration_conviction": 4},
+      "roll_risk_tolerance": {"risk_appetite": 7, "loss_patience": 6, "liquidity_discipline": -12, "concentration_conviction": 8}
+    },
+    "family_names": ["顾", "沈", "林", "周", "陆", "程", "许", "唐", "闻", "江", "邵", "宋"],
+    "given_names": ["守衡", "慎远", "知界", "谨川", "持正", "安序", "维稳", "明界", "守一", "定川", "衡之", "慎行"]
+  },
+  "parameter_mapping": {
+    "max_gross_market_limit_utilization": {"score_0": 0.35, "score_50": 0.75, "score_100": 0.95},
+    "max_initial_margin_pct_of_equity": {"score_0": 25.0, "score_50": 75.0, "score_100": 90.0},
+    "annualized_volatility_budget_pct_of_equity": {"score_0": 15.0, "score_50": 100.0, "score_100": 150.0},
+    "drawdown_watch_pct": {"score_0": 3.0, "score_50": 8.0, "score_100": 15.0},
+    "drawdown_restrict_pct": {"score_0": 6.0, "score_50": 15.0, "score_100": 28.0},
+    "drawdown_reduce_only_pct": {"score_0": 10.0, "score_50": 25.0, "score_100": 45.0},
+    "max_single_contract_share_of_company_gross": {"score_0": 0.50, "score_50": 0.85, "score_100": 1.0},
+    "max_liquidation_half_turns": {"score_0": 0.25, "score_50": 2.0, "score_100": 4.0},
+    "roll_buffer_half_turns": {"score_0": 6.0, "score_50": 2.0, "score_100": 0.0}
+  },
+  "drawdown_scaling": {
+    "watch_scale": 0.75,
+    "restrict_scale": 0.40,
+    "reduce_only_scale": 0.40,
+    "maximum_scale_recovery_per_turn": 0.10
+  },
+  "visible_volatility": {
+    "lookback_weeks": 8,
+    "annualization_weeks": 52,
+    "minimum_annualized_volatility": 0.15,
+    "maximum_annualized_volatility": 1.20
+  },
+  "tag_thresholds": {"high": 65.0, "low": 35.0}
+}

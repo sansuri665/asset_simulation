@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Asset Simulation · 全球宏观</title>
+  <link rel="stylesheet" href="/static/css/viewer.css">
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <h1>Asset Simulation</h1>
+        <span id="status" class="status">正在加载全球宏观…</span>
+      </div>
+      <nav id="layerNav" class="scope-nav" aria-label="产品层">
+        <button data-layer="macro" aria-pressed="true">宏观</button>
+        <button data-layer="commodity" aria-pressed="false">商品</button>
+        <a id="gameEntry" href="/game?seed=42" aria-label="进入游戏运转界面">游戏运转</a>
+      </nav>
+      <form id="runForm" class="controls">
+        <label class="control">Seed <input id="seedInput" type="number" min="0" step="1" value="42"></label>
+        <label class="control">年数 <input id="yearsInput" type="number" min="5" max="90" step="1" value="60"></label>
+        <button type="submit" class="load-button">加载</button>
+        <label class="control year-control">年份 <input id="yearRange" type="range" min="0" max="60" value="60"></label>
+        <span id="yearLabel" class="year-label">2085</span>
+      </form>
+    </header>
+
+    <main>
+      <form id="commodityPicker" class="commodity-picker" hidden aria-label="商品分类">
+        <label class="control">一级商品
+          <select id="kindSelect"></select>
+        </label>
+        <label class="control">二级商品
+          <select id="contractSelect"></select>
+        </label>
+      </form>
+      <section id="statsGrid" class="stats" aria-label="当前年度核心状态"></section>
+
+      <nav id="modeNav" class="mode-nav" aria-label="全球宏观模块"></nav>
+
+      <section id="workspace" class="workspace">
+        <section class="panel chart-panel">
+          <div class="panel-head">
+            <div>
+              <span id="scopeEyebrow" class="eyebrow">全球普通基座</span>
+              <h2 id="chartTitle">宏观环境总览</h2>
+            </div>
+            <div id="legend" class="legend"></div>
+          </div>
+          <div class="chart-shell">
+            <div class="chart-wrap">
+              <svg id="chart" role="img" aria-label="全球宏观年度轨迹"></svg>
+            </div>
+            <div id="chartAxis" class="chart-price-axis" hidden aria-hidden="true"></div>
+          </div>
+        </section>
+
+        <aside class="panel detail-panel">
+          <div class="panel-head">
+            <div>
+              <span id="detailEyebrow" class="eyebrow">当前年份</span>
+              <h2 id="detailYear">-</h2>
+            </div>
+            <span id="regime" class="regime">-</span>
+          </div>
+          <div id="detailGrid" class="detail-grid"></div>
+        </aside>
+      </section>
+
+      <footer class="footer">
+        <span id="identityText">-</span>
+        <span id="scopeNote">单一计价单位下的全球宏观环境；没有汇率，也没有分区账户。</span>
+      </footer>
+    </main>
+  </div>
+  <script type="module" src="/static/js/app.js"></script>
+</body>
+</html>

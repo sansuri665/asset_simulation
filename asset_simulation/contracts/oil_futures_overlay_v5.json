@@ -1,0 +1,53 @@
+{
+  "contract_id": "oil_futures_overlay_v5",
+  "schema_version": "asset-simulation-oil-futures-overlay-contract-v5",
+  "role": "Read-only 01/05/09 oil curve with four listed contracts, half-month cutoffs, globally scaled weekly futures volume and open interest, complete histories, and reserved standard-futures specifications.",
+  "identity_fields": ["seed", "as_of_year", "as_of_month", "as_of_half", "instrument_id"],
+  "curve_fields": {
+    "spot_reference_price_usd": {"unit": "usd_per_bbl"},
+    "futures_price_usd": {"unit": "usd_per_bbl"},
+    "basis_usd": {"unit": "usd_per_bbl"},
+    "basis_pct": {"unit": "percent"},
+    "annualized_carry_pct": {"unit": "percent"},
+    "long_slope_pct": {"unit": "percent"},
+    "near_pressure_pct": {"unit": "log_price_percent"},
+    "curvature_pct": {"unit": "log_price_percent"}
+  },
+  "liquidity_fields": {
+    "volume_lots": {"unit": "lots", "note": "Weekly futures turnover allocated across the four listed contracts; higher periods sum visible weeks."},
+    "open_interest_lots": {"unit": "lots", "note": "End-of-week open interest."},
+    "open_interest_change_lots": {"unit": "lots", "note": "Change from the same contract's prior visible week."},
+    "futuresLiquidity.weekly[].volume_lots": {"unit": "lots"},
+    "futuresLiquidity.weekly[].open_interest_lots": {"unit": "lots"},
+    "futuresLiquidity.weekly[].turnover_ratio": {"unit": "times"}
+  },
+  "contract_specification_fields": {
+    "contract_size_bbl": {"unit": "barrel_per_lot"},
+    "minimum_price_fluctuation_usd_per_bbl": {"unit": "usd_per_bbl"},
+    "tick_value_usd_per_lot": {"unit": "usd_per_lot"},
+    "initial_margin_rate_pct": {"unit": "percent", "status": "indicative_not_enforced"},
+    "maintenance_margin_rate_pct": {"unit": "percent", "status": "indicative_not_enforced"},
+    "settlement_method": {"value": "cash"},
+    "expiry_month_position_mode": {"value": "settlement_only"}
+  },
+  "history_fields": {
+    "reference.monthly": {"note": "Visible spot OHLC aggregated from two half-month turns; no futures liquidity fields are added to spot."},
+    "mainContinuous.monthly": {"note": "Visible backward-ratio-adjusted main OHLC; volume and open interest come from the active source contract and are never price-adjusted."},
+    "curve.contracts[].monthly": {"note": "Named OIL-YYMM price, weekly volume, and end-week open-interest history from listing through cutoff or expiry."}
+  },
+  "invariants": [
+    "exactly four 01/05/09 delivery-month contracts are listed",
+    "one standard lot represents 1000 barrels and one minimum tick is 10 USD per lot",
+    "one month contains two game turns and no week beyond the half-month cutoff is published",
+    "each named contract has at most 16 months and 32 half-month turns",
+    "weekly contract volumes sum to the published global futures-market weekly volume",
+    "weekly contract open interests sum to the published global futures-market open interest",
+    "liquidity migrates from the old main contract toward the next contract around a roll",
+    "the spot-reference history receives no volume or open-interest fields",
+    "the main series is backward-ratio-adjusted while its liquidity fields are unadjusted source-contract observations",
+    "long-run liquidity is bounded and does not use a fixed compounding growth rate",
+    "no future weekly close or later annual macro state is used at a cutoff",
+    "no player, order, position, or portfolio state is a pricing or liquidity input",
+    "no write-back to global macro or commodity overlay"
+  ]
+}

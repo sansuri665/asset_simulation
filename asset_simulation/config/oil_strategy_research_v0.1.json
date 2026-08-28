@@ -1,0 +1,71 @@
+{
+  "schema_version": "asset-simulation-oil-strategy-research-config-v1",
+  "config_id": "asset-simulation-oil-strategy-research-base-v0.1.0",
+  "model_version": "asset-simulation-oil-strategy-research-v0.1.0",
+  "signal_engine_id": "forecast_band_location_directional_edge_sized_turnover_v6",
+  "appointment_role": "oil_strategy_research_director",
+  "default_director": {
+    "personnel_id": "default_oil_strategy_director",
+    "display_name": "林远策",
+    "style_radar": {
+      "position_scale": 50,
+      "margin_usage": 50,
+      "responsiveness": 50,
+      "selectivity": 50,
+      "turnover_activity": 50,
+      "holding_patience": 50,
+      "near_month_focus": 50,
+      "forecast_horizon": 50
+    }
+  },
+  "style_dimensions": [
+    "position_scale",
+    "margin_usage",
+    "responsiveness",
+    "selectivity",
+    "turnover_activity",
+    "holding_patience",
+    "near_month_focus",
+    "forecast_horizon"
+  ],
+  "candidate_generation": {
+    "default_candidate_count": 5,
+    "minimum_candidate_count": 1,
+    "maximum_candidate_count": 8,
+    "dimension_center": 50,
+    "dimension_floor": 10,
+    "dimension_ceiling": 90,
+    "idiosyncratic_scale": 4.5,
+    "latent_loadings": {
+      "position_scale": {"risk_appetite": 17, "tempo": 2, "discipline": -2, "curve_focus": 0},
+      "margin_usage": {"risk_appetite": 15, "tempo": 1, "discipline": -4, "curve_focus": 0},
+      "responsiveness": {"risk_appetite": 3, "tempo": 17, "discipline": -3, "curve_focus": 0},
+      "selectivity": {"risk_appetite": -5, "tempo": -7, "discipline": 15, "curve_focus": 0},
+      "turnover_activity": {"risk_appetite": 4, "tempo": 19, "discipline": -4, "curve_focus": 0},
+      "holding_patience": {"risk_appetite": -2, "tempo": -13, "discipline": 15, "curve_focus": 0},
+      "near_month_focus": {"risk_appetite": 1, "tempo": 5, "discipline": 0, "curve_focus": 16},
+      "forecast_horizon": {"risk_appetite": -1, "tempo": -8, "discipline": 8, "curve_focus": -14}
+    },
+    "family_names": ["林", "沈", "周", "顾", "许", "唐", "陆", "程", "宋", "江", "闻", "邵"],
+    "given_names": ["远策", "谨行", "知衡", "景川", "明序", "砚舟", "惟安", "承岳", "清和", "致远", "恒之", "思齐"]
+  },
+  "parameter_mapping": {
+    "target_limit_utilization": {"minimum": 0.25, "maximum": 0.75},
+    "initial_margin_budget_pct_of_equity": {"minimum": 25, "maximum": 75},
+    "adjustment_speed": {"minimum": 0.10, "maximum": 0.90},
+    "signal_deadband_abs": {"minimum": 0.05, "maximum": 0.25},
+    "minimum_trade_edge_pct": {"minimum": 0.20, "maximum": 2.10},
+    "normal_net_trade_limit_utilization": {"minimum": 0.25, "maximum": 0.75},
+    "gross_turnover_multiplier": {"minimum": 0.15, "maximum": 30.0, "curve": "logarithmic"},
+    "expected_holding_turns": {"minimum": 0.50, "maximum": 6.0, "curve": "quadratic"},
+    "position_persistence": {"minimum": 0.0, "maximum": 0.70, "curve": "quadratic"},
+    "net_edge_floor_pct": {"minimum": 0.05, "maximum": 0.225},
+    "main_role_weight": {"minimum": 0.50, "maximum": 0.80},
+    "short_horizon_weights": [0.70, 0.22, 0.08],
+    "long_horizon_weights": [0.30, 0.38, 0.32]
+  },
+  "style_tag_thresholds": {
+    "high": 65,
+    "low": 35
+  }
+}

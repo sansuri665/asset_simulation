@@ -1,0 +1,129 @@
+{
+  "schema_version": "asset-simulation-capital-market-contract-v1",
+  "contract_id": "capital_market_minimum_v1",
+  "status": "reserved_not_registered",
+  "runtime_owner": null,
+  "product_boundary": "primary_and_secondary_markets_not_a_second_macro",
+  "timing": "consumes_same_year_cleared_macro_cannot_write_back_same_year",
+  "common_macro_contract_id": "global_macro_minimum_v3",
+  "adr": "ADR-006-SINGLE-GLOBAL-FEDERATION",
+  "macro_environment_inputs": {
+    "realized_growth_pct": "annual_real_growth_environment",
+    "headline_inflation_pct": "annual_nominal_price_environment",
+    "policy_rate_pct": "policy_rate_environment",
+    "yield_2y_pct": "front_end_curve_environment",
+    "yield_10y_pct": "long_end_curve_environment",
+    "financial_conditions_index": "financial_conditions_environment",
+    "hy_spread_bps": "credit_spread_environment",
+    "dollar_funding_stress_index": "dollar_funding_environment",
+    "corporate_earnings_index": "nominal_earnings_reference_not_tradable",
+    "equity_valuation_pe": "valuation_reference_not_tradable"
+  },
+  "primary_fields": {
+    "issuance_calendar_index": {
+      "owner": "capital_market_primary",
+      "unit": "index",
+      "timing": "same_year_after_cleared_macro",
+      "scope": "planned_gross_issuance_intensity_not_gdp"
+    },
+    "primary_book_coverage_ratio": {
+      "owner": "capital_market_primary",
+      "unit": "ratio",
+      "timing": "same_year_after_cleared_macro",
+      "scope": "bookbuilding_demand_over_supply"
+    },
+    "primary_new_issue_concession_bps": {
+      "owner": "capital_market_primary",
+      "unit": "basis_points",
+      "timing": "same_year_after_cleared_macro",
+      "scope": "new_issue_concession_versus_secondary"
+    }
+  },
+  "secondary_fields": {
+    "secondary_price_index": {
+      "owner": "capital_market_secondary",
+      "unit": "index_not_tradable_until_runtime_owner_exists",
+      "timing": "same_year_after_primary",
+      "scope": "secondary_mark_not_macro_equity_total_return_reference"
+    },
+    "secondary_liquidity_index": {
+      "owner": "capital_market_secondary",
+      "unit": "index",
+      "timing": "same_year_after_primary",
+      "scope": "higher_is_easier_to_trade"
+    },
+    "secondary_relative_value_z": {
+      "owner": "capital_market_secondary",
+      "unit": "z_score",
+      "timing": "same_year_after_primary",
+      "scope": "cheap_rich_versus_macro_curve_and_credit_environment"
+    }
+  },
+  "market_event_ports": {
+    "issuance_window_impulse_index": {
+      "owner": "capital_market_primary",
+      "unit": "index_points",
+      "default": 0.0,
+      "scope": "open_or_close_primary_window_without_rewriting_gdp"
+    },
+    "primary_bookbuilding_failure_impulse_index": {
+      "owner": "capital_market_primary",
+      "unit": "index_points",
+      "default": 0.0,
+      "scope": "failed_or_pulled_deal"
+    },
+    "rating_downgrade_impulse_bps": {
+      "owner": "capital_market_secondary",
+      "unit": "basis_points",
+      "default": 0.0,
+      "scope": "issuer_or_sector_rating_shock"
+    },
+    "hy_liquidity_impulse_index": {
+      "owner": "capital_market_secondary",
+      "unit": "index_points",
+      "default": 0.0,
+      "scope": "high_yield_market_liquidity_not_macro_hy_spread_owner"
+    },
+    "secondary_volatility_impulse_index": {
+      "owner": "capital_market_secondary",
+      "unit": "index_points",
+      "default": 0.0,
+      "scope": "secondary_price_volatility"
+    },
+    "dealer_balance_sheet_impulse_index": {
+      "owner": "capital_market_secondary",
+      "unit": "index_points",
+      "default": 0.0,
+      "scope": "intermediary_capacity"
+    },
+    "ipo_freeze_impulse_index": {
+      "owner": "capital_market_primary",
+      "unit": "index_points",
+      "default": 0.0,
+      "scope": "equity_primary_freeze"
+    }
+  },
+  "macro_event_ports": {
+    "reuse_policy": "opt_in_only_not_ordinary_seed",
+    "bundle": "asset-simulation-exogenous-impulses-v1",
+    "fields": [
+      "demand_growth_impulse_pp",
+      "potential_growth_impulse_pp",
+      "inflation_impulse_pp",
+      "dollar_funding_impulse_index",
+      "credit_spread_impulse_bps",
+      "oil_supply_growth_impulse_pp"
+    ],
+    "ordinary_world_rule": "all_zero_in_run_global_macro",
+    "name_collision_rule": "market_event_ports_must_not_reuse_macro_impulse_field_names"
+  },
+  "forbidden": [
+    "same_year_write_back_to_real_economy_or_inflation",
+    "treat_asset_reference_total_return_as_tradable_index",
+    "map_14_regions_into_full_macro_machines",
+    "bilateral_fx_or_regional_currency_baskets",
+    "default_special_events_into_run_global_macro",
+    "joint_within_year_solver",
+    "ycc_or_crisis_qe_in_ordinary_world"
+  ]
+}

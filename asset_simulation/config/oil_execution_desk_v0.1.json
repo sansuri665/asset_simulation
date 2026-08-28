@@ -1,0 +1,77 @@
+{
+  "schema_version": "asset-simulation-oil-execution-desk-config-v1",
+  "config_id": "asset-simulation-oil-execution-desk-base-v0.1.0",
+  "model_version": "asset-simulation-oil-execution-desk-v0.1.0",
+  "appointment_role": "oil_execution_director",
+  "neutral_baseline_score": 50.0,
+  "default_director": {
+    "personnel_id": "default_oil_execution_director",
+    "display_name": "周砺行",
+    "capability_radar": {
+      "price_execution": 50.0,
+      "impact_control": 50.0,
+      "liquidity_scheduling": 50.0,
+      "completion_reliability": 50.0,
+      "roll_coordination": 50.0,
+      "fee_efficiency": 50.0
+    },
+    "execution_style": {
+      "urgency": 50.0,
+      "passive_preference": 50.0,
+      "window_timing": 50.0
+    }
+  },
+  "capability_dimensions": [
+    "price_execution",
+    "impact_control",
+    "liquidity_scheduling",
+    "completion_reliability",
+    "roll_coordination",
+    "fee_efficiency"
+  ],
+  "style_dimensions": ["urgency", "passive_preference", "window_timing"],
+  "capability_weights": {
+    "price_execution": 0.25,
+    "impact_control": 0.20,
+    "liquidity_scheduling": 0.15,
+    "completion_reliability": 0.15,
+    "roll_coordination": 0.15,
+    "fee_efficiency": 0.10
+  },
+  "candidate_generation": {
+    "default_candidate_count": 5,
+    "minimum_candidate_count": 1,
+    "maximum_candidate_count": 8,
+    "dimension_center": 50.0,
+    "dimension_floor": 8.0,
+    "dimension_ceiling": 92.0,
+    "idiosyncratic_scale": 4.0,
+    "latent_traits": ["microstructure", "liquidity_sense", "discipline", "commercial_reach"],
+    "latent_loadings": {
+      "price_execution": {"microstructure": 17, "liquidity_sense": 7, "discipline": 4, "commercial_reach": 1},
+      "impact_control": {"microstructure": 10, "liquidity_sense": 14, "discipline": 5, "commercial_reach": 0},
+      "liquidity_scheduling": {"microstructure": 5, "liquidity_sense": 17, "discipline": 8, "commercial_reach": 0},
+      "completion_reliability": {"microstructure": 2, "liquidity_sense": 5, "discipline": 18, "commercial_reach": 2},
+      "roll_coordination": {"microstructure": 4, "liquidity_sense": 10, "discipline": 12, "commercial_reach": 4},
+      "fee_efficiency": {"microstructure": 1, "liquidity_sense": 2, "discipline": 3, "commercial_reach": 20},
+      "urgency": {"microstructure": 6, "liquidity_sense": -3, "discipline": -8, "commercial_reach": 0},
+      "passive_preference": {"microstructure": 7, "liquidity_sense": 8, "discipline": 7, "commercial_reach": 0},
+      "window_timing": {"microstructure": 5, "liquidity_sense": 11, "discipline": 4, "commercial_reach": 0}
+    },
+    "family_names": ["周", "陆", "沈", "顾", "林", "程", "许", "闻", "唐", "江", "邵", "宋"],
+    "given_names": ["砺行", "知微", "谨程", "衡远", "致密", "承序", "景行", "明川", "慎之", "清岳", "维安", "行简"]
+  },
+  "parameter_mapping": {
+    "spread_cost_multiplier": {"score_0": 1.35, "score_50": 1.0, "score_100": 0.75},
+    "slippage_multiplier": {"score_0": 1.50, "score_50": 1.0, "score_100": 0.65},
+    "visible_liquidity_weight_exponent": {"score_0": 0.70, "score_50": 1.0, "score_100": 1.35},
+    "normal_trade_completion_multiplier": {"score_0": 0.80, "score_50": 1.0, "score_100": 1.10},
+    "roll_cost_multiplier": {"score_0": 1.50, "score_50": 1.0, "score_100": 0.60},
+    "broker_fee_multiplier": {"score_0": 1.20, "score_50": 1.0, "score_100": 0.80},
+    "rebate_realization_multiplier": {"score_0": 0.75, "score_50": 1.0, "score_100": 1.0},
+    "urgency_multiplier": {"score_0": 0.90, "score_50": 1.0, "score_100": 1.10},
+    "passive_spread_multiplier": {"score_0": 1.08, "score_50": 1.0, "score_100": 0.92},
+    "window_timing_tilt": {"score_0": -0.15, "score_50": 0.0, "score_100": 0.15}
+  },
+  "tag_thresholds": {"high": 65.0, "low": 35.0}
+}

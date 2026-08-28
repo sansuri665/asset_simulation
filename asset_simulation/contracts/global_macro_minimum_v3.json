@@ -1,0 +1,50 @@
+{
+  "schema_version": "asset-simulation-field-contract-v3",
+  "contract_id": "global_macro_minimum_v3",
+  "identity_fields": ["seed", "year_index", "year"],
+  "a_level_fields": {
+    "global_gdp_trillion_usd": {"owner": "real_economy", "unit": "trillion_2025_usd"},
+    "realized_growth_pct": {"owner": "real_economy", "unit": "percent_yoy", "t0_nullable": true},
+    "potential_growth_pct": {"owner": "real_economy", "unit": "percent_yoy", "t0_nullable": true},
+    "output_gap_pct": {"owner": "real_economy", "unit": "log_percent"},
+    "headline_inflation_pct": {"owner": "inflation_nominal", "unit": "percent_yoy"},
+    "core_inflation_pct": {"owner": "inflation_nominal", "unit": "percent_yoy"},
+    "inflation_expectation_pct": {"owner": "inflation_nominal", "unit": "percent"},
+    "global_policy_rate_pct": {"owner": "rates", "unit": "percent"},
+    "real_policy_rate_pct": {"owner": "rates", "unit": "percent"},
+    "neutral_real_policy_rate_pct": {"owner": "rates", "unit": "percent"},
+    "global_2y_yield_pct": {"owner": "rates", "unit": "percent"},
+    "global_10y_yield_pct": {"owner": "rates", "unit": "percent"},
+    "term_premium_10y_pct": {"owner": "rates", "unit": "percent"},
+    "global_real_10y_yield_pct": {"owner": "rates", "unit": "percent"},
+    "global_dollar_index": {"owner": "funding_credit", "unit": "index_2025_100"},
+    "dollar_yoy_change_pct": {"owner": "funding_credit", "unit": "percent_yoy"},
+    "dollar_funding_stress_index": {"owner": "funding_credit", "unit": "index"},
+    "global_funding_liquidity_index": {"owner": "funding_credit", "unit": "index"},
+    "global_investment_grade_spread_bps": {"owner": "funding_credit", "unit": "basis_points"},
+    "global_high_yield_spread_bps": {"owner": "funding_credit", "unit": "basis_points"},
+    "credit_availability_index": {"owner": "funding_credit", "unit": "index"},
+    "default_risk_index": {"owner": "funding_credit", "unit": "index"},
+    "brent_oil_price_usd": {"owner": "oil_commodity", "unit": "current_usd_per_barrel", "price_basis": "nominal_current_money"},
+    "oil_yoy_change_pct": {"owner": "oil_commodity", "unit": "percent_yoy", "price_basis": "nominal_current_money"},
+    "commodity_yoy_change_pct": {"owner": "oil_commodity", "unit": "percent_yoy", "price_basis": "nominal_current_money"},
+    "energy_cost_pressure_index": {"owner": "oil_commodity", "unit": "index"}
+  },
+  "b_level_fields": {
+    "global_financial_conditions_index": {"owner": "funding_credit", "unit": "z_like_index"},
+    "risk_appetite_index": {"owner": "asset_reference", "unit": "index"},
+    "global_corporate_earnings_reference_growth_pct": {"owner": "asset_reference", "unit": "percent_yoy", "t0_nullable": true},
+    "global_equity_valuation_center_pe": {"owner": "asset_reference", "unit": "multiple"},
+    "global_equity_risk_premium_center_pct": {"owner": "asset_reference", "unit": "percent"},
+    "global_equity_capitalization_reference_growth_pct": {"owner": "asset_reference", "unit": "percent_yoy", "price_basis": "nominal_current_money", "t0_nullable": true},
+    "global_equity_dividend_yield_pct": {"owner": "asset_reference", "unit": "percent"},
+    "global_equity_total_return_reference_growth_pct": {"owner": "asset_reference", "unit": "percent_yoy", "price_basis": "nominal_total_return", "t0_nullable": true},
+    "global_equity_real_total_return_reference_growth_pct": {"owner": "asset_reference", "unit": "real_percent_yoy", "t0_nullable": true},
+    "global_sovereign_bond_wealth_reference_growth_pct": {"owner": "asset_reference", "unit": "percent_yoy", "price_basis": "nominal_total_return", "t0_nullable": true},
+    "global_sovereign_bond_real_wealth_reference_growth_pct": {"owner": "asset_reference", "unit": "real_percent_yoy", "t0_nullable": true}
+  },
+  "derived_identities": {
+    "real_policy_gap_pct": "real_policy_rate_pct - neutral_real_policy_rate_pct",
+    "term_spread_10y_2y_pct": "global_10y_yield_pct - global_2y_yield_pct"
+  }
+}

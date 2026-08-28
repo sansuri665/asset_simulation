@@ -1,0 +1,38 @@
+{
+  "contract_id": "oil_futures_account_v1",
+  "schema_version": "asset-simulation-oil-futures-account-contract-v1",
+  "role": "Hard, style-free futures account owner applied after investment, risk and execution decisions. It keeps a marked-to-market cash ledger, restricts initial margin, calculates available funds, records margin calls and performs deterministic forced liquidation.",
+  "state_fields": {
+    "cash_balance_usd": {"unit": "usd"},
+    "equity_usd": {"unit": "usd", "identity": "cash_balance_usd_without_external_assets_or_liabilities"},
+    "restricted_initial_margin_usd": {"unit": "usd"},
+    "maintenance_margin_usd": {"unit": "usd"},
+    "available_funds_usd": {"unit": "usd"},
+    "excess_liquidity_usd": {"unit": "usd"},
+    "positions": {"unit": "signed_integer_lots"},
+    "status": {"unit": "enum_normal_reduce_only_forced_liquidation_insolvent"}
+  },
+  "turn_ledger_fields": {
+    "variation_margin_usd": {"unit": "usd"},
+    "execution_cost_usd": {"unit": "usd", "status": "already_in_variation_margin"},
+    "idle_cash_interest_usd": {"unit": "usd"},
+    "margin_financing_cost_usd": {"unit": "usd"},
+    "forced_liquidation_cost_usd": {"unit": "usd"},
+    "initial_margin_transfer_usd": {"unit": "usd", "status": "non_pnl_restriction_transfer"},
+    "margin_call_amount_usd": {"unit": "usd"},
+    "forced_liquidation_lots": {"unit": "lots"},
+    "account_net_pnl_usd": {"unit": "usd"}
+  },
+  "invariants": [
+    "cash after equals cash before plus variation margin plus idle-cash interest minus financing cost minus forced-liquidation cost when external flows are zero",
+    "posted initial margin is restricted collateral and never deducted a second time from equity",
+    "available funds equals max(cash balance minus restricted initial margin, zero)",
+    "excess liquidity equals cash balance minus maintenance margin",
+    "pretrade account authorization can preserve or shrink an approved strategy target but never expand it",
+    "reduce-only and insolvent accounts cannot increase absolute exposure or run discretionary round trips",
+    "maintenance breach records a margin call and forces positions toward the configured recovery utilization in the same coarse half-month settlement",
+    "forced-liquidation slippage and fees reduce cash and are never hidden inside market prices",
+    "insolvency is sticky and prevents reopening risk",
+    "the account never writes back to market prices, volume, open interest, forecasts, strategy preferences or risk profiles"
+  ]
+}

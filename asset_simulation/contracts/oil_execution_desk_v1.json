@@ -1,0 +1,29 @@
+{
+  "contract_id": "oil_execution_desk_v1",
+  "schema_version": "asset-simulation-oil-execution-desk-contract-v1",
+  "role": "Deterministic appointed execution personnel with six continuous capability scores and three separate style scores. Capability changes execution quality, not forecast direction or target-position intent.",
+  "identity_fields": ["seed", "candidate_index", "personnel_id", "profile_hash"],
+  "capability_fields": {
+    "price_execution": {"unit": "continuous_score_0_to_100", "weight": 0.25},
+    "impact_control": {"unit": "continuous_score_0_to_100", "weight": 0.20},
+    "liquidity_scheduling": {"unit": "continuous_score_0_to_100", "weight": 0.15},
+    "completion_reliability": {"unit": "continuous_score_0_to_100", "weight": 0.15},
+    "roll_coordination": {"unit": "continuous_score_0_to_100", "weight": 0.15},
+    "fee_efficiency": {"unit": "continuous_score_0_to_100", "weight": 0.10}
+  },
+  "style_fields": {
+    "urgency": {"unit": "continuous_style_0_to_100"},
+    "passive_preference": {"unit": "continuous_style_0_to_100"},
+    "window_timing": {"unit": "continuous_style_0_to_100"}
+  },
+  "invariants": [
+    "every score accepts any finite decimal from 0 through 100 and maps continuously into runtime parameters",
+    "50.0 on every capability and style score is the exact neutral execution baseline",
+    "hard exchange, clearing, cash-settlement, position-limit, margin, and market-capacity rules are never improved by personnel ability",
+    "completion ability can use only requested trades and unused feasible capacity and cannot fabricate liquidity",
+    "the execution desk never reads hidden future bars when scheduling orders",
+    "the same seed and candidate index generate the same profile and hash",
+    "players appoint generated personnel and do not submit arbitrary capability radars through the service API",
+    "TCA compares actual execution with the neutral score-50 desk on the same realized orders and market window"
+  ]
+}

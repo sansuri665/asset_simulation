@@ -1,0 +1,39 @@
+{
+  "schema_version": "asset-simulation-oil-futures-account-config-v1",
+  "config_id": "asset-simulation-formal-oil-futures-account-v0.1.0",
+  "model_version": "asset-simulation-oil-futures-account-v0.1.0",
+  "turns_per_year": 24,
+  "cash_and_funding": {
+    "annual_reference_rate_field": "curve.inputs.funding_pct",
+    "idle_cash_rate_spread_bps": -25.0,
+    "idle_cash_rate_floor_pct": 0.0,
+    "idle_cash_rate_cap_pct": 10.0,
+    "margin_financing_spread_bps": 250.0,
+    "margin_financing_rate_floor_pct": 3.0,
+    "margin_financing_rate_cap_pct": 20.0,
+    "self_funded_initial_margin_pct_of_equity": 70.0
+  },
+  "pretrade": {
+    "maximum_initial_margin_pct_of_equity": 90.0,
+    "minimum_free_collateral_pct_of_equity": 10.0,
+    "account_restriction_turns_after_margin_call": 1,
+    "reduce_only_disables_round_trip_turnover": true
+  },
+  "margin_call_and_liquidation": {
+    "trigger": "cash_equity_below_maintenance_margin",
+    "margin_call_restore_level": "initial_margin",
+    "forced_liquidation_target_initial_margin_pct_of_equity": 75.0,
+    "forced_liquidation_slippage_bps_per_side": 8.0,
+    "forced_liquidation_fee_usd_per_lot": 5.0,
+    "maximum_liquidation_passes": 12,
+    "insolvency_equity_floor_usd": 1000000.0,
+    "insolvency_is_sticky": true
+  },
+  "accounting": {
+    "variation_margin_frequency": "each_half_month_turn",
+    "posted_initial_margin_is_restricted_cash_not_expense": true,
+    "external_capital_flows_enabled": false,
+    "negative_net_fees_enabled": false,
+    "rounding_tolerance_usd": 0.01
+  }
+}

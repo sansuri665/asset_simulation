@@ -1,0 +1,45 @@
+"""Compact, dependency-free global macro model."""
+
+from .engine import MODEL_VERSION, GlobalMacroRun, run_global_macro
+from .oil_trading_strategy import (
+    OIL_TRADING_STRATEGY_MODEL_VERSION,
+    simulate_oil_trading_strategy,
+)
+from .oil_futures_account import (
+    OIL_FUTURES_ACCOUNT_MODEL_VERSION,
+    apply_oil_futures_account_constraints,
+    create_oil_futures_account,
+    oil_futures_account_snapshot,
+    settle_oil_futures_account_turn,
+)
+from .oil_strategy_research import (
+    OIL_STRATEGY_RESEARCH_MODEL_VERSION,
+    generate_oil_strategy_research_roster,
+)
+from .oil_execution_desk import (
+    OIL_EXECUTION_DESK_MODEL_VERSION,
+    generate_oil_execution_desk_roster,
+)
+from .corporate_risk_control import (
+    CORPORATE_RISK_CONTROL_MODEL_VERSION,
+    generate_corporate_risk_roster,
+)
+
+__all__ = [
+    "MODEL_VERSION",
+    "GlobalMacroRun",
+    "run_global_macro",
+    "OIL_TRADING_STRATEGY_MODEL_VERSION",
+    "simulate_oil_trading_strategy",
+    "OIL_FUTURES_ACCOUNT_MODEL_VERSION",
+    "apply_oil_futures_account_constraints",
+    "create_oil_futures_account",
+    "oil_futures_account_snapshot",
+    "settle_oil_futures_account_turn",
+    "OIL_STRATEGY_RESEARCH_MODEL_VERSION",
+    "generate_oil_strategy_research_roster",
+    "OIL_EXECUTION_DESK_MODEL_VERSION",
+    "generate_oil_execution_desk_roster",
+    "CORPORATE_RISK_CONTROL_MODEL_VERSION",
+    "generate_corporate_risk_roster",
+]

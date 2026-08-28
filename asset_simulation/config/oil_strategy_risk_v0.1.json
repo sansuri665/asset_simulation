@@ -1,0 +1,117 @@
+{
+  "schema_version": "asset-simulation-oil-strategy-risk-config-v1",
+  "config_id": "asset-simulation-oil-strategy-risk-base-v0.1.0",
+  "model_version": "asset-simulation-oil-strategy-risk-v0.1.0",
+  "strategy_owner": "oil_strategy_research_v2",
+  "company_risk_owner": "corporate_risk_control_v2",
+  "decision_owner": "investment_decision_committee",
+  "strategy_pressure_weights": {
+    "capacity": {
+      "capital_deployment": 0.65,
+      "responsiveness": 0.20,
+      "inverse_selectivity": 0.15
+    },
+    "volatility": {
+      "responsiveness": 0.30,
+      "inverse_selectivity": 0.25,
+      "turnover_activity": 0.20,
+      "orientation_extremeness": 0.15,
+      "inverse_forecast_horizon": 0.10
+    },
+    "drawdown": {
+      "capital_deployment": 0.35,
+      "holding_patience": 0.25,
+      "inverse_selectivity": 0.20,
+      "orientation_extremeness": 0.20
+    },
+    "concentration": {
+      "near_month_focus": 0.70,
+      "capital_deployment": 0.30
+    },
+    "liquidity": {
+      "turnover_activity": 0.45,
+      "responsiveness": 0.25,
+      "near_month_focus": 0.20,
+      "capital_deployment": 0.10
+    },
+    "roll": {
+      "holding_patience": 0.45,
+      "near_month_focus": 0.30,
+      "forecast_horizon": 0.25
+    }
+  },
+  "review_score_formula": {
+    "neutral": 50.0,
+    "risk_tolerance_weight": 0.55,
+    "strategy_pressure_weight": 0.35
+  },
+  "parameter_mapping": {
+    "recommended_capital_authorization_pct_of_company_equity": {
+      "score_0": 25.0,
+      "score_50": 65.0,
+      "score_100": 100.0
+    },
+    "max_gross_market_limit_utilization": {
+      "score_0": 0.35,
+      "score_50": 0.75,
+      "score_100": 0.95
+    },
+    "max_initial_margin_pct_of_authorized_capital": {
+      "score_0": 45.0,
+      "score_50": 80.0,
+      "score_100": 100.0
+    },
+    "annualized_volatility_budget_pct_of_authorized_capital": {
+      "score_0": 35.0,
+      "score_50": 100.0,
+      "score_100": 160.0
+    },
+    "drawdown_watch_pct": {
+      "score_0": 4.0,
+      "score_50": 8.0,
+      "score_100": 14.0
+    },
+    "drawdown_restrict_pct": {
+      "score_0": 8.0,
+      "score_50": 15.0,
+      "score_100": 26.0
+    },
+    "drawdown_reduce_only_pct": {
+      "score_0": 14.0,
+      "score_50": 25.0,
+      "score_100": 42.0
+    },
+    "max_single_contract_share_of_strategy_gross": {
+      "score_0": 0.50,
+      "score_50": 0.80,
+      "score_100": 1.0
+    },
+    "max_liquidation_half_turns": {
+      "score_0": 0.50,
+      "score_50": 2.0,
+      "score_100": 4.0
+    },
+    "roll_buffer_half_turns": {
+      "score_0": 6.0,
+      "score_50": 2.0,
+      "score_100": 0.0
+    }
+  },
+  "drawdown_scaling": {
+    "watch_scale": 0.78,
+    "restrict_scale": 0.45,
+    "reduce_only_scale": 0.35,
+    "maximum_scale_recovery_per_turn": 0.10
+  },
+  "visible_volatility": {
+    "lookback_weeks": 8,
+    "annualization_weeks": 52,
+    "minimum_annualized_volatility": 0.15,
+    "maximum_annualized_volatility": 1.20
+  },
+  "committee_proxy": {
+    "default_capital_authorization_pct_of_company_equity": 100.0,
+    "risk_policy_approval_method": "accept_risk_department_recommendation",
+    "capital_authorization_method": "single_strategy_full_allocation_proxy"
+  }
+}

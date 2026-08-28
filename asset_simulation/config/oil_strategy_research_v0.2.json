@@ -1,0 +1,82 @@
+{
+  "schema_version": "asset-simulation-oil-strategy-research-config-v2",
+  "config_id": "asset-simulation-oil-strategy-research-base-v0.2.0",
+  "model_version": "asset-simulation-oil-strategy-research-v0.2.0",
+  "signal_engine_id": "forecast_continuation_reversion_directional_edge_sized_turnover_v7",
+  "appointment_role": "oil_strategy_research_director",
+  "default_director": {
+    "personnel_id": "default_oil_strategy_director",
+    "display_name": "林远策",
+    "style_radar": {
+      "continuation_reversion": 50,
+      "capital_deployment": 50,
+      "responsiveness": 50,
+      "selectivity": 50,
+      "turnover_activity": 50,
+      "holding_patience": 50,
+      "near_month_focus": 50,
+      "forecast_horizon": 50
+    }
+  },
+  "style_dimensions": [
+    "continuation_reversion",
+    "capital_deployment",
+    "responsiveness",
+    "selectivity",
+    "turnover_activity",
+    "holding_patience",
+    "near_month_focus",
+    "forecast_horizon"
+  ],
+  "candidate_generation": {
+    "default_candidate_count": 5,
+    "minimum_candidate_count": 1,
+    "maximum_candidate_count": 8,
+    "dimension_center": 50,
+    "dimension_floor": 10,
+    "dimension_ceiling": 90,
+    "idiosyncratic_scale": 4.5,
+    "latent_traits": [
+      "capital_appetite",
+      "tempo",
+      "discipline",
+      "curve_focus",
+      "continuation_bias"
+    ],
+    "continuation_bias_slots": [0.0, -1.25, 1.25, -0.65, 0.65, -1.65, 1.65, 0.25],
+    "continuation_bias_random_scale": 0.30,
+    "continuation_score_slots": [50, 18, 82, 34, 66, 10, 90, 50],
+    "continuation_score_random_scale": 3.0,
+    "latent_loadings": {
+      "continuation_reversion": {"capital_appetite": 0, "tempo": 4, "discipline": 0, "curve_focus": 0, "continuation_bias": 22},
+      "capital_deployment": {"capital_appetite": 18, "tempo": 1, "discipline": -4, "curve_focus": 0, "continuation_bias": 2},
+      "responsiveness": {"capital_appetite": 3, "tempo": 17, "discipline": -3, "curve_focus": 0, "continuation_bias": 2},
+      "selectivity": {"capital_appetite": -5, "tempo": -7, "discipline": 15, "curve_focus": 0, "continuation_bias": -2},
+      "turnover_activity": {"capital_appetite": 4, "tempo": 19, "discipline": -4, "curve_focus": 0, "continuation_bias": 4},
+      "holding_patience": {"capital_appetite": -2, "tempo": -13, "discipline": 15, "curve_focus": 0, "continuation_bias": 3},
+      "near_month_focus": {"capital_appetite": 1, "tempo": 5, "discipline": 0, "curve_focus": 16, "continuation_bias": 0},
+      "forecast_horizon": {"capital_appetite": -1, "tempo": -8, "discipline": 8, "curve_focus": -14, "continuation_bias": 3}
+    },
+    "family_names": ["林", "沈", "周", "顾", "许", "唐", "陆", "程", "宋", "江", "闻", "邵"],
+    "given_names": ["远策", "谨行", "知衡", "景川", "明序", "砚舟", "惟安", "承岳", "清和", "致远", "恒之", "思齐"]
+  },
+  "parameter_mapping": {
+    "continuation_weight": {"minimum": 0.05, "neutral": 0.30, "maximum": 0.90, "curve": "centered_linear"},
+    "capital_deployment_pct_of_allocated_equity": {"minimum": 25, "neutral": 50, "maximum": 75, "curve": "centered_linear"},
+    "adjustment_speed": {"minimum": 0.10, "maximum": 0.90},
+    "signal_deadband_abs": {"minimum": 0.05, "maximum": 0.25},
+    "minimum_trade_edge_pct": {"minimum": 0.20, "maximum": 2.10},
+    "normal_net_trade_limit_utilization": {"minimum": 0.25, "maximum": 0.75},
+    "gross_turnover_multiplier": {"minimum": 0.15, "maximum": 30.0, "curve": "logarithmic"},
+    "expected_holding_turns": {"minimum": 0.50, "maximum": 6.0, "curve": "quadratic"},
+    "position_persistence": {"minimum": 0.0, "maximum": 0.70, "curve": "quadratic"},
+    "net_edge_floor_pct": {"minimum": 0.05, "maximum": 0.225},
+    "main_role_weight": {"minimum": 0.50, "maximum": 0.80},
+    "short_horizon_weights": [0.70, 0.22, 0.08],
+    "long_horizon_weights": [0.30, 0.38, 0.32]
+  },
+  "style_tag_thresholds": {
+    "high": 65,
+    "low": 35
+  }
+}

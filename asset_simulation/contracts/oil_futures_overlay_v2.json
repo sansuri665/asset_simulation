@@ -1,0 +1,33 @@
+{
+  "contract_id": "oil_futures_overlay_v2",
+  "schema_version": "asset-simulation-oil-futures-overlay-contract-v2",
+  "role": "Read-only five-node quarterly oil curve, spot reference, early-rolled continuous main series, and named contract histories for the monthly game.",
+  "identity_fields": ["seed", "as_of_year", "as_of_month", "instrument_id"],
+  "curve_fields": {
+    "spot_reference_price_usd": {"unit": "usd_per_bbl"},
+    "futures_price_usd": {"unit": "usd_per_bbl"},
+    "basis_usd": {"unit": "usd_per_bbl"},
+    "basis_pct": {"unit": "percent"},
+    "annualized_carry_pct": {"unit": "percent"},
+    "long_slope_pct": {"unit": "percent"},
+    "near_pressure_pct": {"unit": "log_price_percent"},
+    "curvature_pct": {"unit": "log_price_percent"}
+  },
+  "history_fields": {
+    "reference.monthly": {"note": "Complete visible spot-reference OHLC from 2025 through the cutoff."},
+    "mainContinuous.monthly": {"note": "Complete backward-ratio-adjusted main OHLC from 2025; rolls before the expiry month."},
+    "curve.contracts[].monthly": {"note": "Named contract OHLC from listing through the cutoff or expiry, at most 15 monthly and 60 weekly bars."}
+  },
+  "invariants": [
+    "exactly five quarterly contracts are listed",
+    "each named contract lists 14 calendar months before expiry and has 15 inclusive monthly settlements",
+    "a named expiry-month contract converges to the visible spot reference",
+    "the main series rolls to the next quarter for the expiry-month bar",
+    "the main series is backward-ratio-adjusted and non-tradable",
+    "curve factors are persistent long slope, near pressure, and curvature states",
+    "pricing reads only visible monthly oil bars and the latest completed annual macro row",
+    "no future monthly close or later annual macro state is used at a cutoff",
+    "no player, order, position, or portfolio state is a pricing input",
+    "no write-back to global macro or commodity overlay"
+  ]
+}

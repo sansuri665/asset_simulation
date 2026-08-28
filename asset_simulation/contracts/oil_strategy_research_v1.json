@@ -1,0 +1,42 @@
+{
+  "contract_id": "oil_strategy_research_v1",
+  "schema_version": "asset-simulation-oil-strategy-research-contract-v1",
+  "role": "Deterministic appointed-personnel profiles for the oil strategy research department. The eight-axis radar is a preference shape without a total score and resolves into one auditable mandate for the current directional strategy engine.",
+  "identity_fields": [
+    "seed",
+    "candidate_index",
+    "personnel_id",
+    "profile_hash"
+  ],
+  "style_fields": {
+    "position_scale": {"unit": "preference_0_100"},
+    "margin_usage": {"unit": "preference_0_100"},
+    "responsiveness": {"unit": "preference_0_100"},
+    "selectivity": {"unit": "preference_0_100"},
+    "turnover_activity": {"unit": "preference_0_100"},
+    "holding_patience": {"unit": "preference_0_100"},
+    "near_month_focus": {"unit": "preference_0_100"},
+    "forecast_horizon": {"unit": "preference_0_100"}
+  },
+  "mandate_fields": {
+    "target_limit_utilization": {"unit": "ratio_0_to_1"},
+    "initial_margin_budget_pct_of_equity": {"unit": "percent"},
+    "adjustment_speed": {"unit": "ratio_0_to_1"},
+    "signal_deadband_abs": {"unit": "signed_signal_absolute_threshold"},
+    "minimum_trade_edge_pct": {"unit": "percent"},
+    "gross_turnover_multiplier": {"unit": "half_month_gross_lots_per_reference_lot"},
+    "expected_holding_turns": {"unit": "half_month_turns"},
+    "position_persistence": {"unit": "ratio_0_to_1"},
+    "main_role_weight": {"unit": "ratio_0_to_1"},
+    "horizon_weights": {"unit": "weights_sum_to_1"}
+  },
+  "invariants": [
+    "players appoint one generated personnel profile and never submit free-form radar dimensions through the service API",
+    "the eight style dimensions are preferences and have no total score or higher-is-better interpretation",
+    "research institution capability scores never enter the strategy personnel generator or its mandate",
+    "contract margin rates, market position limits, market execution capacity, fees, spreads, and base slippage remain external hard owners",
+    "the same seed and candidate index generate the same personnel, radar, resolved mandate, and profile hash",
+    "all resolved weights are normalized and every resolved parameter remains inside the registered mapping bounds",
+    "the profile never reads hidden future prices and never writes back to market or macro state"
+  ]
+}

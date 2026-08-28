@@ -1,0 +1,57 @@
+{
+  "contract_id": "oil_trading_strategy_v2",
+  "schema_version": "asset-simulation-oil-trading-strategy-contract-v2",
+  "status": "superseded_unregistered",
+  "superseded_by": "oil_trading_strategy_v3",
+  "role": "A no-lookahead half-month oil strategy with a continuous turnover preference, weekly execution windows, capacity-constrained named-contract positions, and gross-turnover mark-to-market reports.",
+  "identity_fields": [
+    "seed",
+    "strategy_id",
+    "institution_id",
+    "turnover_intensity",
+    "start_turn",
+    "end_turn"
+  ],
+  "decision_fields": {
+    "signal": {"unit": "signed_score_minus_1_to_1"},
+    "band_location_signal": {"unit": "signed_score_minus_1_to_1"},
+    "path_direction_signal": {"unit": "signed_score_minus_1_to_1"},
+    "ideal_target_lots": {"unit": "lots"},
+    "target_position_lots": {"unit": "lots"},
+    "turnover_intensity": {"unit": "score_0_to_100"},
+    "adjustment_speed": {"unit": "ratio"},
+    "signal_deadband_abs": {"unit": "signed_signal_absolute_threshold"},
+    "minimum_trade_edge_pct": {"unit": "percent"},
+    "gross_turnover_multiplier": {"unit": "gross_lots_per_reference_position_lot"},
+    "gross_turnover_budget_lots": {"unit": "lots"}
+  },
+  "execution_fields": {
+    "starting_position_lots": {"unit": "lots"},
+    "requested_delta_lots": {"unit": "lots"},
+    "executed_delta_lots": {"unit": "lots"},
+    "ending_position_lots": {"unit": "lots"},
+    "buy_lots": {"unit": "lots"},
+    "sell_lots": {"unit": "lots"},
+    "gross_turnover_lots": {"unit": "lots"},
+    "round_trip_lots": {"unit": "lots"},
+    "aggregate_execution_price_usd": {"unit": "usd_per_bbl", "nullable": true},
+    "turn_trade_limit_lots": {"unit": "lots"},
+    "turn_pnl_usd": {"unit": "usd"},
+    "round_trip_pnl_usd": {"unit": "usd"},
+    "ending_initial_margin_usd": {"unit": "usd"}
+  },
+  "invariants": [
+    "strategy decisions read only the current visible futures payload, current published forecast, current account state, and explicit turnover preference",
+    "configured institution capability scores are research metadata and never enter signal or position sizing formulas",
+    "turnover intensity changes target tracking, signal deadband, minimum tradable edge, and gross execution budget but never changes leverage or market limits",
+    "hidden future bars and future market payloads are unavailable to the decision function",
+    "positions exist only in named OIL-YYMM contracts and never in the continuous main index",
+    "mandatory risk reduction has priority and may use the full published per-turn trade limit",
+    "net adjustment and flat round trips share one published gross execution capacity",
+    "weekly round trips are planned from the published forecast and are filled only against weeks first realized after the decision cutoff",
+    "weekly execution weights are frozen from recently visible volume and never use future weekly volume",
+    "buy lots minus sell lots equals net position change and buy lots plus sell lots equals gross turnover",
+    "aggregate execution prices use only newly realized weekly OHLC data and contain no fees or friction in v2",
+    "the strategy never changes futures prices, market volume, market open interest, the forecast, or global macro rows"
+  ]
+}

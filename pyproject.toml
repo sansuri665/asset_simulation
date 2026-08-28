@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "asset-simulation"
+version = "0.1.0"
+description = "Deterministic long-horizon macro, crude-oil futures, and institutional trading simulation"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.scripts]
+asset-simulation = "asset_simulation.server:main"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["asset_simulation*"]
+
+[tool.setuptools.package-data]
+asset_simulation = [
+  "config/*.json",
+  "contracts/*.json",
+  "viewer/*.html",
+  "viewer/static/css/*.css",
+  "viewer/static/js/*.js",
+  "docs/*.md",
+  "docs/**/*.md",
+]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E9", "F63", "F7", "F82"]
+

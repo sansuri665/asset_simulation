@@ -1,0 +1,26 @@
+{
+  "schema_version": "asset-simulation-oil-futures-overlay-config-v1",
+  "config_id": "asset-simulation-oil-quarterly-futures-ordinary-v0.1.0",
+  "model_version": "asset-simulation-oil-futures-overlay-v0.1.0",
+  "listed_contract_count": 5,
+  "expiry_months": [3, 6, 9, 12],
+  "curve": {
+    "funding_field": "global_2y_yield_pct",
+    "funding_bounds_pct": [-1.0, 12.0],
+    "storage_base_pct": 2.2,
+    "storage_volatility_scale": 0.8,
+    "convenience_base_pct": 3.0,
+    "convenience_tightness_scale": 0.08,
+    "convenience_flow_gap_scale": 0.18,
+    "convenience_bounds_pct": [0.0, 12.0],
+    "trend_window_months": 6,
+    "trend_weight": 0.18,
+    "trend_bounds_pct": [-5.0, 5.0],
+    "risk_premium_base_pct": 0.35,
+    "risk_premium_volatility_scale": 0.45,
+    "front_carry_bounds_pct": [-18.0, 22.0],
+    "long_run_carry_pct": 2.0,
+    "carry_decay_per_year": 1.35,
+    "flat_curve_threshold_pct": 0.5
+  }
+}

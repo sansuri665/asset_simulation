@@ -1,0 +1,51 @@
+{
+  "contract_id": "oil_trading_strategy_v3",
+  "schema_version": "asset-simulation-oil-trading-strategy-contract-v3",
+  "status": "superseded_unregistered",
+  "superseded_by": "oil_trading_strategy_v4",
+  "role": "A no-lookahead half-month oil strategy with continuous turnover, forecast-planned weekly executions, dynamic spread and slippage, per-side fees, rolling rebates, and fully attributed net PnL.",
+  "identity_fields": [
+    "seed",
+    "strategy_id",
+    "institution_id",
+    "turnover_intensity",
+    "start_turn",
+    "end_turn"
+  ],
+  "decision_fields": {
+    "signal": {"unit": "signed_score_minus_1_to_1"},
+    "ideal_target_lots": {"unit": "lots"},
+    "target_position_lots": {"unit": "lots"},
+    "turnover_intensity": {"unit": "score_0_to_100"},
+    "minimum_trade_edge_pct": {"unit": "percent"},
+    "required_edge_after_cost_pct": {"unit": "percent"},
+    "estimated_round_trip_cost_pct": {"unit": "percent"},
+    "gross_turnover_budget_lots": {"unit": "lots"}
+  },
+  "execution_fields": {
+    "buy_lots": {"unit": "lots"},
+    "sell_lots": {"unit": "lots"},
+    "gross_turnover_lots": {"unit": "lots"},
+    "round_trip_lots": {"unit": "lots"},
+    "gross_pnl_before_cost_usd": {"unit": "usd"},
+    "spread_cost_usd": {"unit": "usd"},
+    "slippage_cost_usd": {"unit": "usd"},
+    "gross_fee_usd": {"unit": "usd"},
+    "fee_rebate_usd": {"unit": "usd"},
+    "net_fee_usd": {"unit": "usd"},
+    "cash_settlement_fee_usd": {"unit": "usd"},
+    "net_pnl_after_cost_usd": {"unit": "usd"}
+  },
+  "invariants": [
+    "strategy decisions read only the visible market, published forecast, account state, explicit turnover preference, and trailing fee state",
+    "configured institution capability scores never enter signal, position sizing, or execution-cost formulas",
+    "weekly allocation weights, cost estimates, and fee tier are frozen at the decision cutoff",
+    "realized weekly volume and OHLC enter only settlement-time spread, slippage, fill, and PnL attribution",
+    "net adjustment and round trips share one published gross execution capacity",
+    "buy lots minus sell lots equals net position change and buy lots plus sell lots equals gross turnover",
+    "spread and slippage costs are charged once as cash attribution and are never deducted again through raw market fill prices",
+    "rebates apply only to eligible execution-fee components, use prior rolling volume, and can never make net fees negative",
+    "cash settlement is not market turnover and incurs no spread or slippage",
+    "the strategy never changes public prices, market volume, market open interest, forecasts, or macro rows"
+  ]
+}

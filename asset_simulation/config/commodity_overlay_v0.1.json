@@ -1,0 +1,183 @@
+{
+  "schema_version": "asset-simulation-commodity-overlay-config-v1",
+  "config_id": "asset-simulation-commodity-overlay-ordinary-v0.1.2",
+  "model_version": "asset-simulation-commodity-overlay-v0.1.2",
+  "kinds": {
+    "energy": {
+      "name": "能源",
+      "weights": {"brent": 0.50, "wti": 0.20, "henry_hub": 0.15, "ttf": 0.15}
+    },
+    "industrial_metals": {
+      "name": "工业金属",
+      "weights": {"copper": 0.45, "aluminum": 0.25, "iron_ore": 0.30}
+    },
+    "precious_metals": {
+      "name": "贵金属",
+      "weights": {"gold": 0.75, "silver": 0.25}
+    },
+    "agriculture": {
+      "name": "农产品",
+      "weights": {"wheat": 0.34, "corn": 0.33, "soybean": 0.33}
+    }
+  },
+  "contracts": {
+    "brent": {
+      "kind": "energy",
+      "name": "Brent",
+      "source": "global_brent",
+      "unit": "usd_per_bbl",
+      "unit_label": "美元/桶"
+    },
+    "wti": {
+      "kind": "energy",
+      "name": "WTI",
+      "source": "brent_spread",
+      "spread_center": -0.035,
+      "spread_persist": 0.82,
+      "spread_news_scale": 0.010,
+      "spread_bounds": [-0.12, 0.04],
+      "unit": "usd_per_bbl",
+      "unit_label": "美元/桶"
+    },
+    "henry_hub": {
+      "kind": "energy",
+      "name": "Henry Hub",
+      "source": "satellite",
+      "anchor_usd": 3.50,
+      "oil_beta": 0.48,
+      "broad_beta": 0.12,
+      "dollar_beta": -0.18,
+      "mean_reversion": 0.04,
+      "news_scale": 2.2,
+      "real_bounds": [35.0, 320.0],
+      "unit": "usd_per_mmbtu",
+      "unit_label": "美元/百万英热"
+    },
+    "ttf": {
+      "kind": "energy",
+      "name": "TTF",
+      "source": "satellite",
+      "anchor_usd": 10.00,
+      "oil_beta": 0.42,
+      "broad_beta": 0.14,
+      "dollar_beta": -0.16,
+      "mean_reversion": 0.035,
+      "news_scale": 2.4,
+      "real_bounds": [30.0, 380.0],
+      "unit": "usd_per_mwh",
+      "unit_label": "美元/兆瓦时"
+    },
+    "copper": {
+      "kind": "industrial_metals",
+      "name": "铜",
+      "source": "satellite",
+      "anchor_usd": 9000.0,
+      "oil_beta": 0.18,
+      "broad_beta": 0.62,
+      "dollar_beta": -0.28,
+      "mean_reversion": 0.03,
+      "news_scale": 1.6,
+      "real_bounds": [45.0, 260.0],
+      "unit": "usd_per_tonne",
+      "unit_label": "美元/吨"
+    },
+    "aluminum": {
+      "kind": "industrial_metals",
+      "name": "铝",
+      "source": "satellite",
+      "anchor_usd": 2500.0,
+      "oil_beta": 0.22,
+      "broad_beta": 0.55,
+      "dollar_beta": -0.24,
+      "mean_reversion": 0.03,
+      "news_scale": 1.5,
+      "real_bounds": [45.0, 240.0],
+      "unit": "usd_per_tonne",
+      "unit_label": "美元/吨"
+    },
+    "iron_ore": {
+      "kind": "industrial_metals",
+      "name": "铁矿",
+      "source": "satellite",
+      "anchor_usd": 110.0,
+      "oil_beta": 0.12,
+      "broad_beta": 0.58,
+      "dollar_beta": -0.22,
+      "mean_reversion": 0.035,
+      "news_scale": 1.9,
+      "real_bounds": [40.0, 280.0],
+      "unit": "usd_per_tonne",
+      "unit_label": "美元/吨"
+    },
+    "gold": {
+      "kind": "precious_metals",
+      "name": "黄金",
+      "source": "satellite",
+      "anchor_usd": 2300.0,
+      "oil_beta": 0.06,
+      "broad_beta": 0.22,
+      "dollar_beta": -0.45,
+      "mean_reversion": 0.018,
+      "news_scale": 1.1,
+      "real_bounds": [55.0, 220.0],
+      "unit": "usd_per_oz",
+      "unit_label": "美元/盎司"
+    },
+    "silver": {
+      "kind": "precious_metals",
+      "name": "白银",
+      "source": "satellite",
+      "anchor_usd": 28.0,
+      "oil_beta": 0.10,
+      "broad_beta": 0.38,
+      "dollar_beta": -0.36,
+      "mean_reversion": 0.025,
+      "news_scale": 1.7,
+      "real_bounds": [40.0, 260.0],
+      "unit": "usd_per_oz",
+      "unit_label": "美元/盎司"
+    },
+    "wheat": {
+      "kind": "agriculture",
+      "name": "小麦",
+      "source": "satellite",
+      "anchor_usd": 6.00,
+      "oil_beta": 0.10,
+      "broad_beta": 0.42,
+      "dollar_beta": -0.16,
+      "mean_reversion": 0.04,
+      "news_scale": 1.8,
+      "real_bounds": [40.0, 260.0],
+      "unit": "usd_per_bu",
+      "unit_label": "美元/蒲式耳"
+    },
+    "corn": {
+      "kind": "agriculture",
+      "name": "玉米",
+      "source": "satellite",
+      "anchor_usd": 4.50,
+      "oil_beta": 0.12,
+      "broad_beta": 0.40,
+      "dollar_beta": -0.15,
+      "mean_reversion": 0.04,
+      "news_scale": 1.7,
+      "real_bounds": [40.0, 250.0],
+      "unit": "usd_per_bu",
+      "unit_label": "美元/蒲式耳"
+    },
+    "soybean": {
+      "kind": "agriculture",
+      "name": "大豆",
+      "source": "satellite",
+      "anchor_usd": 11.00,
+      "oil_beta": 0.08,
+      "broad_beta": 0.44,
+      "dollar_beta": -0.18,
+      "mean_reversion": 0.035,
+      "news_scale": 1.6,
+      "real_bounds": [42.0, 250.0],
+      "unit": "usd_per_bu",
+      "unit_label": "美元/蒲式耳"
+    }
+  }
+}

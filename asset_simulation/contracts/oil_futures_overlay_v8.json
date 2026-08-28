@@ -1,0 +1,63 @@
+{
+  "contract_id": "oil_futures_overlay_v8",
+  "schema_version": "asset-simulation-oil-futures-overlay-contract-v8",
+  "role": "Read-only 01/05/09 oil curve with inventory-conditioned carry, four listed contracts, an eight-week shared futures-liquidity roll curve, and a reserved mega-institution position and turnover policy.",
+  "identity_fields": ["seed", "as_of_year", "as_of_month", "as_of_half", "instrument_id"],
+  "curve_fields": {
+    "spot_reference_price_usd": {"unit": "usd_per_bbl"},
+    "futures_price_usd": {"unit": "usd_per_bbl"},
+    "basis_usd": {"unit": "usd_per_bbl"},
+    "basis_pct": {"unit": "percent"},
+    "annualized_carry_pct": {"unit": "percent"},
+    "funding_pct": {"unit": "percent"},
+    "storage_pct": {"unit": "percent"},
+    "convenience_yield_pct": {"unit": "percent"},
+    "term_risk_premium_pct": {"unit": "percent"},
+    "inventory_tightness_index": {"unit": "index"},
+    "flow_gap_pct": {"unit": "percent"},
+    "long_slope_pct": {"unit": "annualized_log_price_percent"},
+    "near_pressure_pct": {"unit": "log_price_percent"},
+    "curvature_pct": {"unit": "log_price_percent"}
+  },
+  "liquidity_fields": {
+    "volume_lots": {"unit": "lots", "note": "Weekly futures turnover; higher periods sum visible weeks."},
+    "open_interest_lots": {"unit": "lots", "note": "End-of-week market open interest."},
+    "open_interest_change_lots": {"unit": "lots"},
+    "futuresLiquidity.weekly[].volume_lots": {"unit": "lots"},
+    "futuresLiquidity.weekly[].open_interest_lots": {"unit": "lots"},
+    "futuresLiquidity.weekly[].turnover_ratio": {"unit": "times"}
+  },
+  "participant_limit_fields": {
+    "single_contract_open_interest_rate_pct": {"unit": "percent"},
+    "single_contract_hard_cap_lots": {"unit": "lots"},
+    "all_contract_gross_position_cap_lots": {"unit": "lots"},
+    "turn_volume_rate_pct": {"unit": "percent"},
+    "recent_volume_reference_weeks": {"unit": "weeks"},
+    "turn_volume_equivalent_weeks": {"unit": "weeks"},
+    "turn_equivalent_volume_lots": {"unit": "lots"},
+    "single_contract_position_limit_lots": {"unit": "lots"},
+    "turn_trade_limit_lots": {"unit": "lots"},
+    "position_limit_notional_usd": {"unit": "usd"}
+  },
+  "history_fields": {
+    "reference.monthly": {"note": "Visible spot OHLC only; no futures liquidity or participant-limit fields are added to spot."},
+    "mainContinuous.monthly": {"note": "Backward-ratio-adjusted main OHLC; liquidity and current limits come from the active source contract."},
+    "curve.contracts[].monthly": {"note": "Named OIL-YYMM price and liquidity history from listing through cutoff or expiry."}
+  },
+  "invariants": [
+    "exactly four 01/05/09 delivery-month contracts are listed",
+    "funding plus storage plus risk premium minus inventory-conditioned convenience yield forms the persistent long carry target",
+    "tight inventory and positive physical flow gaps raise convenience yield and favor backwardation; loose inventory and negative gaps favor contango",
+    "all basis components are continuous in time to expiry and equal zero at final settlement",
+    "one standard lot represents 1000 barrels",
+    "volume and open interest use the same smoothstep progress across the final eight weeks of roll migration",
+    "the normal single-contract participant limit is the lesser of 3 percent of current open interest and 75000 lots",
+    "the all-contract gross participant cap is 150000 lots",
+    "the per-turn trade cap is 0.8 percent of the latest four-week average volume rescaled to a two-week turn",
+    "position limits step down to 15000 and then 8000 lots near expiry; expiry-month new trades are disabled",
+    "participant limits are enforced by the strategy execution owner and initial and maintenance margin are enforced by oil_futures_account_v1",
+    "the spot reference receives no participant-limit fields",
+    "no future weekly close, volume, open interest, or later annual macro state is used at a cutoff",
+    "no player state writes back to price, liquidity, global macro, or the commodity overlay"
+  ]
+}

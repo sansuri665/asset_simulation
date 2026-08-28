@@ -1,0 +1,155 @@
+# 原油正式期货账户与收益尺度校准
+
+> 状态：v0.1 已实现并接入四机构竞技；首批跨 Seed 校准已运行  
+> 账户 owner：`model/oil_futures_account.py`  
+> 注册资产：`config/oil_futures_account_v0.1.json`、`contracts/oil_futures_account_v1.json`  
+> 校准 owner：`audit_oil_formal_account_calibration.py`  
+> 当前版本：`asset-simulation-oil-futures-account-v0.1.0`  
+> 最近核对：2026-08-26
+
+## 1. 结论
+
+竞技账户不再只是“上一期权益＋策略盈亏”。每家机构现在有独立、可哈希、可对账的正式期货账户状态，逐半月完成：
+
+```text
+投委会／策略／风控批准目标
+→ 账户按现金和初始保证金做最后授权
+→ 交易部执行并形成策略结算单
+→ 变动保证金进入现金
+→ 空闲现金计息、超额保证金融资计费
+→ 检查维持保证金
+→ 追保或同回合强制减仓
+→ 冻结新的初始保证金并发布可用资金
+```
+
+账户层没有人员能力、风格或收益偏好。它只能保留或缩小上游批准，不能放大目标，也不能改写市场。
+
+## 2. 账户状态与恒等式
+
+当前游戏没有其它证券资产、外部负债或回合中追加资金，因此：
+
+```text
+equity_usd = cash_balance_usd
+
+free_collateral_usd
+= cash_balance_usd - restricted_initial_margin_usd
+
+available_funds_usd
+= max(free_collateral_usd, 0)
+
+excess_liquidity_usd
+= cash_balance_usd - maintenance_margin_usd
+```
+
+初始保证金是受限抵押现金，不是费用，也不会从权益中再扣一次。单回合现金桥固定为：
+
+```text
+cash_after
+= cash_before
+ + variation_margin
+ + idle_cash_interest
+ - margin_financing_cost
+ - forced_liquidation_cost
+```
+
+其中策略结算单的 `variation_margin` 已包含价差、滑点、净手续费和现金结算费；账户不得再次扣交易成本。保证金冻结／释放只进入 `initial_margin_transfer_usd`，属于非 PnL 状态转换。
+
+## 3. 资金、追保和强平
+
+- 新增风险最多把初始保证金用到权益的90%，同时保留至少10%自由抵押品；账户授权在公司风控之后执行。
+- 空闲现金按期末全球2年资金利率减25bp、以一年24个半月回合折算计息。
+- 初始保证金高于权益70%的部分视为需要内部保证金融资，按资金利率加250bp计费；这不是额外权益，也不能绕过保证金上限。
+- 现金权益低于维持保证金时记录追保；正式 Demo 不允许回合中外部注资，所以立即把仓位压到“初始保证金／权益75%”恢复区间。
+- 强平按期末命名合约价格成交，另收单边8bp滑点和5美元／手费用；强平成本单列，不伪装成市场 K 线价格。
+- 追保后下一个半月进入只减仓；往返换手关闭。权益不高于100万美元时记为破产、全部清仓并永久禁止重新开仓。
+
+现实清算会逐日甚至日内盯市。本项目一个回合是半个月，所以“本回合末追保并强减”是对日内清算瀑布的压缩，不声称现实机构可以等待半个月才处理保证金。
+
+## 4. 现实锚点与模型选择
+
+硬事实和游戏选择必须分开：
+
+| 项目 | 现实锚点 | 当前游戏值 | 判断 |
+|---|---|---:|---|
+| 合约规模 | CME WTI 标准合约为1000桶 | 1000桶／手 | 直接锚定 |
+| 最小跳动 | CME WTI 为0.01美元／桶，即10美元／手 | 相同 | 直接锚定 |
+| 初始／维持保证金 | 交易所按波动动态调整；CME说明维持保证金通常是初始保证金的80%—90% | 固定15%／12%，比率80% | 机制锚定、数值保守且静态 |
+| 盯市 | CME 期货以现金变动保证金逐日／日内盯市 | 半月聚合一次 | 游戏时间压缩 |
+| 追保 | 低于维持保证金时补至初始保证金；不能补则减仓或自动平仓 | 记录补至初始的缺口并立即强减 | 机制锚定 |
+| 到期限仓 | CFTC 对 NYMEX CL 现货月采用6000／5000／4000手三级下降 | 当前虚构全球市场为15000／8000手后仅结算 | 不是复制 CME；保留平滑迁移与游戏尺度 |
+
+主要资料：
+
+- [CME WTI 合约规格示例](https://www.cmegroup.com/education/courses/master-the-trade-futures/expanding-your-futures-knowledge/master-the-trade-contract-specifications.hideSubnav.educationIframe.html?hideAddThisExt=y&hideFooter=y&hideHeader=y&hideRightRail=y)
+- [CME 期货保证金和追保说明](https://www.cmegroup.com/education/courses/understanding-the-benefits-of-futures/the-benefits-of-futures-margins)
+- [CME 现金逐日盯市说明](https://www.cmegroup.com/education/articles-and-reports/money-calculations-for-futures-and-options)
+- [CFTC 能源期货头寸限制](https://www.cftc.gov/IndustryOversight/MarketSurveillance/SpeculativeLimits/index.htm)
+
+15%初始保证金高于 CME 教育材料所述普通期货常见3%—12%区间，当前刻意保守。后续若加入波动联动 SPAN 近似，不应简单把固定值调低，而应让平静期下降、压力期上升并提前通知。
+
+## 5. 收益分布校准方法
+
+校准器在同一 Seed 内冻结同一市场和同一份预测路径，只改变：
+
+- 三种方向风格：回归、均衡、延续；
+- 三档投委会资金授权：35%、60%、85%；
+- 多个市场 Seed。
+
+每条路径输出：CAGR、年化波动、最大回撤、半月95% VaR／ES、保证金利用、追保／强平／破产、执行成本、年换手和名义敞口。高低授权还配对检查：
+
+```text
+trading_return_efficiency
+= trading_pnl_pct_of_initial_equity / authorization_pct
+```
+
+授权增加不保证绝对收益下降，但在多数 Seed×风格配对中，单位授权收益应衰减、成交成本 bps 不应系统性下降，风险波动应上升。这比要求“85%授权一定赚得更多”更符合容量约束。
+
+## 6. 首批基线
+
+首批可复算报告使用 Seed 42／2026／7777、三种风格、三档授权和三年路径，共27个情景、1944个账户回合。报告保存于 `.codex_tmp/oil_formal_account_calibration_3seed_3year.json`。
+
+| 指标 | 最小 | 中位数 | 最大 |
+|---|---:|---:|---:|
+| CAGR | 0.50% | 4.93% | 9.40% |
+| 年化波动 | 1.89% | 4.13% | 8.53% |
+| 最大回撤 | −8.38% | −3.55% | −0.91% |
+| 半月95% ES | −3.60% | −1.88% | −0.60% |
+| 初始保证金／权益最大值 | 3.45% | 9.11% | 14.28% |
+| 执行成本／成交名义额 | 6.31bp | 7.88bp | 9.91bp |
+
+结果表明当前单品种策略是机构组合中的低至中风险 sleeve，而不是把30亿美元全部押满的独立基金：35%授权组平均年化波动约3.34%，85%授权组约5.45%。普通样本没有追保或破产；故障测试另行覆盖高杠杆亏损、追保、强平和破产路径。
+
+9组高低授权配对中，7组单位授权交易收益下降，9组高授权执行成本 bps 上升。容量效应已经可见，但样本仍不足以宣称长期分布成熟。
+
+未参与首批门禁选择的 Seed 314159／271828／161803 另跑同样27个三年留出情景，硬门禁和现实尺度门禁继续全部通过。留出 CAGR／年化波动／最大回撤中位数为7.88%／5.56%／−3.79%；高低授权波动中位数为7.23%／3.44%，容量效率衰减配对仍为77.78%、高授权成本不下降为100%，仍无普通追保或破产。留出报告保存于 `.codex_tmp/oil_formal_account_calibration_holdout_3seed_3year.json`。
+
+## 7. 门禁
+
+### 硬门禁
+
+- 所有现金桥误差不超过0.01美元；
+- 账户授权从不扩大上游目标；
+- 非破产账户回合末全部恢复维持保证金；
+- 外部资金流为零；
+- 受限保证金不进入 PnL；
+- 破产不可重新开仓。
+
+### 现实尺度门禁
+
+- 全授权样本年化波动中位数在2%—20%；
+- 最高授权样本年化波动中位数在5%—30%，且高于最低授权；
+- CAGR 中位数在−10%—30%，只作为过拟合报警宽门禁；
+- 最大回撤 P10 不低于−60%，普通破产率不超过5%；
+- 追保回合率中位数不超过5%；
+- 执行成本中位数在0—50bp；
+- 至少60%的高低授权配对出现单位授权收益衰减，至少80%出现高授权成本不下降。
+
+这些范围是游戏校准护栏，不是现实基金业绩承诺。趋势策略的长期研究只能证明某类方法在长期多市场样本中曾有统计收益，不能替当前单品种、合成市场和特定策略提供收益目标；可参考 [AQR《A Century of Evidence on Trend-Following Investing》](https://www.aqr.com/Insights/Research/Journal-Article/A-Century-of-Evidence-on-Trend-Following-Investing)。
+
+## 8. 当前限制
+
+1. 保证金率固定，不随波动、期限、净额组合和清算通知动态变化。
+2. 没有外部追加资金、公司其它资产、银行授信、抵押品折扣或跨品种组合保证金。
+3. 强平在半月收盘价附近聚合执行，不模拟日内跳空、熔断、流动性枯竭或负油价。
+4. 竞技状态仍是进程内可重放状态，不是版本迁移的持久存档。
+5. 当前只校准短线单合约方向策略；期限结构策略和多策略组合出现后必须重新校准公司账户。

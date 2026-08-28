@@ -1,0 +1,40 @@
+{
+  "schema_version": "asset-simulation-commodity-taxonomy-v1",
+  "source": "一级是商品种类，二级是通用商品名称。界面列表可选全部品种；当前只有原油绘制图表，其它品种图表留空。内部 brent 路径作为原油数据源，不并列两套原油基准。",
+  "kinds": [
+    {
+      "id": "energy",
+      "name": "能源",
+      "children": [
+        {"id": "brent", "name": "原油"},
+        {"id": "henry_hub", "name": "天然气"}
+      ]
+    },
+    {
+      "id": "industrial_metals",
+      "name": "工业金属",
+      "children": [
+        {"id": "copper", "name": "铜"},
+        {"id": "aluminum", "name": "铝"},
+        {"id": "iron_ore", "name": "铁矿"}
+      ]
+    },
+    {
+      "id": "precious_metals",
+      "name": "贵金属",
+      "children": [
+        {"id": "gold", "name": "黄金"},
+        {"id": "silver", "name": "白银"}
+      ]
+    },
+    {
+      "id": "agriculture",
+      "name": "农产品",
+      "children": [
+        {"id": "wheat", "name": "小麦"},
+        {"id": "corn", "name": "玉米"},
+        {"id": "soybean", "name": "大豆"}
+      ]
+    }
+  ]
+}

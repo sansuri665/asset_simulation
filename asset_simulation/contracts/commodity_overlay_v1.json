@@ -1,0 +1,32 @@
+{
+  "contract_id": "commodity_overlay_v1",
+  "schema_version": "asset-simulation-commodity-overlay-contract-v1",
+  "role": "Read-only named commodity prices on a cleared global macro year. Does not write back oil_commodity or CPI.",
+  "identity_fields": ["seed", "year_index", "year", "kind_id", "contract_id"],
+  "a_level_fields": {
+    "nominal_price_usd": {"unit": "usd", "note": "Contract nominal price in the contract unit."},
+    "real_price_index": {"unit": "index_2025_100", "note": "Real price index; 100 at the opening real level."},
+    "nominal_high_usd": {"unit": "usd", "note": "Brent year high from the oil envelope. Not traded OHLC.", "brent_only": true},
+    "nominal_low_usd": {"unit": "usd", "note": "Brent year low from the oil envelope. Not traded OHLC.", "brent_only": true},
+    "real_high_index": {"unit": "index_2025_100", "note": "Brent real year high. Same envelope as nominal high.", "brent_only": true},
+    "real_low_index": {"unit": "index_2025_100", "note": "Brent real year low. Same envelope as nominal low.", "brent_only": true},
+    "monthly": {"note": "Brent only. 12 intra-year bars expanded from the annual envelope; each month nests 4 weekly bars. Not traded months or weeks.", "brent_only": true},
+    "yoy_change_pct": {"unit": "percent", "nullable_year_zero": true},
+    "real_yoy_change_pct": {"unit": "percent", "nullable_year_zero": true}
+  },
+  "kind_fields": {
+    "nominal_index": {"unit": "index", "note": "Kind basket, CPI-inclusive, 100 at open times CPI/100."},
+    "real_index": {"unit": "index_2025_100"}
+  },
+  "invariants": [
+    "brent.nominal_price_usd = global brent_oil_price_usd",
+    "brent.real_price_index = global_real_oil_price_index",
+    "brent year envelope: low <= min(previous close, close) <= max(previous close, close) <= high",
+    "brent year envelope leftover range follows annual drift; tight markets widen the range",
+    "brent monthly: 12 bars from the annual envelope; month 1 open = annual open; month 12 close = annual close; max high = year high; min low = year low; leftover range is swept by wicks, not by pinning a monthly close",
+    "brent weekly: 4 bars nested under each monthly bar; week 1 open = month open; week 4 close = month close; max high = month high; min low = month low; leftover month range is swept by weekly wicks, not by pinning a weekly close",
+    "wti.nominal_price_usd = brent.nominal_price_usd * (1 + spread)",
+    "satellite nominal_price_usd = anchor_usd * real_price_index / 100 * cpi / 100",
+    "no write-back to global snapshots"
+  ]
+}
