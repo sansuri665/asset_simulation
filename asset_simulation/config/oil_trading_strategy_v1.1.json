@@ -7,7 +7,7 @@
   "initial_reference_equity_usd": 3000000000.0,
   "strategy_research_profile_owner": "oil_strategy_research_v2",
   "strategy_risk_owner": "oil_strategy_risk_v1",
-  "execution_desk_profile_owner": "oil_execution_desk_v1",
+  "execution_desk_profile_owner": "oil_execution_desk_v2",
   "corporate_risk_profile_owner": "corporate_risk_control_v2",
   "investment_decision_owner": "investment_decision_committee_system_proxy",
   "signal": {

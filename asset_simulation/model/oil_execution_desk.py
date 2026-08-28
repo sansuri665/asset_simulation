@@ -10,8 +10,8 @@ from .random_stream import normal
 from .registry import load_registered_assets, sha256_json
 
 
-OIL_EXECUTION_DESK_MODEL_VERSION = "asset-simulation-oil-execution-desk-v0.1.0"
-OIL_EXECUTION_DESK_CONTRACT_ID = "oil_execution_desk_v1"
+OIL_EXECUTION_DESK_MODEL_VERSION = "asset-simulation-oil-execution-desk-v0.2.0"
+OIL_EXECUTION_DESK_CONTRACT_ID = "oil_execution_desk_v2"
 CAPABILITY_DIMENSIONS = (
     "price_execution",
     "impact_control",
@@ -47,9 +47,128 @@ def _assets() -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
         raise ValueError("oil execution capability dimensions are out of order")
     if tuple(config["style_dimensions"]) != STYLE_DIMENSIONS:
         raise ValueError("oil execution style dimensions are out of order")
-    weights = {key: float(value) for key, value in config["capability_weights"].items()}
-    if set(weights) != set(CAPABILITY_DIMENSIONS) or not math.isclose(sum(weights.values()), 1.0):
-        raise ValueError("oil execution capability weights must cover the radar and sum to one")
+
+    weights = {
+        key: float(value)
+        for key, value in config["capability_weights"].items()
+    }
+    if (
+        set(weights) != set(CAPABILITY_DIMENSIONS)
+        or not math.isclose(sum(weights.values()), 1.0)
+        or any(value <= 0.0 for value in weights.values())
+    ):
+        raise ValueError(
+            "oil execution capability weights must cover the radar, "
+            "be positive and sum to one"
+        )
+
+    generation = config["candidate_generation"]
+    capability_traits = tuple(generation["capability_latent_traits"])
+    style_traits = tuple(generation["style_latent_traits"])
+    if (
+        not capability_traits
+        or not style_traits
+        or set(capability_traits) & set(style_traits)
+    ):
+        raise ValueError(
+            "oil execution capability/style latent traits must be non-empty "
+            "and disjoint"
+        )
+    capability_loadings = generation["capability_latent_loadings"]
+    style_loadings = generation["style_latent_loadings"]
+    if set(capability_loadings) != set(CAPABILITY_DIMENSIONS):
+        raise ValueError(
+            "oil execution capability latent loadings must cover all "
+            "capability dimensions"
+        )
+    if set(style_loadings) != set(STYLE_DIMENSIONS):
+        raise ValueError(
+            "oil execution style latent loadings must cover all style dimensions"
+        )
+    for dimension in CAPABILITY_DIMENSIONS:
+        if set(capability_loadings[dimension]) != set(capability_traits):
+            raise ValueError(
+                f"oil execution capability loading mismatch: {dimension}"
+            )
+    for dimension in STYLE_DIMENSIONS:
+        if set(style_loadings[dimension]) != set(style_traits):
+            raise ValueError(
+                f"oil execution style loading mismatch: {dimension}"
+            )
+
+    floor = float(generation["dimension_floor"])
+    center = float(generation["dimension_center"])
+    ceiling = float(generation["dimension_ceiling"])
+    clip_sigma = float(generation["latent_clip_sigma"])
+    capability_noise = float(
+        generation["capability_idiosyncratic_scale"]
+    )
+    style_noise = float(generation["style_idiosyncratic_scale"])
+    if not 0.0 <= floor < center < ceiling <= 100.0:
+        raise ValueError("oil execution candidate dimension bounds are invalid")
+    if min(clip_sigma, capability_noise, style_noise) <= 0.0:
+        raise ValueError(
+            "oil execution latent clip and idiosyncratic scales must be positive"
+        )
+
+    expected_mapping_fields = {
+        "spread_cost_multiplier",
+        "slippage_multiplier",
+        "visible_liquidity_weight_exponent",
+        "normal_trade_capacity_multiplier",
+        "normal_order_completion_multiplier",
+        "roll_cost_multiplier",
+        "broker_fee_multiplier",
+        "rebate_realization_multiplier",
+        "urgency_slippage_multiplier",
+        "urgency_order_completion_multiplier",
+        "passive_spread_multiplier",
+        "passive_order_completion_multiplier",
+        "window_timing_tilt",
+    }
+    mapping = config["parameter_mapping"]
+    if set(mapping) != expected_mapping_fields:
+        raise ValueError(
+            "oil execution parameter mapping does not match v0.2 contract"
+        )
+    for field, anchors in mapping.items():
+        if set(anchors) != {"score_0", "score_50", "score_100"}:
+            raise ValueError(
+                f"oil execution mapping anchors are invalid: {field}"
+            )
+        if not all(math.isfinite(float(value)) for value in anchors.values()):
+            raise ValueError(
+                f"oil execution mapping contains non-finite values: {field}"
+            )
+
+    if set(config["style_semantics"]) != set(STYLE_DIMENSIONS):
+        raise ValueError(
+            "oil execution style semantics must cover all style dimensions"
+        )
+    if set(contract["capability_fields"]) != set(CAPABILITY_DIMENSIONS):
+        raise ValueError(
+            "oil execution contract capability fields are incomplete"
+        )
+    if set(contract["style_fields"]) != set(STYLE_DIMENSIONS):
+        raise ValueError("oil execution contract style fields are incomplete")
+    for dimension, weight in weights.items():
+        contract_weight = float(
+            contract["capability_fields"][dimension]["weight"]
+        )
+        if not math.isclose(weight, contract_weight):
+            raise ValueError(
+                f"oil execution contract weight mismatch: {dimension}"
+            )
+    philosophy = contract["personnel_philosophy"]
+    if (
+        philosophy.get("system_type") != "capability_plus_style"
+        or not philosophy.get("capability_has_objective_ordering")
+        or philosophy.get("style_has_total_score")
+        or not philosophy.get("capability_and_style_latents_are_separate")
+    ):
+        raise ValueError(
+            "oil execution personnel philosophy is inconsistent with v0.2"
+        )
     return assets, config, contract
 
 
@@ -78,38 +197,92 @@ def _piecewise(anchor: Mapping[str, Any], score: float) -> float:
 
 
 def _resolved_policy(
-    capability: Mapping[str, float], style: Mapping[str, float], config: Mapping[str, Any]
+    capability: Mapping[str, float],
+    style: Mapping[str, float],
+    config: Mapping[str, Any],
 ) -> dict[str, Any]:
     mapping = config["parameter_mapping"]
-    spread = _piecewise(mapping["spread_cost_multiplier"], capability["price_execution"])
-    spread *= _piecewise(mapping["passive_spread_multiplier"], style["passive_preference"])
-    slippage = _piecewise(mapping["slippage_multiplier"], capability["impact_control"])
-    slippage *= _piecewise(mapping["urgency_multiplier"], style["urgency"])
+
+    passive_spread = _piecewise(
+        mapping["passive_spread_multiplier"],
+        style["passive_preference"],
+    )
+    urgency_slippage = _piecewise(
+        mapping["urgency_slippage_multiplier"],
+        style["urgency"],
+    )
+    capability_capacity = _piecewise(
+        mapping["normal_trade_capacity_multiplier"],
+        capability["completion_reliability"],
+    )
+    capability_order = _piecewise(
+        mapping["normal_order_completion_multiplier"],
+        capability["completion_reliability"],
+    )
+    urgency_order = _piecewise(
+        mapping["urgency_order_completion_multiplier"],
+        style["urgency"],
+    )
+    passive_order = _piecewise(
+        mapping["passive_order_completion_multiplier"],
+        style["passive_preference"],
+    )
+    normal_order_completion_ratio = clamp(
+        capability_order * urgency_order * passive_order,
+        0.0,
+        1.0,
+    )
+
+    spread = _piecewise(
+        mapping["spread_cost_multiplier"],
+        capability["price_execution"],
+    ) * passive_spread
+    slippage = _piecewise(
+        mapping["slippage_multiplier"],
+        capability["impact_control"],
+    ) * urgency_slippage
+
     return {
-        "price_execution": {"spread_cost_multiplier": spread},
-        "impact_control": {"slippage_multiplier": slippage},
+        "price_execution": {
+            "spread_cost_multiplier": spread,
+            "passive_style_multiplier": passive_spread,
+        },
+        "impact_control": {
+            "slippage_multiplier": slippage,
+            "urgency_style_multiplier": urgency_slippage,
+        },
         "liquidity_scheduling": {
             "visible_liquidity_weight_exponent": _piecewise(
-                mapping["visible_liquidity_weight_exponent"], capability["liquidity_scheduling"]
+                mapping["visible_liquidity_weight_exponent"],
+                capability["liquidity_scheduling"],
             ),
-            "window_timing_tilt": _piecewise(mapping["window_timing_tilt"], style["window_timing"]),
+            "window_timing_tilt": _piecewise(
+                mapping["window_timing_tilt"],
+                style["window_timing"],
+            ),
         },
         "completion_reliability": {
-            "normal_trade_completion_multiplier": _piecewise(
-                mapping["normal_trade_completion_multiplier"], capability["completion_reliability"]
-            )
+            "normal_trade_capacity_multiplier": capability_capacity,
+            "normal_trade_completion_multiplier": capability_capacity,
+            "capability_order_multiplier": capability_order,
+            "urgency_style_multiplier": urgency_order,
+            "passive_style_multiplier": passive_order,
+            "normal_order_completion_ratio": normal_order_completion_ratio,
         },
         "roll_coordination": {
             "roll_cost_multiplier": _piecewise(
-                mapping["roll_cost_multiplier"], capability["roll_coordination"]
+                mapping["roll_cost_multiplier"],
+                capability["roll_coordination"],
             )
         },
         "fee_efficiency": {
             "broker_fee_multiplier": _piecewise(
-                mapping["broker_fee_multiplier"], capability["fee_efficiency"]
+                mapping["broker_fee_multiplier"],
+                capability["fee_efficiency"],
             ),
             "rebate_realization_multiplier": _piecewise(
-                mapping["rebate_realization_multiplier"], capability["fee_efficiency"]
+                mapping["rebate_realization_multiplier"],
+                capability["fee_efficiency"],
             ),
         },
     }
@@ -171,7 +344,7 @@ def _pack(
     weights = config["capability_weights"]
     total_score = sum(capability[key] * float(weights[key]) for key in CAPABILITY_DIMENSIONS)
     result = {
-        "schemaVersion": "asset-simulation-oil-execution-desk-profile-v1",
+        "schemaVersion": "asset-simulation-oil-execution-desk-profile-v2",
         "appointment": {
             "department": "trading_execution", "role": str(config["appointment_role"]),
             "personnel_id": str(personnel_id), "display_name": str(display_name),
@@ -185,9 +358,16 @@ def _pack(
         "capability_tags": _tags(capability, config),
         "resolved_policy": _resolved_policy(capability, style, config),
         "governance": {
-            "scores_are_continuous": True, "neutral_baseline_score": 50.0,
-            "player_can_edit_radar": False, "selection_method": "appoint_generated_personnel",
-            "forecast_or_target_position_owner": False, "hard_market_rules_owner": False,
+            "scores_are_continuous": True,
+            "neutral_baseline_score": 50.0,
+            "capability_higher_score_is_better": True,
+            "style_higher_score_is_better": False,
+            "style_total_score_available": False,
+            "capability_style_latents_separate": True,
+            "player_can_edit_radar": False,
+            "selection_method": "appoint_generated_personnel",
+            "forecast_or_target_position_owner": False,
+            "hard_market_rules_owner": False,
         },
         "identity": {
             "model_version": OIL_EXECUTION_DESK_MODEL_VERSION,
@@ -225,20 +405,78 @@ def generate_oil_execution_desk_candidate(*, seed: int, candidate_index: int) ->
         raise ValueError("oil execution candidate index must be non-negative")
     _, config, _ = _assets()
     generation = config["candidate_generation"]
-    traits = list(generation["latent_traits"])
-    latents = {
-        key: clamp(normal(seed, f"oil_execution.candidate.{candidate_index}.latent.{key}", candidate_index), -1.8, 1.8)
-        for key in traits
-    }
-    radar: dict[str, float] = {}
-    all_dimensions = CAPABILITY_DIMENSIONS + STYLE_DIMENSIONS
-    for dimension_index, dimension in enumerate(all_dimensions):
-        loading = generation["latent_loadings"][dimension]
-        value = float(generation["dimension_center"]) + sum(float(loading[key]) * latents[key] for key in traits)
-        value += float(generation["idiosyncratic_scale"]) * normal(
-            seed, f"oil_execution.candidate.{candidate_index}.dimension.{dimension}", dimension_index
+    capability_traits = list(generation["capability_latent_traits"])
+    style_traits = list(generation["style_latent_traits"])
+    clip_sigma = float(generation["latent_clip_sigma"])
+    capability_latents = {
+        key: clamp(
+            normal(
+                seed,
+                f"oil_execution.candidate.{candidate_index}.capability_latent.{key}",
+                candidate_index,
+            ),
+            -clip_sigma,
+            clip_sigma,
         )
-        radar[dimension] = round(clamp(value, float(generation["dimension_floor"]), float(generation["dimension_ceiling"])), 2)
+        for key in capability_traits
+    }
+    style_latents = {
+        key: clamp(
+            normal(
+                seed,
+                f"oil_execution.candidate.{candidate_index}.style_latent.{key}",
+                candidate_index,
+            ),
+            -clip_sigma,
+            clip_sigma,
+        )
+        for key in style_traits
+    }
+
+    radar: dict[str, float] = {}
+    for dimension_index, dimension in enumerate(CAPABILITY_DIMENSIONS):
+        loading = generation["capability_latent_loadings"][dimension]
+        value = float(generation["dimension_center"]) + sum(
+            float(loading[key]) * capability_latents[key]
+            for key in capability_traits
+        )
+        value += float(
+            generation["capability_idiosyncratic_scale"]
+        ) * normal(
+            seed,
+            f"oil_execution.candidate.{candidate_index}.capability_dimension.{dimension}",
+            dimension_index,
+        )
+        radar[dimension] = round(
+            clamp(
+                value,
+                float(generation["dimension_floor"]),
+                float(generation["dimension_ceiling"]),
+            ),
+            2,
+        )
+
+    for dimension_index, dimension in enumerate(STYLE_DIMENSIONS):
+        loading = generation["style_latent_loadings"][dimension]
+        value = float(generation["dimension_center"]) + sum(
+            float(loading[key]) * style_latents[key]
+            for key in style_traits
+        )
+        value += float(
+            generation["style_idiosyncratic_scale"]
+        ) * normal(
+            seed,
+            f"oil_execution.candidate.{candidate_index}.style_dimension.{dimension}",
+            dimension_index,
+        )
+        radar[dimension] = round(
+            clamp(
+                value,
+                float(generation["dimension_floor"]),
+                float(generation["dimension_ceiling"]),
+            ),
+            2,
+        )
     families = list(generation["family_names"])
     given = list(generation["given_names"])
     family = families[_pool_index(seed, f"oil_execution.candidate.{candidate_index}.family", candidate_index, len(families))]
@@ -259,13 +497,13 @@ def generate_oil_execution_desk_roster(*, seed: int, candidate_count: int | None
         raise ValueError("oil execution candidate count is outside its bounds")
     candidates = [generate_oil_execution_desk_candidate(seed=seed, candidate_index=index) for index in range(count)]
     result = {
-        "ok": True, "schemaVersion": "asset-simulation-oil-execution-desk-roster-v1",
+        "ok": True, "schemaVersion": "asset-simulation-oil-execution-desk-roster-v2",
         "seed": seed, "candidateCount": count, "appointmentRole": config["appointment_role"],
         "selectionPolicy": {"player_can_edit_radar": False, "scores_are_continuous": True, "method": "appoint_one_generated_personnel"},
         "candidates": candidates,
     }
     identity = {
-        "schema_version": "asset-simulation-oil-execution-desk-roster-identity-v1",
+        "schema_version": "asset-simulation-oil-execution-desk-roster-identity-v2",
         "model_version": OIL_EXECUTION_DESK_MODEL_VERSION, "config_id": config["config_id"],
         "config_hash": assets["oil_execution_desk_config_hash"], "field_contract_id": contract["contract_id"],
         "field_contract_hash": assets["oil_execution_desk_contract_hash"], "write_back": False,

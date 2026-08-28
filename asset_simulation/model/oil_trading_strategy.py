@@ -131,7 +131,7 @@ def _validate_registered_assets() -> tuple[dict[str, Any], dict[str, Any], dict[
         raise ValueError("oil trading strategy research profile owner mismatch")
     if config.get("strategy_risk_owner") != "oil_strategy_risk_v1":
         raise ValueError("oil trading strategy risk owner mismatch")
-    if config.get("execution_desk_profile_owner") != "oil_execution_desk_v1":
+    if config.get("execution_desk_profile_owner") != "oil_execution_desk_v2":
         raise ValueError("oil trading strategy execution profile owner mismatch")
     if config.get("corporate_risk_profile_owner") != "corporate_risk_control_v2":
         raise ValueError("oil trading strategy corporate risk profile owner mismatch")
@@ -2580,13 +2580,32 @@ def settle_oil_strategy_turn(
     normal_limit_utilization = float(
         decision_turnover_profile["normal_net_trade_limit_utilization"]
     )
-    completion_multiplier = float(
-        dict(
-            decision_execution_policy.get("completion_reliability", {})
-        ).get("normal_trade_completion_multiplier", 1.0)
+    completion_policy = dict(
+        decision_execution_policy.get("completion_reliability", {})
     )
+    normal_trade_capacity_multiplier = float(
+        completion_policy.get(
+            "normal_trade_capacity_multiplier",
+            completion_policy.get(
+                "normal_trade_completion_multiplier",
+                1.0,
+            ),
+        )
+    )
+    normal_order_completion_ratio = clamp(
+        float(
+            completion_policy.get(
+                "normal_order_completion_ratio",
+                1.0,
+            )
+        ),
+        0.0,
+        1.0,
+    )
+    completion_multiplier = normal_trade_capacity_multiplier
     completed_normal_limit_utilization = min(
-        1.0, normal_limit_utilization * completion_multiplier
+        1.0,
+        normal_limit_utilization * normal_trade_capacity_multiplier,
     )
     forced_limit_utilization = float(
         execution_config["forced_reduction_trade_limit_utilization"]
@@ -2616,6 +2635,7 @@ def settle_oil_strategy_turn(
         if final_settlement:
             compliant_target = 0
             required_reduction = -starting_position
+            planned_discretionary_delta = 0
             planned_delta = 0
             requested_delta = 0
         else:
@@ -2631,12 +2651,35 @@ def settle_oil_strategy_turn(
             )
             required_reduction = required_position - starting_position
             discretionary_gap = compliant_target - required_position
-            planned_delta = required_reduction + int(
+            planned_discretionary_delta = int(
                 round(adjustment_speed * discretionary_gap)
             )
+            planned_delta = (
+                required_reduction + planned_discretionary_delta
+            )
             requested_delta = planned_delta
+
+        if planned_discretionary_delta:
+            completion_adjusted_discretionary_delta = int(
+                math.copysign(
+                    math.floor(
+                        abs(planned_discretionary_delta)
+                        * normal_order_completion_ratio
+                    ),
+                    planned_discretionary_delta,
+                )
+            )
+        else:
+            completion_adjusted_discretionary_delta = 0
+        completion_adjusted_requested_delta = (
+            0
+            if final_settlement
+            else required_reduction
+            + completion_adjusted_discretionary_delta
+        )
         reduction_delta, increase_delta = _decompose_delta(
-            starting_position, requested_delta
+            starting_position,
+            completion_adjusted_requested_delta,
         )
         provisional[contract_id] = {
             "contract_id": contract_id,
@@ -2662,6 +2705,22 @@ def settle_oil_strategy_turn(
             "required_risk_reduction_lots": required_reduction,
             "planned_delta_lots": planned_delta,
             "requested_delta_lots": requested_delta,
+            "planned_discretionary_delta_lots": (
+                planned_discretionary_delta
+            ),
+            "completion_adjusted_discretionary_delta_lots": (
+                completion_adjusted_discretionary_delta
+            ),
+            "completion_adjusted_requested_delta_lots": (
+                completion_adjusted_requested_delta
+            ),
+            "execution_completion_shortfall_lots": abs(
+                requested_delta - completion_adjusted_requested_delta
+            ),
+            "clipped_by_execution_completion": (
+                abs(completion_adjusted_requested_delta)
+                < abs(requested_delta)
+            ),
             "reduction_delta_lots": reduction_delta,
             "increase_delta_lots": increase_delta,
             "position_limit_lots": position_limit,
@@ -3013,7 +3072,13 @@ def settle_oil_strategy_turn(
                     * initial_margin_rate
                 ),
                 "clipped_by_trade_limit": abs(market_delta)
-                < abs(int(item["requested_delta_lots"])),
+                < abs(
+                    int(
+                        item[
+                            "completion_adjusted_requested_delta_lots"
+                        ]
+                    )
+                ),
                 "clipped_gross_budget_by_market_limit": planned_gross_budget
                 > hard_turn_limit,
                 "fees_usd": net_fee,
@@ -3252,6 +3317,30 @@ def settle_oil_strategy_turn(
             ),
             "fee_profile": decision_fee_profile,
             "completion_multiplier": completion_multiplier,
+            "normal_trade_capacity_multiplier": (
+                normal_trade_capacity_multiplier
+            ),
+            "normal_order_completion_ratio": (
+                normal_order_completion_ratio
+            ),
+            "requested_net_trade_lots": sum(
+                abs(int(item["requested_delta_lots"]))
+                for item in reports
+            ),
+            "completion_adjusted_requested_net_trade_lots": sum(
+                abs(
+                    int(
+                        item[
+                            "completion_adjusted_requested_delta_lots"
+                        ]
+                    )
+                )
+                for item in reports
+            ),
+            "execution_completion_shortfall_lots": sum(
+                int(item["execution_completion_shortfall_lots"])
+                for item in reports
+            ),
             "completed_normal_limit_utilization": (
                 completed_normal_limit_utilization
             ),

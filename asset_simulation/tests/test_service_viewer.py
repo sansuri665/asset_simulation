@@ -620,7 +620,7 @@ class ServiceAndViewerTests(unittest.TestCase):
         self.assertIn("commodity_overlay_v1", contracts_doc)
         self.assertIn("oil_futures_overlay_v8", contracts_doc)
         self.assertIn("oil_strategy_research_v2", contracts_doc)
-        self.assertIn("oil_execution_desk_v1", contracts_doc)
+        self.assertIn("oil_execution_desk_v2", contracts_doc)
         self.assertIn("corporate_risk_control_v2", contracts_doc)
         self.assertIn("oil_strategy_risk_v1", contracts_doc)
         self.assertIn("oil_trading_strategy_v8", contracts_doc)
@@ -629,7 +629,7 @@ class ServiceAndViewerTests(unittest.TestCase):
             assets["oil_strategy_research_contract"]["contract_id"],
         )
         self.assertEqual(
-            "oil_execution_desk_v1",
+            "oil_execution_desk_v2",
             assets["oil_execution_desk_contract"]["contract_id"],
         )
         self.assertEqual(

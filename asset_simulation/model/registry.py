@@ -29,10 +29,10 @@ OIL_STRATEGY_RESEARCH_CONTRACT_PATH = (
     PACKAGE_ROOT / "contracts" / "oil_strategy_research_v2.json"
 )
 OIL_EXECUTION_DESK_CONFIG_PATH = (
-    PACKAGE_ROOT / "config" / "oil_execution_desk_v0.1.json"
+    PACKAGE_ROOT / "config" / "oil_execution_desk_v0.2.json"
 )
 OIL_EXECUTION_DESK_CONTRACT_PATH = (
-    PACKAGE_ROOT / "contracts" / "oil_execution_desk_v1.json"
+    PACKAGE_ROOT / "contracts" / "oil_execution_desk_v2.json"
 )
 CORPORATE_RISK_CONTROL_CONFIG_PATH = (
     PACKAGE_ROOT / "config" / "corporate_risk_control_v0.2.json"

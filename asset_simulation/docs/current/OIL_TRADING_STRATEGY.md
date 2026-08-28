@@ -2,7 +2,7 @@
 
 > 状态：策略研究、跨回合观点失效、策略／公司两层风控、投委会系统代理、交易部、收益归因和逐回合结算已接入四机构竞技；玩家自主审批、正式存档和可选信号引擎尚未实现  
 > 权威范围：策略研究八维偏好、观点失效、风控建议与资金授权、单合约延续／回归信号、连续换手、换月、全成本执行、收益归因与逐回合盯市  
-> 代码基线：策略研究 `asset-simulation-oil-strategy-research-v0.2.0`、策略风控 `asset-simulation-oil-strategy-risk-v0.1.0`、公司风控 `asset-simulation-corporate-risk-control-v0.2.0`、交易部 `asset-simulation-oil-execution-desk-v0.1.0`、交易策略 `asset-simulation-oil-trading-strategy-v1.1.0`  
+> 代码基线：策略研究 `asset-simulation-oil-strategy-research-v0.2.0`、策略风控 `asset-simulation-oil-strategy-risk-v0.1.0`、公司风控 `asset-simulation-corporate-risk-control-v0.2.0`、交易部 `asset-simulation-oil-execution-desk-v0.2.0`、交易策略 `asset-simulation-oil-trading-strategy-v1.1.0`
 > 最近核对：2026-08-29
 
 ## 产品位置
@@ -353,8 +353,8 @@ Seed 0／42／99 的前12回合审计中，全0审慎政策累计裁剪41,290／
 - 策略研究配置：`config/oil_strategy_research_v0.2.json`
 - 策略研究契约：`contracts/oil_strategy_research_v2.json`
 - 交易部公式：`model/oil_execution_desk.py`
-- 交易部配置：`config/oil_execution_desk_v0.1.json`
-- 交易部契约：`contracts/oil_execution_desk_v1.json`
+- 交易部配置：`config/oil_execution_desk_v0.2.json`
+- 交易部契约：`contracts/oil_execution_desk_v2.json`
 - 公司风控公式：`model/corporate_risk_control.py`
 - 公司风控配置：`config/corporate_risk_control_v0.2.json`
 - 策略风控：`model/oil_strategy_risk.py`、`config/oil_strategy_risk_v0.1.json`、`contracts/oil_strategy_risk_v1.json`

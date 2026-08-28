@@ -1,0 +1,98 @@
+{
+  "contract_id": "oil_execution_desk_v2",
+  "schema_version": "asset-simulation-oil-execution-desk-contract-v2",
+  "role": "Deterministic appointed execution personnel with six measurable capabilities and three separate style trade-offs. Capability changes execution quality; style changes cost/completion/timing without owning forecast or target-position intent.",
+  "identity_fields": [
+    "seed",
+    "candidate_index",
+    "personnel_id",
+    "profile_hash"
+  ],
+  "capability_fields": {
+    "price_execution": {
+      "unit": "continuous_score_0_to_100",
+      "weight": 0.25
+    },
+    "impact_control": {
+      "unit": "continuous_score_0_to_100",
+      "weight": 0.2
+    },
+    "liquidity_scheduling": {
+      "unit": "continuous_score_0_to_100",
+      "weight": 0.15
+    },
+    "completion_reliability": {
+      "unit": "continuous_score_0_to_100",
+      "weight": 0.15
+    },
+    "roll_coordination": {
+      "unit": "continuous_score_0_to_100",
+      "weight": 0.15
+    },
+    "fee_efficiency": {
+      "unit": "continuous_score_0_to_100",
+      "weight": 0.1
+    }
+  },
+  "style_fields": {
+    "urgency": {
+      "unit": "continuous_style_0_to_100",
+      "low_end": "patient_waiting",
+      "high_end": "urgent_completion"
+    },
+    "passive_preference": {
+      "unit": "continuous_style_0_to_100",
+      "low_end": "aggressive_crossing",
+      "high_end": "passive_resting"
+    },
+    "window_timing": {
+      "unit": "continuous_style_0_to_100",
+      "low_end": "front_loaded",
+      "high_end": "back_loaded"
+    }
+  },
+  "personnel_philosophy": {
+    "system_type": "capability_plus_style",
+    "capability_has_objective_ordering": true,
+    "capability_total_score_available": true,
+    "style_has_total_score": false,
+    "style_endpoints_have_universal_ordering": false,
+    "capability_and_style_latents_are_separate": true,
+    "cross_department_compatibility_score_available": false,
+    "tca_is_primary_cost_benchmark": true,
+    "completion_is_reported_separately_from_cost_tca": true
+  },
+  "style_tradeoffs": {
+    "urgency": {
+      "benefit_high": "higher realized completion of authorized normal orders",
+      "cost_high": "higher slippage/impact"
+    },
+    "passive_preference": {
+      "benefit_high": "lower avoidable spread cost",
+      "cost_high": "lower realized completion of authorized normal orders"
+    },
+    "window_timing": {
+      "benefit_high": "back-loaded execution preference",
+      "cost_high": "foregoes front-loaded preference; result is path-dependent"
+    }
+  },
+  "invariants": [
+    "every score accepts any finite decimal from 0 through 100 and maps continuously into runtime parameters",
+    "50.0 on every capability and style score is the exact v0.1 neutral execution baseline",
+    "capability dimensions are higher-is-better professional skills and may be summarized by capability_total_score",
+    "style dimensions are preferences with no total score and no universally superior endpoint",
+    "capability latent traits and style latent traits are generated separately so high skill does not imply one execution style",
+    "normal_order_completion_ratio scales the authorized discretionary order before market-capacity clipping; it is not merely a multiplier on a usually slack market limit",
+    "mandatory risk reductions bypass style order-completion penalties",
+    "urgency exchanges lower slippage for higher realized normal-order completion",
+    "passive preference exchanges spread cost for realized normal-order completion",
+    "hard exchange, clearing, cash-settlement, position-limit, margin, and market-capacity rules are never improved by personnel ability or style",
+    "execution completion can only reduce the authorized discretionary order; it cannot fabricate an order or exceed the authorized target",
+    "the execution desk never reads hidden future bars when scheduling orders",
+    "the same seed and candidate index generate the same profile and hash",
+    "players appoint generated personnel and do not submit arbitrary capability or style radars through the service API",
+    "TCA compares cost on realized executed orders with the neutral score-50 cost benchmark; completion shortfall is reported separately",
+    "execution personnel never change forecast direction, PM target-position intent, CRO limits, or public market liquidity",
+    "cross-department compatibility is never scored; fit emerges through actual target, risk and execution interfaces"
+  ]
+}
