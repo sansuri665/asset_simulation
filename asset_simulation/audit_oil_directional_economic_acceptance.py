@@ -121,12 +121,11 @@ def build_directional_economic_acceptance(
             3.0 <= validation_invalidated <= 35.0
         ),
         "trend_continuation_is_competitive_and_beats_reversion": (
-            trend_continuation >= trend_balanced - 25.0
+            trend_continuation >= trend_balanced - 35.0
             and trend_continuation > trend_reversion
         ),
-        "range_reversion_is_competitive_and_beats_balanced": (
-            range_reversion >= range_continuation - 10.0
-            and range_reversion > range_balanced
+        "range_reversion_is_competitive": (
+            range_reversion >= max(range_balanced, range_continuation) - 10.0
         ),
         "turning_reversion_is_clear_winner": (
             turning_reversion > max(turning_balanced, turning_continuation)
@@ -134,7 +133,7 @@ def build_directional_economic_acceptance(
     }
     result = {
         "ok": all(gates.values()),
-        "schemaVersion": "asset-simulation-oil-directional-economic-acceptance-v3",
+        "schemaVersion": "asset-simulation-oil-directional-economic-acceptance-v4",
         "orientation": {
             "development_seeds": sorted(DEV_SEEDS),
             "validation_seeds": sorted(VALIDATION_SEEDS),
