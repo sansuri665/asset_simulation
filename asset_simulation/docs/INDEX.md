@@ -45,6 +45,7 @@
 | [`design/FUTURE_LAYERS.md`](design/FUTURE_LAYERS.md) | 下一阶段优先级和市场／宏观边界 | 商品、原油交易竞技已越过早期设计阶段 |
 | [`design/OIL_FUTURES_TURN_EXECUTION.md`](design/OIL_FUTURES_TURN_EXECUTION.md) | 投委会权限、多策略、动态组合保证金和存档扩展 | 目标仓位、容量、全成本、正式账户和多实体竞技已运行 |
 | [`design/OIL_EXECUTION_DESK_ARCHITECTURE.md`](design/OIL_EXECUTION_DESK_ARCHITECTURE.md) | 独立执行指令、正式任命与长期 TCA | 六维能力、候选、成交磨损与随机任命已运行 |
+| [`design/OIL_CALENDAR_SPREAD_STRATEGY.md`](design/OIL_CALENDAR_SPREAD_STRATEGY.md) | 主连／相邻次连短线跨期研究候选、配对执行和期限评分边界 | 模型与契约已注册；尚未接入默认竞技 runtime |
 
 `design/*_CARDS.md` 是已退役银行发行人系统的历史设计稿。它们不再有当前 owner，不得用于推断运行时；完整退役事实见 [`archive/ISSUER_ICBC_RETIRED_2026-08-20.md`](archive/ISSUER_ICBC_RETIRED_2026-08-20.md)。文件暂留原路径只为保存旧数字和链接。
 

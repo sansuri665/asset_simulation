@@ -16,6 +16,13 @@ from .oil_strategy_research import (
     OIL_STRATEGY_RESEARCH_MODEL_VERSION,
     generate_oil_strategy_research_roster,
 )
+from .oil_calendar_spread_strategy import (
+    OIL_CALENDAR_SPREAD_STRATEGY_MODEL_VERSION,
+    attribute_oil_calendar_spread_pnl,
+    build_oil_calendar_spread_execution_report,
+    build_oil_calendar_spread_research_decision,
+    evaluate_oil_calendar_spread_thesis_state,
+)
 from .oil_execution_desk import (
     OIL_EXECUTION_DESK_MODEL_VERSION,
     generate_oil_execution_desk_roster,
@@ -38,6 +45,11 @@ __all__ = [
     "settle_oil_futures_account_turn",
     "OIL_STRATEGY_RESEARCH_MODEL_VERSION",
     "generate_oil_strategy_research_roster",
+    "OIL_CALENDAR_SPREAD_STRATEGY_MODEL_VERSION",
+    "build_oil_calendar_spread_research_decision",
+    "build_oil_calendar_spread_execution_report",
+    "attribute_oil_calendar_spread_pnl",
+    "evaluate_oil_calendar_spread_thesis_state",
     "OIL_EXECUTION_DESK_MODEL_VERSION",
     "generate_oil_execution_desk_roster",
     "CORPORATE_RISK_CONTROL_MODEL_VERSION",

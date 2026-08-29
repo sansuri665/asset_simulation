@@ -1,0 +1,221 @@
+{
+  "contract_id": "oil_calendar_spread_strategy_v1",
+  "schema_version": "asset-simulation-oil-calendar-spread-strategy-contract-v1",
+  "role": "Research-stage short-horizon relative-value strategy for the market owner's current main versus the immediately adjacent next listed crude-oil futures contract. It consumes only the current visible curve, the published two-contract forecast vintage, the appointed PM style policy, existing positions and committee-authorized capital.",
+  "strategy_object": {
+    "spread_definition": "P_main - P_next_main",
+    "positive_unit_legs": {
+      "main_lots": 1,
+      "next_main_lots": -1
+    },
+    "negative_unit_legs": {
+      "main_lots": -1,
+      "next_main_lots": 1
+    },
+    "contract_size_bbl_per_lot": 1000,
+    "synthetic_security_created": false,
+    "accounting_positions_remain_named_contract_legs": true
+  },
+  "signal_fields": {
+    "current_spread_usd_per_bbl": {
+      "unit": "usd_per_barrel"
+    },
+    "current_normalized_spread": {
+      "unit": "ratio_scaled_by_current_reference_price"
+    },
+    "forecast_spread_change_usd_per_bbl": {
+      "unit": "usd_per_barrel"
+    },
+    "forecast_spread_change_normalized": {
+      "unit": "ratio_scaled_by_current_reference_price"
+    },
+    "forecast_signal": {
+      "unit": "signed_signal_-1_to_1"
+    },
+    "curve_momentum_signal": {
+      "unit": "signed_signal_-1_to_1"
+    },
+    "curve_mean_reversion_signal": {
+      "unit": "signed_signal_-1_to_1"
+    },
+    "raw_signal": {
+      "unit": "signed_signal"
+    },
+    "signal": {
+      "unit": "signed_signal_-1_to_1"
+    }
+  },
+  "target_fields": {
+    "current_spread_units": {
+      "unit": "paired_1_to_minus_1_lots"
+    },
+    "target_spread_units": {
+      "unit": "paired_1_to_minus_1_lots"
+    },
+    "target_main_lots": {
+      "unit": "lots"
+    },
+    "target_next_main_lots": {
+      "unit": "lots"
+    }
+  },
+  "risk_adapter_fields": {
+    "spread_units": {
+      "unit": "paired_1_to_minus_1_lots"
+    },
+    "leg_gross_exposure_usd": {
+      "unit": "usd"
+    },
+    "net_directional_delta_lots": {
+      "unit": "lots"
+    },
+    "net_directional_delta_bbl": {
+      "unit": "barrels"
+    },
+    "marked_net_notional_usd": {
+      "unit": "usd"
+    },
+    "spread_volatility_usd_per_bbl": {
+      "unit": "usd_per_barrel"
+    },
+    "margin_usage_usd": {
+      "unit": "usd"
+    },
+    "main_turn_liquidity_lots": {
+      "unit": "lots"
+    },
+    "next_main_turn_liquidity_lots": {
+      "unit": "lots"
+    },
+    "expiry_roll_mismatch": {
+      "unit": "boolean"
+    },
+    "main_months_to_expiry": {
+      "unit": "months_from_oil_futures_market_owner"
+    },
+    "next_main_months_to_expiry": {
+      "unit": "months_from_oil_futures_market_owner"
+    },
+    "absolute_leg_imbalance_lots": {
+      "unit": "nonnegative_lots"
+    },
+    "signed_leg_imbalance_lots": {
+      "unit": "signed_lots"
+    },
+    "pair_turn_liquidity_units": {
+      "unit": "paired_units"
+    }
+  },
+  "paired_execution_fields": {
+    "requested_pair_lots": {
+      "unit": "lots"
+    },
+    "requested_main_delta_lots": {
+      "unit": "signed_lots"
+    },
+    "requested_next_main_delta_lots": {
+      "unit": "signed_lots"
+    },
+    "executed_main_delta_lots": {
+      "unit": "signed_lots"
+    },
+    "executed_next_main_delta_lots": {
+      "unit": "signed_lots"
+    },
+    "executed_pair_units": {
+      "unit": "signed_paired_units"
+    },
+    "leg_imbalance_lots": {
+      "unit": "signed_lots"
+    },
+    "absolute_leg_imbalance_lots": {
+      "unit": "nonnegative_lots"
+    },
+    "main_turn_liquidity_lots": {
+      "unit": "lots"
+    },
+    "next_main_turn_liquidity_lots": {
+      "unit": "lots"
+    },
+    "unrequested_target_gap_units": {
+      "unit": "signed_paired_units"
+    },
+    "combined_requested_main_turnover_lots": {
+      "unit": "nonnegative_lots"
+    },
+    "combined_requested_next_main_turnover_lots": {
+      "unit": "nonnegative_lots"
+    }
+  },
+  "thesis_evaluation_fields": {
+    "evaluated_horizon_weeks": {
+      "unit": "weeks"
+    },
+    "evaluated_target_week_serial": {
+      "unit": "market_week_serial"
+    },
+    "realized_week_serial": {
+      "unit": "market_week_serial"
+    }
+  },
+  "pnl_fields": {
+    "calendar_spread_pnl_usd": {
+      "unit": "usd"
+    },
+    "forecast_curve_move_pnl_usd": {
+      "unit": "usd"
+    },
+    "convergence_carry_pnl_usd": {
+      "unit": "usd"
+    },
+    "residual_directional_pnl_usd": {
+      "unit": "usd"
+    },
+    "spread_execution_cost_usd": {
+      "unit": "usd"
+    },
+    "slippage_usd": {
+      "unit": "usd"
+    },
+    "fees_usd": {
+      "unit": "usd"
+    },
+    "net_pnl_usd": {
+      "unit": "usd"
+    },
+    "carry_reference_main_end_price_usd": {
+      "unit": "usd_per_barrel_optional_counterfactual"
+    },
+    "carry_reference_next_main_end_price_usd": {
+      "unit": "usd_per_barrel_optional_counterfactual"
+    }
+  },
+  "invariants": [
+    "the strategy trades only the market owner's current main and the immediately adjacent next listed named contract; a mislabeled third-month contract is rejected",
+    "one positive spread unit is exactly long one main lot and short one next-main lot; one negative unit is the reverse",
+    "the primary alpha predicts and trades change in the dollar main-minus-next spread; current-price normalization is scale-only and can never reverse the sign of the dollar spread change",
+    "forecast capability or capability_total_score never enters signal magnitude, target sizing or risk capacity; only the published forecast values are consumed",
+    "the appointed PM reuses continuation_reversion, capital_deployment, responsiveness, selectivity, turnover_activity, holding_patience and forecast_horizon without adding a calendar-spread-specific PM quality field",
+    "committee-authorized capital remains an explicit input; PM capital_deployment only controls use of that authorized capital",
+    "risk capacity is the minimum of conservative pair margin, both leg limits, the all-contract gross limit and stressed visible spread-volatility capacity",
+    "expiry and roll checks use the oil-futures market owner's published months_to_expiry and never independently subtract another half turn",
+    "target positions are exactly balanced at one-to-one lots; any current or executed leg imbalance is reported separately and never relabeled as spread exposure",
+    "paired execution is one mandate with two independently recorded leg fills; remediation reservations and new pair requests share each leg's published half-turn trade limit, with remediation receiving capacity first",
+    "leg_imbalance_lots is signed; absolute_leg_imbalance_lots is the separate nonnegative risk magnitude",
+    "a material signal reversal requires the existing spread position to target zero before the opposite spread direction may be opened",
+    "each forecast leg must contain exactly one requested horizon and both legs must share the same target week identity; thesis evaluation requires the realized market week serial to equal that frozen target",
+    "calendar-spread PnL and residual directional PnL are separately attributable and add to gross leg PnL before costs",
+    "carry PnL is never accepted as a free-form number; it is computed only from explicit counterfactual leg end prices, otherwise carry is reported as not separately available",
+    "common oil-price movement with unchanged absolute dollar spread produces zero forecast spread-change signal and zero calendar-spread PnL",
+    "all decision inputs are available at the current cutoff; settlement and thesis evaluation may use only the subsequently realized end-of-turn prices",
+    "the strategy does not write back to the oil market, forecast, macro state or public liquidity"
+  ],
+  "scope_exclusions": [
+    "third-month legs",
+    "butterflies",
+    "cross-commodity legs",
+    "dynamic hedge ratios",
+    "cointegration",
+    "portfolio statistical arbitrage"
+  ]
+}

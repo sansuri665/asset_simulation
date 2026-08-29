@@ -14,6 +14,7 @@
 | `oil_futures_overlay_v8` | 原油期货 v0.8.0 | 半月01／05／09期限结构、流动性和限额 |
 | `oil_short_term_forecast_v2` | 短期预测 v0.2.0 | 双合约周线预测、隐藏专业能力、研究风格和评分 |
 | `oil_strategy_research_v2` | 策略研究 v0.2.0 | 八维无总分负责人档案 |
+| `oil_calendar_spread_strategy_v1` | 跨期研究候选 v0.1.2 | 已注册的主连／相邻次连研究接口；尚未接入默认竞技 runtime |
 | `oil_strategy_risk_v1` | 策略风控 v0.1.0 | 单策略风险审阅、投委会批准与资金授权 |
 | `corporate_risk_control_v2` | 公司风控 v0.2.0 | 六维公司总要求和组合目标审批 |
 | `oil_execution_desk_v2` | 交易部 v0.2.0 | 六维能力、三维风格和任命 |
