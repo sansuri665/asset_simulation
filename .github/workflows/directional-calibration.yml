@@ -67,7 +67,6 @@ jobs:
           python -m asset_simulation.audit_oil_directional_economic_calibration \
             --seeds 0,1,2,3,4,5,6,7 \
             --years 3 \
-            --summary-only \
             --output artifacts/directional-economic-calibration.json
       - name: Regime audit
         run: python -m asset_simulation.audit_oil_direction_regimes > artifacts/directional-regimes.json
