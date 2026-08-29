@@ -27,6 +27,7 @@ jobs:
           python tools/patch_forecast_audit.py
           python tools/patch_docs_tests.py
           python tools/patch_acceptance.py
+          python tools/patch_fixups.py
           git diff --check
       - name: Full Python unit suite
         run: python -m unittest discover -s asset_simulation/tests -v
