@@ -62,6 +62,21 @@ jobs:
             --seeds 42,2026,7777,9001,314159,271828 \
             --years 5 \
             --output artifacts/formal-account-5y.json
+      - name: Enforce formal-account gates
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          report = json.loads(Path('artifacts/formal-account-5y.json').read_text())
+          print('hard_gate_pass=', report.get('hard_gate_pass'))
+          print('realism_gate_pass=', report.get('realism_gate_pass'))
+          print('cagr_median=', report['distributions']['cagr_pct']['median'])
+          print('volatility_median=', report['distributions']['annualized_volatility_pct']['median'])
+          if not report.get('hard_gate_pass'):
+              raise SystemExit('formal-account hard gate failed')
+          if not report.get('realism_gate_pass'):
+              raise SystemExit('formal-account realism gate failed')
+          PY
       - name: Controlled directional calibration - development plus validation
         run: |
           python -m asset_simulation.audit_oil_directional_economic_calibration \
@@ -76,20 +91,6 @@ jobs:
             --calibration artifacts/directional-economic-calibration.json \
             --regime artifacts/directional-regimes.json \
             --output artifacts/directional-economic-acceptance.json
-      - name: Enforce formal-account gates
-        run: |
-          python - <<'PY'
-          import json
-          from pathlib import Path
-          report = json.loads(Path('artifacts/formal-account-5y.json').read_text())
-          print('hard_gate_pass=', report.get('hard_gate_pass'))
-          print('realism_gate_pass=', report.get('realism_gate_pass'))
-          print('cagr_median=', report['distributions']['cagr_pct']['median'])
-          if not report.get('hard_gate_pass'):
-              raise SystemExit('formal-account hard gate failed')
-          if not report.get('realism_gate_pass'):
-              raise SystemExit('formal-account realism gate failed')
-          PY
       - name: Upload calibration reports
         if: always()
         uses: actions/upload-artifact@v4
