@@ -11,7 +11,7 @@ from .oil_strategy_research import resolve_oil_strategy_research_profile
 from .registry import load_registered_assets, sha256_json
 
 
-OIL_STRATEGY_RISK_MODEL_VERSION = "asset-simulation-oil-strategy-risk-v0.1.1"
+OIL_STRATEGY_RISK_MODEL_VERSION = "asset-simulation-oil-strategy-risk-v0.1.0"
 OIL_STRATEGY_RISK_CONTRACT_ID = "oil_strategy_risk_v1"
 RISK_STATUS_ORDER = ("normal", "watch", "restricted", "reduce_only")
 
@@ -33,7 +33,7 @@ def _assets() -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
     config = assets["oil_strategy_risk_config"]
     contract = assets["oil_strategy_risk_contract"]
     if config["model_version"] != OIL_STRATEGY_RISK_MODEL_VERSION:
-        raise ValueError("registered oil strategy risk model version mismatch")
+        raise ValueError("registered oil strategy risk config version mismatch")
     if contract["contract_id"] != OIL_STRATEGY_RISK_CONTRACT_ID:
         raise ValueError("registered oil strategy risk contract id mismatch")
     return assets, config, contract
@@ -256,9 +256,7 @@ def build_investment_committee_strategy_approval(
     if review.get("identity", {}).get("model_version") != OIL_STRATEGY_RISK_MODEL_VERSION:
         raise ValueError("strategy risk review model version mismatch")
     review_body = {key: value for key, value in review.items() if key != "identity"}
-    if sha256_json(review_body) != review["identity"].get(
-        "result_hash"
-    ):
+    if sha256_json(review_body) != review["identity"].get("result_hash"):
         raise ValueError("strategy risk review was modified after generation")
     if not isinstance(approve_risk_policy, bool):
         raise ValueError("approve_risk_policy must be boolean")
@@ -524,116 +522,153 @@ def apply_oil_strategy_risk_mandate(
         if drawdown["risk_status"] == "reduce_only":
             scaled_target = _nonincreasing_target(current_position, scaled_target)
             binding.append("strategy_drawdown_reduce_only")
-        clipped = int(clamp(float(scaled_target), -individual_cap, individual_cap))
-        if clipped != scaled_target:
-            binding.append("strategy_individual_cap")
-        approved[contract_id] = {
-            **item,
-            "strategy_intent_target_position_lots": strategy_intent,
-            "strategy_risk_approved_target_position_lots": clipped,
-            "target_position_lots": clipped,
-            "strategy_risk_individual_cap_lots": individual_cap,
-            "strategy_visible_annualized_volatility": annualized_volatility,
-            "strategy_risk_binding_rules": binding,
-        }
+        bounded_target = int(
+            clamp(float(scaled_target), -float(individual_cap), float(individual_cap))
+        )
+        if abs(bounded_target) > abs(strategy_intent) or bounded_target * strategy_intent < 0:
+            raise ValueError("strategy risk expanded or reversed strategy intent")
+        if bounded_target != strategy_intent and not binding:
+            binding.append("strategy_drawdown_scale")
+        price = 0.0 if contract_item is None else float(contract_item["price_usd"])
+        item.update(
+            {
+                "strategy_intent_target_position_lots": strategy_intent,
+                "strategy_risk_approved_target_position_lots": bounded_target,
+                "strategy_risk_clip_lots": strategy_intent - bounded_target,
+                "strategy_risk_binding_rules": sorted(set(binding)),
+                "target_position_lots": bounded_target,
+                "strategy_visible_annualized_volatility": annualized_volatility,
+                "strategy_estimated_annualized_risk_usd": (
+                    abs(bounded_target) * price * contract_size * annualized_volatility
+                ),
+                "strategy_estimated_initial_margin_usd": (
+                    abs(bounded_target) * price * contract_size * initial_margin_rate
+                ),
+            }
+        )
+        approved[contract_id] = item
 
-    def aggregate() -> tuple[int, float, float]:
-        gross = 0
-        margin = 0.0
-        volatility_risk = 0.0
-        for contract_id, item in approved.items():
-            target = int(item["target_position_lots"])
-            contract_item = contracts.get(contract_id)
-            if contract_item is None:
-                continue
-            price = float(contract_item["price_usd"])
-            notional = abs(target) * price * contract_size
-            gross += abs(target)
-            margin += notional * initial_margin_rate
-            volatility_risk += notional * float(
-                item["strategy_visible_annualized_volatility"]
-            )
-        return gross, margin, volatility_risk
-
-    gross_before_scale, margin_before_scale, volatility_before_scale = aggregate()
-    scales = [1.0]
-    if gross_before_scale > strategy_gross_cap > 0:
-        scales.append(strategy_gross_cap / gross_before_scale)
-    if margin_before_scale > strategy_margin_budget > 0.0:
-        scales.append(strategy_margin_budget / margin_before_scale)
-    if volatility_before_scale > strategy_volatility_budget > 0.0:
-        scales.append(strategy_volatility_budget / volatility_before_scale)
-    portfolio_scale = min(scales)
+    gross_before = sum(
+        abs(int(item["target_position_lots"])) for item in approved.values()
+    )
+    margin_before = sum(
+        float(item["strategy_estimated_initial_margin_usd"])
+        for item in approved.values()
+    )
+    volatility_before = sum(
+        float(item["strategy_estimated_annualized_risk_usd"])
+        for item in approved.values()
+    )
+    portfolio_scale = min(
+        1.0,
+        strategy_gross_cap / max(1, gross_before),
+        strategy_margin_budget / max(1e-9, margin_before),
+        strategy_volatility_budget / max(1e-9, volatility_before),
+    )
+    portfolio_binding: list[str] = []
     if portfolio_scale < 1.0:
+        if math.isclose(
+            portfolio_scale, strategy_gross_cap / max(1, gross_before), rel_tol=1e-9
+        ):
+            portfolio_binding.append("strategy_gross_cap")
+        if math.isclose(
+            portfolio_scale, strategy_margin_budget / max(1e-9, margin_before), rel_tol=1e-9
+        ):
+            portfolio_binding.append("strategy_margin_budget")
+        if math.isclose(
+            portfolio_scale, strategy_volatility_budget / max(1e-9, volatility_before), rel_tol=1e-9
+        ):
+            portfolio_binding.append("strategy_volatility_budget")
         for item in approved.values():
-            desired = int(round(int(item["target_position_lots"]) * portfolio_scale))
-            current = int(positions.get(str(item["contract_id"]), 0))
-            if drawdown["risk_status"] == "reduce_only":
-                desired = _nonincreasing_target(current, desired)
-            item["target_position_lots"] = desired
-            if desired != item["strategy_risk_approved_target_position_lots"]:
-                item["strategy_risk_binding_rules"].append(
-                    "strategy_portfolio_scale"
-                )
-            item["strategy_risk_approved_target_position_lots"] = desired
-    gross_after_scale, margin_after_scale, volatility_after_scale = aggregate()
-    binding_rules: list[str] = []
-    if gross_before_scale > strategy_gross_cap:
-        binding_rules.append("strategy_gross_cap")
-    if margin_before_scale > strategy_margin_budget:
-        binding_rules.append("strategy_margin_budget")
-    if volatility_before_scale > strategy_volatility_budget:
-        binding_rules.append("strategy_volatility_budget")
-    if drawdown["risk_status"] != "normal":
-        binding_rules.append("strategy_drawdown_state")
-    state = {
-        "peak_strategy_equity_usd": drawdown["peak_strategy_equity_usd"],
-        "strategy_drawdown_scale": drawdown["strategy_drawdown_scale"],
-        "risk_status": drawdown["risk_status"],
-    }
-    report = {
-        "schemaVersion": "asset-simulation-oil-strategy-risk-approval-v1",
+            intent = int(item["strategy_intent_target_position_lots"])
+            prior = int(item["target_position_lots"])
+            adjusted = (
+                int(math.copysign(math.floor(abs(prior) * portfolio_scale), prior))
+                if prior
+                else 0
+            )
+            item["target_position_lots"] = adjusted
+            item["strategy_risk_approved_target_position_lots"] = adjusted
+            item["strategy_risk_clip_lots"] = intent - adjusted
+            item["strategy_risk_binding_rules"] = sorted(
+                set(item["strategy_risk_binding_rules"] + portfolio_binding)
+            )
+            contract_item = contracts.get(str(item["contract_id"]))
+            price = 0.0 if contract_item is None else float(contract_item["price_usd"])
+            item["strategy_estimated_annualized_risk_usd"] = (
+                abs(adjusted)
+                * price
+                * contract_size
+                * float(item["strategy_visible_annualized_volatility"])
+            )
+            item["strategy_estimated_initial_margin_usd"] = (
+                abs(adjusted) * price * contract_size * initial_margin_rate
+            )
+
+    gross_after = sum(abs(int(item["target_position_lots"])) for item in approved.values())
+    margin_after = sum(float(item["strategy_estimated_initial_margin_usd"]) for item in approved.values())
+    volatility_after = sum(float(item["strategy_estimated_annualized_risk_usd"]) for item in approved.values())
+    result = {
+        "schemaVersion": "asset-simulation-oil-strategy-risk-enforcement-v1",
+        "review": {
+            "strategy": dict(committee_approval["strategy"]),
+            "riskDepartment": dict(committee_approval["riskDepartment"]),
+            "review_hash": committee_approval["identity"]["review_hash"],
+        },
         "committeeApproval": committee_approval,
+        "approvedPolicy": policy,
+        "state": drawdown,
         "strategyLimits": {
+            "market_hard_gross_cap_lots": market_gross_cap,
+            "strategy_gross_cap_lots": strategy_gross_cap,
             "authorized_capital_usd": authorized_capital,
-            "strategy_gross_position_cap_lots": strategy_gross_cap,
             "strategy_initial_margin_budget_usd": strategy_margin_budget,
             "strategy_annualized_volatility_budget_usd": strategy_volatility_budget,
-            "max_single_contract_share_of_strategy_gross": max_share,
+            "max_single_contract_share": max_share,
             "max_liquidation_half_turns": liquidation_turns,
             "roll_buffer_half_turns": roll_buffer,
         },
-        "drawdownState": drawdown,
         "approvalSummary": {
             "strategy_intent_gross_lots": sum(
                 abs(int(item["strategy_intent_target_position_lots"]))
                 for item in approved.values()
             ),
-            "strategy_approved_gross_lots": gross_after_scale,
-            "strategy_estimated_initial_margin_usd": margin_after_scale,
-            "strategy_estimated_annualized_dollar_risk_usd": (
-                volatility_after_scale
+            "pre_portfolio_approved_gross_lots": gross_before,
+            "approved_gross_lots": gross_after,
+            "clipped_gross_lots": sum(
+                abs(int(item["strategy_intent_target_position_lots"]))
+                - abs(int(item["target_position_lots"]))
+                for item in approved.values()
             ),
-            "strategy_portfolio_scale": portfolio_scale,
-            "binding_rules": binding_rules,
+            "portfolio_scale": portfolio_scale,
+            "portfolio_binding_rules": portfolio_binding,
+            "approved_initial_margin_usd": margin_after,
+            "approved_annualized_risk_usd": volatility_after,
+            "approved_annualized_risk_pct_of_authorized_capital": (
+                0.0
+                if authorized_capital <= 0.0
+                else 100.0 * volatility_after / authorized_capital
+            ),
         },
-        "stateAfter": state,
-        "governance": {
-            "strategy_risk_owner": "risk_department",
-            "committee_owns_capital_authorization": True,
-            "company_cro_still_applies_after_strategy_risk": True,
-            "strategy_risk_never_expands_strategy_intent": True,
-            "market_rules_remain_hard": True,
+        "informationPolicy": {
+            "future_market_available": False,
+            "visible_history_only": True,
+            "can_expand_strategy_intent": False,
+            "can_override_company_or_market_rules": False,
         },
     }
-    rounded_report = _round_nested(report)
+    rounded_result = _round_nested(result)
     identity = {
         "model_version": OIL_STRATEGY_RISK_MODEL_VERSION,
         "config_id": config["config_id"],
         "config_hash": assets["oil_strategy_risk_config_hash"],
         "field_contract_id": contract["contract_id"],
         "field_contract_hash": assets["oil_strategy_risk_contract_hash"],
+        "review_hash": committee_approval["identity"]["review_hash"],
+        "approval_hash": committee_approval["identity"]["result_hash"],
         "write_back": False,
-        "result_hash": sha256_json(rounded_report),
+        "result_hash": sha256_json(rounded_result),
     }
-    return approved, _round_nested({"identity": identity, **rounded_report})
+    return _round_nested(approved), _round_nested(
+        {"identity": identity, **rounded_result}
+    )
