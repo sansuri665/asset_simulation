@@ -22,7 +22,7 @@ The Investment Decision Committee is the unique capital-allocation owner. Direct
 
 ## Directional strategy-specific risk calibration
 
-Removing the shared PM capital haircut exposed the true directional-strategy risk envelope. Absolute risk cooling therefore belongs in the directional strategy-risk adapter, not in shared personnel policy. The registered annualized-volatility budget anchors are calibrated from `35 / 100 / 160` to `30 / 80 / 130` percent of committee-authorized capital. The `oil_strategy_risk` algorithm itself remains identical to `main`; this is a configuration-only calibration.
+Removing the shared PM capital haircut exposed the true directional-strategy risk envelope. Absolute risk cooling therefore belongs in the directional strategy-risk adapter, not in shared personnel policy. The registered annualized-volatility budget anchors are calibrated from `35 / 100 / 160` to `30 / 75 / 120` percent of committee-authorized capital. The `oil_strategy_risk` algorithm itself remains identical to `main`; this is a configuration-only calibration.
 
 ## Directional thesis hardening
 
