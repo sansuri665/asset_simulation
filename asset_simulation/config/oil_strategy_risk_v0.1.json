@@ -1,6 +1,6 @@
 {
   "schema_version": "asset-simulation-oil-strategy-risk-config-v1",
-  "config_id": "asset-simulation-oil-strategy-risk-base-v0.1.1",
+  "config_id": "asset-simulation-oil-strategy-risk-base-v0.1.2",
   "model_version": "asset-simulation-oil-strategy-risk-v0.1.0",
   "strategy_owner": "oil_strategy_research_v2",
   "company_risk_owner": "corporate_risk_control_v2",
@@ -18,7 +18,7 @@
     "recommended_capital_authorization_pct_of_company_equity": {"score_0": 25.0, "score_50": 65.0, "score_100": 100.0},
     "max_gross_market_limit_utilization": {"score_0": 0.35, "score_50": 0.75, "score_100": 0.95},
     "max_initial_margin_pct_of_authorized_capital": {"score_0": 45.0, "score_50": 80.0, "score_100": 100.0},
-    "annualized_volatility_budget_pct_of_authorized_capital": {"score_0": 30.0, "score_50": 80.0, "score_100": 130.0},
+    "annualized_volatility_budget_pct_of_authorized_capital": {"score_0": 30.0, "score_50": 75.0, "score_100": 120.0},
     "drawdown_watch_pct": {"score_0": 4.0, "score_50": 8.0, "score_100": 14.0},
     "drawdown_restrict_pct": {"score_0": 8.0, "score_50": 15.0, "score_100": 26.0},
     "drawdown_reduce_only_pct": {"score_0": 14.0, "score_50": 25.0, "score_100": 42.0},
