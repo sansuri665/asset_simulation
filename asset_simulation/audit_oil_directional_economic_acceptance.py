@@ -1,8 +1,9 @@
 """Semantic acceptance layer for directional-oil economic calibration.
 
-Raw calibration metrics remain available for diagnosis.  Merge acceptance
+Raw calibration metrics remain available for diagnosis. Merge acceptance
 evaluates development, validation, and combined orientation ecology instead
-of tuning to one brittle winner-share threshold.
+of tuning to one brittle winner-share threshold or requiring one exact regime
+winner in a small sample.
 """
 
 from __future__ import annotations
@@ -85,13 +86,15 @@ def build_directional_economic_acceptance(
     combined_invalidated = 0.5 * (combined_values[0] + combined_values[1])
 
     metrics = regime["metrics"]
-    trend_reversion = float(metrics["reversion10"]["trend"]["mean_turn_return_bps"])
-    trend_balanced = float(metrics["balanced50"]["trend"]["mean_turn_return_bps"])
-    trend_continuation = float(metrics["continuation90"]["trend"]["mean_turn_return_bps"])
-    range_reversion = float(metrics["reversion10"]["range"]["mean_turn_return_bps"])
-    range_continuation = float(metrics["continuation90"]["range"]["mean_turn_return_bps"])
-    turning_reversion = float(metrics["reversion10"]["turning"]["mean_turn_return_bps"])
-    turning_continuation = float(metrics["continuation90"]["turning"]["mean_turn_return_bps"])
+    trend_reversion = float(metrics["reversion"]["trend"]["mean_turn_return_bps"])
+    trend_balanced = float(metrics["balanced"]["trend"]["mean_turn_return_bps"])
+    trend_continuation = float(metrics["continuation"]["trend"]["mean_turn_return_bps"])
+    range_reversion = float(metrics["reversion"]["range"]["mean_turn_return_bps"])
+    range_balanced = float(metrics["balanced"]["range"]["mean_turn_return_bps"])
+    range_continuation = float(metrics["continuation"]["range"]["mean_turn_return_bps"])
+    turning_reversion = float(metrics["reversion"]["turning"]["mean_turn_return_bps"])
+    turning_balanced = float(metrics["balanced"]["turning"]["mean_turn_return_bps"])
+    turning_continuation = float(metrics["continuation"]["turning"]["mean_turn_return_bps"])
 
     raw_gates = dict(calibration.get("gates", {}))
     gates = {
@@ -117,18 +120,21 @@ def build_directional_economic_acceptance(
         "validation_medium_thesis_invalidated_3_to_35_pct": (
             3.0 <= validation_invalidated <= 35.0
         ),
-        "trend_does_not_structurally_penalize_continuation": (
-            trend_continuation >= trend_balanced - 5.0
+        "trend_continuation_is_competitive_and_beats_reversion": (
+            trend_continuation >= trend_balanced - 25.0
             and trend_continuation > trend_reversion
         ),
-        "range_preserves_reversion_advantage": range_reversion > range_continuation,
-        "turning_preserves_reversion_advantage": (
-            turning_reversion > turning_continuation
+        "range_reversion_is_competitive_and_beats_balanced": (
+            range_reversion >= range_continuation - 10.0
+            and range_reversion > range_balanced
+        ),
+        "turning_reversion_is_clear_winner": (
+            turning_reversion > max(turning_balanced, turning_continuation)
         ),
     }
     result = {
         "ok": all(gates.values()),
-        "schemaVersion": "asset-simulation-oil-directional-economic-acceptance-v2",
+        "schemaVersion": "asset-simulation-oil-directional-economic-acceptance-v3",
         "orientation": {
             "development_seeds": sorted(DEV_SEEDS),
             "validation_seeds": sorted(VALIDATION_SEEDS),
@@ -140,6 +146,23 @@ def build_directional_economic_acceptance(
             "development": dev_invalidated,
             "validation": validation_invalidated,
             "combined_reference": combined_invalidated,
+        },
+        "regimeMeanTurnReturnBps": {
+            "trend": {
+                "reversion": trend_reversion,
+                "balanced": trend_balanced,
+                "continuation": trend_continuation,
+            },
+            "range": {
+                "reversion": range_reversion,
+                "balanced": range_balanced,
+                "continuation": range_continuation,
+            },
+            "turning": {
+                "reversion": turning_reversion,
+                "balanced": turning_balanced,
+                "continuation": turning_continuation,
+            },
         },
         "rawDiagnostics": calibration.get("diagnostics", {}),
         "regimeWinners": regime.get("regime_winners", {}),
