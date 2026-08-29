@@ -1,7 +1,7 @@
 {
   "schema_version": "asset-simulation-oil-strategy-risk-config-v1",
-  "config_id": "asset-simulation-oil-strategy-risk-base-v0.1.0",
-  "model_version": "asset-simulation-oil-strategy-risk-v0.1.0",
+  "config_id": "asset-simulation-oil-strategy-risk-base-v0.1.1",
+  "model_version": "asset-simulation-oil-strategy-risk-v0.1.1",
   "strategy_owner": "oil_strategy_research_v2",
   "company_risk_owner": "corporate_risk_control_v2",
   "decision_owner": "investment_decision_committee",
@@ -62,9 +62,9 @@
       "score_100": 100.0
     },
     "annualized_volatility_budget_pct_of_authorized_capital": {
-      "score_0": 35.0,
-      "score_50": 100.0,
-      "score_100": 160.0
+      "score_0": 30.0,
+      "score_50": 80.0,
+      "score_100": 130.0
     },
     "drawdown_watch_pct": {
       "score_0": 4.0,
