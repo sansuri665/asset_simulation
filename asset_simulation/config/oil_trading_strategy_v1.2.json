@@ -18,7 +18,7 @@
     "visible_trend_full_strength_range_multiples": 2.0,
     "continuation_visible_trend_weight": 0.65,
     "continuation_forecast_path_weight": 0.35,
-    "continuation_signal_strength_multiplier": 1.60,
+    "continuation_signal_strength_multiplier": 1.50,
     "signal_combination_method": "forecast_location_plus_l2_normalized_continuation_overlay",
     "deadband_abs_signal": 0.15
   },
@@ -34,6 +34,7 @@
     "material_band_breach_z": 1.15,
     "severe_band_breach_z": 2.00,
     "minimum_direction_move_log": 0.004,
+    "minimum_direction_forecast_z": 0.25,
     "direction_reversal_signal_threshold": 0.2,
     "invalidated_can_increase_same_direction": false,
     "direction_reversal_requires_exit_first": true,
