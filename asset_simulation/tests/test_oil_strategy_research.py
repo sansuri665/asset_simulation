@@ -87,7 +87,7 @@ class OilStrategyResearchTests(unittest.TestCase):
         profile = build_default_oil_strategy_research_profile()
         policy = profile["resolved_policy"]
         self.assertEqual(
-            50.0,
+            40.0,
             policy["risk"]["capital_deployment_pct_of_allocated_equity"],
         )
         self.assertEqual(0.3, policy["signal"]["continuation_weight"])
@@ -100,7 +100,7 @@ class OilStrategyResearchTests(unittest.TestCase):
         self.assertEqual(0.15, policy["execution"]["signal_deadband_abs"])
         self.assertEqual(1.15, policy["execution"]["minimum_trade_edge_pct"])
         self.assertAlmostEqual(
-            (0.15 * 30.0) ** 0.5,
+            (0.60 * 7.50) ** 0.5,
             policy["execution"]["gross_turnover_multiplier"],
         )
         self.assertEqual(1.875, policy["execution"]["expected_holding_turns"])
