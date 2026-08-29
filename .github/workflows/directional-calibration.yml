@@ -13,6 +13,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: directional-calibration-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   unit-tests:
     runs-on: ubuntu-latest
@@ -67,7 +71,13 @@ jobs:
           python -m asset_simulation.audit_oil_directional_economic_calibration \
             --seeds 0,1,2,3,4,5,6,7 \
             --years 3 \
+            --summary-only \
             --output artifacts/directional-economic-calibration.json
+      - name: Build directional acceptance report
+        run: |
+          python -m asset_simulation.audit_oil_directional_economic_acceptance \
+            --input artifacts/directional-economic-calibration.json \
+            --output artifacts/directional-economic-acceptance.json
       - name: Regime audit
         run: python -m asset_simulation.audit_oil_direction_regimes > artifacts/directional-regimes.json
       - name: Enforce formal-account realism gate
@@ -84,16 +94,20 @@ jobs:
           if not report.get('realism_gate_pass'):
               raise SystemExit('formal-account realism gate failed')
           PY
-      - name: Enforce directional economic gates
+      - name: Enforce directional economic acceptance
         run: |
           python - <<'PY'
           import json
           from pathlib import Path
-          report = json.loads(Path('artifacts/directional-economic-calibration.json').read_text())
-          failed = [name for name, passed in report.get('gates', {}).items() if not passed]
-          print('failed_gates=', failed)
-          if failed:
-              raise SystemExit('directional economic gates failed: ' + ', '.join(failed))
+          report = json.loads(Path('artifacts/directional-economic-acceptance.json').read_text())
+          print('acceptance_ok=', report.get('ok'))
+          print('failed_gates=', report.get('failed_gates'))
+          print('orientation=', report.get('orientationDiagnostics'))
+          if not report.get('ok'):
+              raise SystemExit(
+                  'directional economic acceptance failed: '
+                  + ', '.join(report.get('failed_gates', []))
+              )
           PY
       - name: Upload calibration reports
         if: always()
