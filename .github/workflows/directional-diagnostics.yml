@@ -1,0 +1,48 @@
+name: Directional Oil Diagnostics
+
+on:
+  push:
+    branches:
+      - 'calibration/directional-*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  orientation-thesis-diagnostics:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Run focused orientation and thesis diagnostics
+        run: |
+          mkdir -p artifacts
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from asset_simulation.audit_oil_directional_economic_calibration import (
+              build_oil_directional_economic_calibration_audit,
+          )
+          report = build_oil_directional_economic_calibration_audit(
+              seeds=tuple(range(8)),
+              horizon_years=3,
+              axes=("continuation_reversion",),
+              axis_scores=(10.0, 30.0, 50.0, 70.0, 90.0),
+              include_rows=True,
+          )
+          Path('artifacts/orientation-thesis-diagnostics.json').write_text(
+              json.dumps(report, ensure_ascii=False, indent=2) + '\n',
+              encoding='utf-8',
+          )
+          print('orientationWinnerCounts=', report['orientationWinnerCounts'])
+          print('invalidated=', report['thesisInvalidatedOccupancyPctByForecastBand'])
+          PY
+      - name: Upload focused diagnostics
+        uses: actions/upload-artifact@v4
+        with:
+          name: directional-orientation-thesis-diagnostics
+          path: artifacts/orientation-thesis-diagnostics.json
