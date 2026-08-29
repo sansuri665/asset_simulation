@@ -77,7 +77,7 @@
 换手活跃只决定：
 
 ```text
-gross_turnover_multiplier = 0.15 * 200^(turnover_activity / 100)
+gross_turnover_multiplier = 0.60 * 12.5^(turnover_activity / 100)
 urgency_multiplier = 0.85 + 0.30 * turnover_activity / 100
 ```
 
@@ -121,7 +121,7 @@ ending_position_lots = starting_position_lots + net_delta_lots
 |---|---:|---:|---|
 | 低换手 | 0—1倍 | 1个 | 主要完成净调仓，尽量持有 |
 | 中换手 | 1—5倍 | 1—2个 | 允许在两周间进行一次再平衡 |
-| 高换手 | 5—30倍 | 2个 | 周内买卖聚合周转；10,000手持仓可对应50,000—300,000手总成交 |
+| 高换手 | 5—7.5倍 | 2个 | 周内买卖聚合周转；10,000手参考仓位可获得至多约50,000—75,000手策略毛预算，实际成交仍受优势和容量裁剪 |
 
 这些倍数只是开发初值。净调仓仍受单合约限仓、组合限仓和保证金限制；总换手则另受每周公开成交量和实体参与率上限约束。必须拆分 `net_position_change_limit` 和 `gross_execution_limit`，否则既会误杀高换手，也可能让实体刷出超过公开市场容量的假成交。
 

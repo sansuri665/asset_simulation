@@ -121,6 +121,7 @@ def evaluate_oil_strategy_thesis_state(
         for item in end_market.get("curve", {}).get("contracts", ())
     }
     failure_limit = int(policy["consecutive_failure_turns_to_invalidate"])
+    material_threshold = float(policy["material_band_breach_z"])
     severe_threshold = float(policy["severe_band_breach_z"])
     direction_threshold = float(policy["minimum_direction_move_log"])
     contracts: dict[str, dict[str, Any]] = {}
@@ -150,6 +151,7 @@ def evaluate_oil_strategy_thesis_state(
             outside_log = math.log(actual / high)
         breach_z = outside_log / uncertainty
         band_breach = outside_log > 0.0
+        material_band_breach = breach_z >= material_threshold
         severe_breach = breach_z >= severe_threshold
         predicted_direction = _sign(math.log(center / anchor), direction_threshold)
         actual_direction = _sign(math.log(actual / anchor), direction_threshold)
@@ -161,7 +163,7 @@ def evaluate_oil_strategy_thesis_state(
         previous = dict(before["contracts"].get(contract_id, {}))
         band_count = int(previous.get("consecutive_band_breaches", 0))
         direction_count = int(previous.get("consecutive_direction_misses", 0))
-        if band_breach:
+        if material_band_breach:
             band_count += 1
         else:
             band_count = max(0, band_count - 1)
@@ -169,7 +171,7 @@ def evaluate_oil_strategy_thesis_state(
             direction_count += 1
         else:
             direction_count = max(0, direction_count - 1)
-        failed = band_breach or direction_miss
+        failed = material_band_breach or direction_miss
         previous_status = str(previous.get("status", "active"))
         if severe_breach or max(band_count, direction_count) >= failure_limit:
             status = "invalidated"
@@ -188,6 +190,7 @@ def evaluate_oil_strategy_thesis_state(
             "realized_price_usd": actual,
             "band_breach": band_breach,
             "band_breach_z": breach_z,
+            "material_band_breach": material_band_breach,
             "severe_band_breach": severe_breach,
             "predicted_direction": predicted_direction,
             "realized_direction": actual_direction,

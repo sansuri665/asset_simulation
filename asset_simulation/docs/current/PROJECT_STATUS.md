@@ -33,7 +33,7 @@
 | 全球宏观 | 已运行 | 2025—2085年度世界、普通周期、通胀、利率、信用、原油与资产参考 | 特殊事件默认关闭；不是危机模拟器 |
 | 商品／原油 | 已运行 | 现货、主连、4个01／05／09合约、期限结构、换月、全球流动性 | 月／周 OHLC 仍是年度路径的合成展开 |
 | 预测研究部 | 已运行，后台接入 | 六维隐藏专业能力、五维无总分研究风格、latent 相关性、主力／次主力周线预测、连续滚动修订与事后评分 | 正式招聘自荐、历史履历和人员持久化尚未实现 |
-| 投资策略部 | 已运行，竞技接入 | PM／Strategy Director 采用 style-first 架构；八维无总分风格、延续／回归连续光谱、跨回合观点失效、资金部署、换手、换月与收益归因 | 只有单合约方向引擎；分段审计显示纯延续侧汇总趋势优势不足；期限结构未运行；底层暂保留 `oil_strategy_research` 兼容名 |
+| 投资策略部 | 已运行，竞技接入 | PM／Strategy Director 采用 style-first 架构；八维无总分风格、基础预测方向＋归一化延续叠加、跨回合观点失效、资金部署、换手、换月与收益归因；开发／验证分段审计已出现趋势、震荡／转折差异 | 只有单合约方向引擎；残余震荡标签仍较宽；期限结构未运行；底层暂保留 `oil_strategy_research` 兼容名 |
 | 风控部 | 已运行，竞技接入 | 公司级 CRO 具有六维无总分风险偏好；按不同策略生成容量／波动／回撤等建议，投委会批准，公司总风控后置执行 | 偏好不代表能力；尚无 CRO 能力模型、玩家审批和多策略聚合风险 |
 | 交易部 | 已运行，竞技接入 | 六维可测能力、独立三维执行风格、真实成本／完成率取舍、费用、滑点、TCA | 没有盘口、逐笔订单或独立交易员席位管理 |
 | 投资决策治理 | 壳层已定，竞技接入 | 当前单策略由系统代理批准风险方案并授权100%自营资本；资本授权与风险上限、PM部署、实际保证金分离 | 尚无玩家额度操作、多策略分配、委员、投票或能力模型 |
@@ -53,11 +53,11 @@
 | 商品 overlay | `asset-simulation-commodity-overlay-v0.1.2` |
 | 原油期货 overlay | `asset-simulation-oil-futures-overlay-v0.8.0` |
 | 原油短期预测 | `asset-simulation-oil-short-term-forecast-v0.2.0` |
-| 原油策略研究 | `asset-simulation-oil-strategy-research-v0.2.0` |
+| 原油策略研究 | `asset-simulation-oil-strategy-research-v0.2.1` |
 | 单策略风控 | `asset-simulation-oil-strategy-risk-v0.1.0` |
 | 公司级风控 | `asset-simulation-corporate-risk-control-v0.2.0` |
 | 原油交易部 | `asset-simulation-oil-execution-desk-v0.2.0` |
-| 原油交易策略 | `asset-simulation-oil-trading-strategy-v1.2.0` |
+| 原油交易策略 | `asset-simulation-oil-trading-strategy-v1.3.0` |
 | 正式原油期货账户 | `asset-simulation-oil-futures-account-v0.1.0` |
 | 投资决策竞技 | `asset-simulation-oil-investment-competition-v0.5.0` |
 

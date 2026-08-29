@@ -38,6 +38,7 @@
   "mandate_fields": {
     "continuation_weight": {"unit": "ratio_0_to_1"},
     "reversion_weight": {"unit": "ratio_0_to_1"},
+    "continuation_overlay_intensity": {"unit": "ratio_0_to_1"},
     "capital_deployment_pct_of_allocated_equity": {"unit": "percent"},
     "adjustment_speed": {"unit": "ratio_0_to_1"},
     "signal_deadband_abs": {"unit": "signed_signal_absolute_threshold"},

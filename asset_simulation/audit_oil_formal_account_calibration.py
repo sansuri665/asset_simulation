@@ -9,6 +9,7 @@ ledger, margin, tail-risk, cost and capacity behaviour.
 from __future__ import annotations
 
 import argparse
+from collections import Counter
 import json
 import math
 from pathlib import Path
@@ -40,7 +41,7 @@ from .model.institution_organization import (
 )
 
 
-CALIBRATION_VERSION = "asset-simulation-oil-formal-account-calibration-v0.2.0"
+CALIBRATION_VERSION = "asset-simulation-oil-formal-account-calibration-v0.3.0"
 DEFAULT_SEEDS = (42, 2026, 7777, 9001, 314159, 271828)
 DEFAULT_AUTHORIZATIONS = (35.0, 60.0, 85.0)
 DEFAULT_STYLES = ("reversion", "balanced", "continuation")
@@ -92,15 +93,20 @@ def _strategy_style_profiles() -> dict[str, dict[str, Any]]:
     }
 
 
-def _build_visible_path(seed: int, horizon_years: int) -> list[dict[str, Any]]:
+def _build_visible_path(
+    seed: int,
+    horizon_years: int,
+    *,
+    forecast_score_range: tuple[float, float] = (55.0, 65.0),
+) -> list[dict[str, Any]]:
     start_serial = _half_turn_serial(2030, 1, 1)
     end_serial = start_serial + int(horizon_years) * TURNS_PER_YEAR
     end_year, _, _ = _turn_from_serial(end_serial)
     run = run_global_macro(int(seed), max(6, end_year - 2024))
     forecast_profile = generate_institution_profile_for_score_range(
         seed=20260827,
-        score_min=55.0,
-        score_max=65.0,
+        score_min=float(forecast_score_range[0]),
+        score_max=float(forecast_score_range[1]),
     )
     previous_vintage = None
     path: list[dict[str, Any]] = []
@@ -171,6 +177,14 @@ def _run_scenario(
     total_traded_lots = 0
     total_traded_notional = 0.0
     total_execution_cost = 0.0
+    total_round_trip_lots = 0
+    total_round_trip_gross_pnl = 0.0
+    total_round_trip_execution_cost = 0.0
+    total_gross_pnl_before_cost = 0.0
+    total_positive_gross_pnl = 0.0
+    thesis_status_counts: Counter[str] = Counter()
+    thesis_event_counts: Counter[str] = Counter()
+    thesis_transition_counts: Counter[str] = Counter()
     account_expansion_violations = 0
     maintenance_violations = 0
     maximum_cash_identity_error = 0.0
@@ -218,17 +232,44 @@ def _run_scenario(
         snapshot = account_settlement["accountAfter"]
         corporate_risk_state = dict(decision["corporateRisk"]["state"])
         strategy_risk_state = dict(decision["strategyRisk"]["state"])
-        thesis_state = dict(strategy_settlement["thesisInvalidation"]["state"])
-        gross_turnover = int(
-            strategy_settlement["executionSummary"]["gross_turnover_lots"]
-        )
+        thesis_report = strategy_settlement["thesisInvalidation"]
+        thesis_state = dict(thesis_report["state"])
+        for thesis_contract in thesis_state.get("contracts", {}).values():
+            thesis_status_counts[str(thesis_contract["status"])] += 1
+        for evaluation in thesis_report.get("evaluations", ()):
+            thesis_event_counts["evaluations"] += 1
+            for event in (
+                "band_breach",
+                "material_band_breach",
+                "severe_band_breach",
+                "direction_miss",
+            ):
+                if bool(evaluation[event]):
+                    thesis_event_counts[event] += 1
+            thesis_transition_counts[
+                f"{evaluation['status_before']}->{evaluation['status_after']}"
+            ] += 1
+        execution_summary = strategy_settlement["executionSummary"]
+        gross_turnover = int(execution_summary["gross_turnover_lots"])
         gross_turnover_history.append(gross_turnover)
         total_traded_lots += gross_turnover
+        total_round_trip_lots += int(execution_summary["round_trip_lots"])
+        total_round_trip_gross_pnl += float(
+            execution_summary["round_trip_gross_pnl_usd"]
+        )
+        total_round_trip_execution_cost += float(
+            execution_summary["round_trip_execution_cost_usd"]
+        )
+        gross_pnl_before_cost = float(
+            execution_summary["gross_pnl_before_cost_usd"]
+        )
+        total_gross_pnl_before_cost += gross_pnl_before_cost
+        total_positive_gross_pnl += max(0.0, gross_pnl_before_cost)
         total_traded_notional += float(
-            strategy_settlement["executionSummary"]["traded_notional_usd"]
+            execution_summary["traded_notional_usd"]
         )
         total_execution_cost += float(
-            strategy_settlement["executionSummary"]["execution_cost_usd"]
+            execution_summary["execution_cost_usd"]
         )
         after_equity = float(account["equity_usd"])
         equity_curve.append(after_equity)
@@ -274,6 +315,34 @@ def _run_scenario(
         if total_traded_notional <= 0.0
         else 10_000.0 * total_execution_cost / total_traded_notional
     )
+    thesis_observations = sum(thesis_status_counts.values())
+    thesis_status_share_pct = {
+        status: (
+            0.0
+            if thesis_observations <= 0
+            else 100.0 * thesis_status_counts[status] / thesis_observations
+        )
+        for status in ("active", "watch", "invalidated")
+    }
+    thesis_evaluations = thesis_event_counts["evaluations"]
+    thesis_event_rate_pct = {
+        event: (
+            0.0
+            if thesis_evaluations <= 0
+            else 100.0 * thesis_event_counts[event] / thesis_evaluations
+        )
+        for event in (
+            "band_breach",
+            "material_band_breach",
+            "severe_band_breach",
+            "direction_miss",
+        )
+    }
+    round_trip_gross_positive_pnl_share = (
+        0.0
+        if total_positive_gross_pnl <= 0.0
+        else abs(total_round_trip_gross_pnl) / total_positive_gross_pnl
+    )
     return _round_nested(
         {
             "scenario_id": f"{seed}:{style_label}:{authorization_pct:g}",
@@ -283,6 +352,7 @@ def _run_scenario(
             "continuation_reversion_score": float(
                 strategy_profile["style_radar"]["continuation_reversion"]
             ),
+            "style_radar": dict(strategy_profile["style_radar"]),
             "capital_authorization_pct": float(authorization_pct),
             "completed_turns": completed_turns,
             "years": years,
@@ -290,6 +360,9 @@ def _run_scenario(
             "ending_equity_usd": ending_equity,
             "cagr_pct": cagr,
             "annualized_volatility_pct": annualized_volatility,
+            "return_to_volatility_ratio": (
+                0.0 if annualized_volatility <= 0.0 else cagr / annualized_volatility
+            ),
             "maximum_drawdown_pct": _maximum_drawdown_pct(equity_curve),
             "half_turn_var_95_pct": var_95,
             "half_turn_expected_shortfall_95_pct": expected_shortfall_95,
@@ -324,6 +397,21 @@ def _run_scenario(
             ),
             "insolvent": bool(account["ever_insolvent"]),
             "total_traded_lots": total_traded_lots,
+            "total_round_trip_lots": total_round_trip_lots,
+            "total_round_trip_gross_pnl_usd": total_round_trip_gross_pnl,
+            "total_round_trip_execution_cost_usd": (
+                total_round_trip_execution_cost
+            ),
+            "total_gross_pnl_before_cost_usd": total_gross_pnl_before_cost,
+            "total_positive_gross_pnl_usd": total_positive_gross_pnl,
+            "round_trip_gross_positive_pnl_share": (
+                round_trip_gross_positive_pnl_share
+            ),
+            "thesis_status_counts": dict(thesis_status_counts),
+            "thesis_status_share_pct": thesis_status_share_pct,
+            "thesis_event_counts": dict(thesis_event_counts),
+            "thesis_event_rate_pct": thesis_event_rate_pct,
+            "thesis_transition_counts": dict(thesis_transition_counts),
             "total_execution_cost_usd": total_execution_cost,
             "execution_cost_bps_of_traded_notional": execution_cost_bps,
             "annual_traded_lots": total_traded_lots / years,
@@ -621,7 +709,8 @@ def main() -> None:
     if args.output:
         args.output.parent.mkdir(parents=True, exist_ok=True)
         args.output.write_text(rendered + "\n", encoding="utf-8")
-    print(rendered)
+    else:
+        print(rendered)
 
 
 if __name__ == "__main__":

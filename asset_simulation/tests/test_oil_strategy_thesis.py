@@ -106,6 +106,43 @@ class OilStrategyThesisTests(unittest.TestCase):
             outcome["informationPolicy"]["configured_research_ability_used"]
         )
 
+    def test_small_band_exit_is_observed_without_poisoning_the_thesis(self) -> None:
+        decision = {
+            "thesisInvalidation": {"policy": self.policy, "stateBefore": {}},
+            "targets": [
+                {
+                    "contract_id": "OIL-3005",
+                    "role": "main",
+                    "anchor_price_usd": 100.0,
+                    "signal": 0.5,
+                    "horizon_components": [
+                        {
+                            "selected_horizon_weeks": 2,
+                            "target_week": "2030-01-W4",
+                            "forecast_close_usd": 101.0,
+                            "confidence_low_usd": 99.0,
+                            "confidence_high_usd": 102.0,
+                            "uncertainty_log": 0.01,
+                        }
+                    ],
+                }
+            ],
+        }
+        end_market = {
+            "curve": {
+                "contracts": [
+                    {"contract_id": "OIL-3005", "price_usd": 102.50}
+                ]
+            }
+        }
+        outcome = evaluate_oil_strategy_thesis_state(decision, end_market)
+        evaluation = outcome["evaluations"][0]
+        self.assertTrue(evaluation["band_breach"])
+        self.assertFalse(evaluation["material_band_breach"])
+        self.assertEqual(
+            "active", outcome["state"]["contracts"]["OIL-3005"]["status"]
+        )
+
     def test_turn_pnl_direction_selection_and_cost_attribution_reconciles(self) -> None:
         run = run_global_macro(42, 7)
         start = oil_futures_payload(

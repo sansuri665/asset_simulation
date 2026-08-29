@@ -49,7 +49,7 @@ from .registry import load_registered_assets, sha256_json
 
 
 OIL_TRADING_STRATEGY_MODEL_VERSION = (
-    "asset-simulation-oil-trading-strategy-v1.2.0"
+    "asset-simulation-oil-trading-strategy-v1.3.0"
 )
 STRATEGY_CONTRACT_ID = "oil_trading_strategy_v8"
 ROLE_ORDER = ("main", "next_main")
@@ -114,6 +114,9 @@ def _validate_registered_assets() -> tuple[dict[str, Any], dict[str, Any], dict[
         or float(signal["visible_trend_full_strength_range_multiples"]) <= 0.0
         or any(value < 0.0 for value in continuation_component_weights)
         or not math.isclose(sum(continuation_component_weights), 1.0)
+        or float(signal["continuation_signal_strength_multiplier"]) <= 0.0
+        or signal["signal_combination_method"]
+        != "forecast_location_plus_l2_normalized_continuation_overlay"
     ):
         raise ValueError("oil trading strategy signal normalization is invalid")
     thesis = config["thesis_invalidation"]
@@ -126,7 +129,10 @@ def _validate_registered_assets() -> tuple[dict[str, Any], dict[str, Any], dict[
         or not 0.0 < scales["invalidated"] <= scales["watch"] <= scales["active"]
         or not math.isclose(scales["active"], 1.0)
         or int(thesis["consecutive_failure_turns_to_invalidate"]) < 1
+        or float(thesis["material_band_breach_z"]) < 0.0
         or float(thesis["severe_band_breach_z"]) <= 0.0
+        or float(thesis["material_band_breach_z"])
+        > float(thesis["severe_band_breach_z"])
         or float(thesis["minimum_direction_move_log"]) <= 0.0
         or not 0.0 <= float(thesis["direction_reversal_signal_threshold"]) <= 1.0
         or bool(thesis["ability_score_used"])
@@ -696,12 +702,24 @@ def _signal_from_contract_forecast(
         return {
             "signal": 0.0,
             "raw_signal": 0.0,
+            "raw_signal_unscaled": 0.0,
             "reversion_signal": 0.0,
             "continuation_signal": 0.0,
+            "continuation_signal_unscaled": 0.0,
+            "continuation_signal_strength_multiplier": float(
+                signal_config["continuation_signal_strength_multiplier"]
+            ),
             "visible_trend_signal": 0.0,
             "visible_trend": {"available": False, "signal": 0.0},
             "reversion_weight": reversion_weight,
             "continuation_weight": continuation_weight,
+            "continuation_overlay_intensity": continuation_weight,
+            "signal_combination_method": signal_config[
+                "signal_combination_method"
+            ],
+            "signal_combination_normalization": 1.0,
+            "effective_base_location_weight": 1.0,
+            "effective_continuation_overlay_weight": 0.0,
             "band_location_signal": 0.0,
             "path_direction_signal": 0.0,
             "path_direction": {"available": False, "signal": 0.0},
@@ -895,16 +913,29 @@ def _signal_from_contract_forecast(
             )
         )
     continuation_weight_total = sum(weight for _, weight in continuation_components)
-    continuation_signal = (
+    continuation_signal_unscaled = (
         0.0
         if continuation_weight_total <= 0.0
         else sum(value * weight for value, weight in continuation_components)
         / continuation_weight_total
     )
+    continuation_signal = clamp(
+        continuation_signal_unscaled
+        * float(signal_config["continuation_signal_strength_multiplier"]),
+        -1.0,
+        1.0,
+    )
 
-    raw_signal = (
-        reversion_weight * location_signal
-        + continuation_weight * continuation_signal
+    raw_signal_unscaled = (
+        location_signal + continuation_weight * continuation_signal
+    )
+    signal_combination_normalization = math.sqrt(
+        1.0 + continuation_weight * continuation_weight
+    )
+    raw_signal = clamp(
+        raw_signal_unscaled / signal_combination_normalization,
+        -1.0,
+        1.0,
     )
 
     deadband = float(
@@ -922,12 +953,24 @@ def _signal_from_contract_forecast(
     return {
         "signal": clamp(signal, -1.0, 1.0),
         "raw_signal": raw_signal,
+        "raw_signal_unscaled": raw_signal_unscaled,
+        "signal_combination_method": signal_config["signal_combination_method"],
+        "signal_combination_normalization": signal_combination_normalization,
+        "effective_base_location_weight": 1.0 / signal_combination_normalization,
+        "effective_continuation_overlay_weight": (
+            continuation_weight / signal_combination_normalization
+        ),
         "reversion_signal": location_signal,
         "continuation_signal": continuation_signal,
+        "continuation_signal_unscaled": continuation_signal_unscaled,
+        "continuation_signal_strength_multiplier": float(
+            signal_config["continuation_signal_strength_multiplier"]
+        ),
         "visible_trend_signal": visible_trend_signal,
         "visible_trend": visible_trend_report,
         "reversion_weight": reversion_weight,
         "continuation_weight": continuation_weight,
+        "continuation_overlay_intensity": continuation_weight,
         "band_location_signal": location_signal,
         "path_direction_signal": path_direction_signal,
         "path_direction": path_report,

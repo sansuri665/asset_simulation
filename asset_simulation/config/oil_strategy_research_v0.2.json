@@ -1,7 +1,7 @@
 {
   "schema_version": "asset-simulation-oil-strategy-research-config-v2",
-  "config_id": "asset-simulation-oil-strategy-research-base-v0.2.0",
-  "model_version": "asset-simulation-oil-strategy-research-v0.2.0",
+  "config_id": "asset-simulation-oil-strategy-research-base-v0.2.1",
+  "model_version": "asset-simulation-oil-strategy-research-v0.2.1",
   "signal_engine_id": "forecast_continuation_reversion_directional_edge_sized_turnover_v7",
   "appointment_role": "oil_strategy_research_director",
   "default_director": {
@@ -63,11 +63,11 @@
   "parameter_mapping": {
     "continuation_weight": {"minimum": 0.05, "neutral": 0.30, "maximum": 0.90, "curve": "centered_linear"},
     "capital_deployment_pct_of_allocated_equity": {"minimum": 25, "neutral": 50, "maximum": 75, "curve": "centered_linear"},
-    "adjustment_speed": {"minimum": 0.10, "maximum": 0.90},
+    "adjustment_speed": {"minimum": 0.26, "maximum": 0.74},
     "signal_deadband_abs": {"minimum": 0.05, "maximum": 0.25},
     "minimum_trade_edge_pct": {"minimum": 0.20, "maximum": 2.10},
     "normal_net_trade_limit_utilization": {"minimum": 0.25, "maximum": 0.75},
-    "gross_turnover_multiplier": {"minimum": 0.15, "maximum": 30.0, "curve": "logarithmic"},
+    "gross_turnover_multiplier": {"minimum": 0.60, "maximum": 7.50, "curve": "logarithmic"},
     "expected_holding_turns": {"minimum": 0.50, "maximum": 6.0, "curve": "quadratic"},
     "position_persistence": {"minimum": 0.0, "maximum": 0.70, "curve": "quadratic"},
     "net_edge_floor_pct": {"minimum": 0.05, "maximum": 0.225},

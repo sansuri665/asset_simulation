@@ -17,7 +17,7 @@ from .registry import load_registered_assets, sha256_json
 
 
 OIL_STRATEGY_RESEARCH_MODEL_VERSION = (
-    "asset-simulation-oil-strategy-research-v0.2.0"
+    "asset-simulation-oil-strategy-research-v0.2.1"
 )
 OIL_STRATEGY_RESEARCH_CONTRACT_ID = "oil_strategy_research_v2"
 STRATEGY_STYLE_DIMENSIONS = (
@@ -259,6 +259,7 @@ def _resolved_policy(
             "orientation_score": orientation_score,
             "continuation_weight": continuation_weight,
             "reversion_weight": 1.0 - continuation_weight,
+            "continuation_overlay_intensity": continuation_weight,
             "signal_deadband_abs": _linear(
                 mapping["signal_deadband_abs"], selection_score
             ),

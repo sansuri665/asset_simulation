@@ -163,6 +163,29 @@ class OilTradingStrategyTests(unittest.TestCase):
         self.assertLess(near_upper["signal"], 0.0)
         self.assertGreater(rising["path_direction_signal"], 0.0)
         self.assertGreater(rising["signal"], centered["signal"])
+        self.assertEqual(
+            "forecast_location_plus_l2_normalized_continuation_overlay",
+            rising["signal_combination_method"],
+        )
+        self.assertGreater(rising["effective_base_location_weight"], 0.0)
+        self.assertGreater(
+            rising["effective_continuation_overlay_weight"], 0.0
+        )
+        self.assertAlmostEqual(
+            rising["raw_signal"],
+            max(
+                -1.0,
+                min(
+                    1.0,
+                    (
+                        rising["reversion_signal"]
+                        + rising["continuation_overlay_intensity"]
+                        * rising["continuation_signal"]
+                    )
+                    / rising["signal_combination_normalization"],
+                ),
+            ),
+        )
 
         conflicting = forecast(
             [108.0, 103.0, 98.0],
@@ -231,16 +254,18 @@ class OilTradingStrategyTests(unittest.TestCase):
         self.assertEqual(0.5, low["adjustment_speed"])
         self.assertEqual(0.15, low["signal_deadband_abs"])
         self.assertEqual(1.15, low["minimum_trade_edge_pct"])
-        self.assertEqual(0.15, low["gross_turnover_multiplier"])
+        self.assertEqual(0.6, low["gross_turnover_multiplier"])
         self.assertEqual(50.0, medium["turnover_intensity"])
         self.assertAlmostEqual(0.5, medium["adjustment_speed"])
         self.assertAlmostEqual(0.15, medium["signal_deadband_abs"])
         self.assertAlmostEqual(1.15, medium["minimum_trade_edge_pct"])
-        self.assertAlmostEqual(math.sqrt(0.15 * 30.0), medium["gross_turnover_multiplier"])
+        self.assertAlmostEqual(
+            math.sqrt(0.6 * 7.5), medium["gross_turnover_multiplier"]
+        )
         self.assertEqual(0.5, high["adjustment_speed"])
         self.assertEqual(0.15, high["signal_deadband_abs"])
         self.assertEqual(1.15, high["minimum_trade_edge_pct"])
-        self.assertAlmostEqual(30.0, high["gross_turnover_multiplier"])
+        self.assertAlmostEqual(7.5, high["gross_turnover_multiplier"])
         for invalid in (-0.1, 100.1, math.nan, math.inf, True):
             with self.assertRaises(ValueError):
                 resolve_oil_strategy_runtime_policy(

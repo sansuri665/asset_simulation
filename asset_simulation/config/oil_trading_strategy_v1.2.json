@@ -1,7 +1,7 @@
 {
-  "schema_version": "asset-simulation-oil-trading-strategy-config-v5",
-  "config_id": "asset-simulation-oil-continuation-reversion-v1.2.0",
-  "model_version": "asset-simulation-oil-trading-strategy-v1.2.0",
+  "schema_version": "asset-simulation-oil-trading-strategy-config-v6",
+  "config_id": "asset-simulation-oil-continuation-reversion-v1.3.0",
+  "model_version": "asset-simulation-oil-trading-strategy-v1.3.0",
   "strategy_id": "forecast_continuation_reversion_directional_edge_sized_turnover_v7",
   "display_name": "任命制单合约延续／回归策略",
   "initial_reference_equity_usd": 10000000.0,
@@ -18,6 +18,8 @@
     "visible_trend_full_strength_range_multiples": 2.0,
     "continuation_visible_trend_weight": 0.65,
     "continuation_forecast_path_weight": 0.35,
+    "continuation_signal_strength_multiplier": 1.50,
+    "signal_combination_method": "forecast_location_plus_l2_normalized_continuation_overlay",
     "deadband_abs_signal": 0.15
   },
   "thesis_invalidation": {
@@ -29,7 +31,8 @@
       "invalidated": 0.3
     },
     "consecutive_failure_turns_to_invalidate": 2,
-    "severe_band_breach_z": 0.75,
+    "material_band_breach_z": 1.00,
+    "severe_band_breach_z": 2.00,
     "minimum_direction_move_log": 0.004,
     "direction_reversal_signal_threshold": 0.2,
     "invalidated_can_increase_same_direction": false,
