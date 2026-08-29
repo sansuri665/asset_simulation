@@ -99,7 +99,7 @@ class OilTradingStrategyTests(unittest.TestCase):
             first["riskBudget"]["gross_market_cap_lots"],
         )
         self.assertEqual(
-            50.0,
+            40.0,
             first["riskBudget"][
                 "capital_deployment_pct_of_allocated_equity"
             ],
