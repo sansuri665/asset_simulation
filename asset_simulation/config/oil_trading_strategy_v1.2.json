@@ -31,7 +31,7 @@
       "invalidated": 0.3
     },
     "consecutive_failure_turns_to_invalidate": 2,
-    "material_band_breach_z": 1.15,
+    "material_band_breach_z": 1.25,
     "severe_band_breach_z": 2.00,
     "minimum_direction_move_log": 0.004,
     "minimum_direction_forecast_z": 0.35,
