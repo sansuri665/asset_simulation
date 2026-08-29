@@ -34,7 +34,7 @@
     "material_band_breach_z": 1.15,
     "severe_band_breach_z": 2.00,
     "minimum_direction_move_log": 0.004,
-    "minimum_direction_forecast_z": 0.25,
+    "minimum_direction_forecast_z": 0.35,
     "direction_reversal_signal_threshold": 0.2,
     "invalidated_can_increase_same_direction": false,
     "direction_reversal_requires_exit_first": true,
