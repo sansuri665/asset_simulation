@@ -124,6 +124,9 @@ def evaluate_oil_strategy_thesis_state(
     material_threshold = float(policy["material_band_breach_z"])
     severe_threshold = float(policy["severe_band_breach_z"])
     direction_threshold = float(policy["minimum_direction_move_log"])
+    forecast_direction_threshold = max(
+        0.0, float(policy.get("minimum_direction_forecast_z", 0.0))
+    )
     contracts: dict[str, dict[str, Any]] = {}
     evaluations: list[dict[str, Any]] = []
     for target_value in decision.get("targets", ()):
@@ -153,10 +156,16 @@ def evaluate_oil_strategy_thesis_state(
         band_breach = outside_log > 0.0
         material_band_breach = breach_z >= material_threshold
         severe_breach = breach_z >= severe_threshold
-        predicted_direction = _sign(math.log(center / anchor), direction_threshold)
+        forecast_direction_move_log = math.log(center / anchor)
+        forecast_direction_z = abs(forecast_direction_move_log) / uncertainty
+        predicted_direction = _sign(forecast_direction_move_log, direction_threshold)
         actual_direction = _sign(math.log(actual / anchor), direction_threshold)
-        direction_miss = (
+        direction_miss_eligible = (
             predicted_direction != 0
+            and forecast_direction_z >= forecast_direction_threshold
+        )
+        direction_miss = (
+            direction_miss_eligible
             and actual_direction != 0
             and predicted_direction != actual_direction
         )
@@ -192,6 +201,10 @@ def evaluate_oil_strategy_thesis_state(
             "band_breach_z": breach_z,
             "material_band_breach": material_band_breach,
             "severe_band_breach": severe_breach,
+            "forecast_direction_move_log": forecast_direction_move_log,
+            "forecast_direction_z": forecast_direction_z,
+            "minimum_direction_forecast_z": forecast_direction_threshold,
+            "direction_miss_eligible": direction_miss_eligible,
             "predicted_direction": predicted_direction,
             "realized_direction": actual_direction,
             "direction_miss": direction_miss,
