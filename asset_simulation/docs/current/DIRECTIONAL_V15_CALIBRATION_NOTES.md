@@ -29,7 +29,7 @@ Removing the shared PM capital haircut exposed the true directional-strategy ris
 - material confidence-band breach: `1.35z`;
 - severe breach: `2.0z`;
 - minimum realized / forecast direction move remains `0.004` log-return;
-- a direction miss is eligible only when published forecast direction conviction is at least `0.35z`;
+- a direction miss is eligible only when published forecast direction conviction is at least `0.50z`;
 - `minimum_direction_forecast_z` is a required registered field and fails closed if missing.
 
 No configured research ability score or hidden future data enters thesis evaluation.
