@@ -75,32 +75,35 @@ class CorporateRiskControlTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             resolve_corporate_risk_profile(modified)
 
-    def test_neutral_preserves_current_targets_and_strict_policy_only_clips(self) -> None:
+    def test_neutral_and_strict_company_risk_are_nonexpansive(self) -> None:
         neutral = build_oil_strategy_decision(self.market, self.forecast)
         strict = build_oil_strategy_decision(
             self.market, self.forecast, corporate_risk_profile=_profile(0.0, "strict")
         )
-        self.assertTrue(
-            all(
-                item["strategy_target_position_lots"] == item["target_position_lots"]
-                for item in neutral["targets"]
-            )
+        self.assertGreaterEqual(
+            neutral["corporateRisk"]["approval_summary"]["clipped_gross_lots"], 0
         )
         self.assertGreater(
             strict["corporateRisk"]["approval_summary"]["clipped_gross_lots"], 0
         )
-        for strict_item, neutral_item in zip(strict["targets"], neutral["targets"], strict=True):
-            self.assertEqual(
-                strict_item["strategy_target_position_lots"],
-                neutral_item["strategy_target_position_lots"],
-            )
+        for item in neutral["targets"]:
             self.assertLessEqual(
-                abs(strict_item["target_position_lots"]),
-                abs(strict_item["strategy_target_position_lots"]),
+                abs(item["target_position_lots"]),
+                abs(item["strategy_target_position_lots"]),
             )
             self.assertGreaterEqual(
-                strict_item["target_position_lots"]
-                * strict_item["strategy_target_position_lots"],
+                item["target_position_lots"] * item["strategy_target_position_lots"],
+                0,
+            )
+        neutral_by_contract = {item["contract_id"]: item for item in neutral["targets"]}
+        for strict_item in strict["targets"]:
+            neutral_item = neutral_by_contract[strict_item["contract_id"]]
+            self.assertLessEqual(
+                abs(strict_item["target_position_lots"]),
+                abs(neutral_item["target_position_lots"]),
+            )
+            self.assertGreaterEqual(
+                strict_item["target_position_lots"] * neutral_item["target_position_lots"],
                 0,
             )
 

@@ -196,7 +196,7 @@
     "the primary alpha predicts and trades change in the dollar main-minus-next spread; current-price normalization is scale-only and can never reverse the sign of the dollar spread change",
     "forecast capability or capability_total_score never enters signal magnitude, target sizing or risk capacity; only the published forecast values are consumed",
     "the appointed PM reuses continuation_reversion, capital_deployment, responsiveness, selectivity, turnover_activity, holding_patience and forecast_horizon without adding a calendar-spread-specific PM quality field",
-    "committee-authorized capital remains an explicit input; PM capital_deployment only controls use of that authorized capital",
+    "committee-authorized capital remains an explicit input and is never multiplied by a shared PM deployment percentage; PM capital_deployment is reserved for risk-review semantics",
     "risk capacity is the minimum of conservative pair margin, both leg limits, the all-contract gross limit and stressed visible spread-volatility capacity",
     "expiry and roll checks use the oil-futures market owner's published months_to_expiry and never independently subtract another half turn",
     "target positions are exactly balanced at one-to-one lots; any current or executed leg imbalance is reported separately and never relabeled as spread exposure",

@@ -1,7 +1,7 @@
 {
   "schema_version": "asset-simulation-oil-short-term-forecast-config-v2",
-  "config_id": "asset-simulation-oil-short-term-forecast-base-v0.2.0",
-  "model_version": "asset-simulation-oil-short-term-forecast-v0.2.0",
+  "config_id": "asset-simulation-oil-short-term-forecast-base-v0.2.1",
+  "model_version": "asset-simulation-oil-short-term-forecast-v0.2.1",
   "default_institution": {
     "institution_id": "northstar_research",
     "display_name": "北辰研究",

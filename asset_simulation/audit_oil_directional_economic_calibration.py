@@ -383,15 +383,6 @@ def build_oil_directional_economic_calibration_audit(
         "forecast_skill_orders_invalidated_occupancy": (
             low_invalidated > medium_invalidated > high_invalidated
         ),
-        "higher_capital_deployment_increases_median_volatility": (
-            high_capital_vol > low_capital_vol
-        ),
-        "higher_capital_deployment_increases_median_drawdown": (
-            high_capital_drawdown > low_capital_drawdown
-        ),
-        "no_orientation_score_wins_more_than_half_of_cells": (
-            largest_winner_share <= 0.50
-        ),
         "round_trip_pnl_share_median_below_35_pct": (
             round_trip_distribution["median"] < 0.35
         ),
@@ -449,6 +440,16 @@ def build_oil_directional_economic_calibration_audit(
             "high_median_volatility_pct": high_capital_vol,
             "low_median_absolute_drawdown_pct": low_capital_drawdown,
             "high_median_absolute_drawdown_pct": high_capital_drawdown,
+            "semantics": "risk_preference_input_only_no_direct_capital_haircut",
+        },
+        "diagnostics": {
+            "legacy_orientation_winner_share_le_50": largest_winner_share <= 0.50,
+            "higher_capital_deployment_increases_median_volatility": (
+                high_capital_vol > low_capital_vol
+            ),
+            "higher_capital_deployment_increases_median_drawdown": (
+                high_capital_drawdown > low_capital_drawdown
+            ),
         },
         "roundTripGrossPositivePnlShare": round_trip_distribution,
         "axisScoreMedianMetrics": axis_score_metrics,

@@ -1,7 +1,7 @@
 {
   "contract_id": "oil_strategy_research_v2",
   "schema_version": "asset-simulation-oil-strategy-research-contract-v2",
-  "role": "Deterministic appointed-personnel profiles for the oil strategy research department. The eight-axis radar controls continuation-versus-reversion philosophy, deployment of allocated capital, timing, turnover and contract preferences without granting capital-allocation or market-limit authority.",
+  "role": "Deterministic appointed-personnel profiles for the oil strategy research department. The eight-axis radar controls continuation-versus-reversion philosophy, capital-expression appetite used by risk review, timing, turnover and contract preferences without granting capital-allocation or market-limit authority.",
   "identity_fields": [
     "seed",
     "candidate_index",
@@ -33,13 +33,12 @@
     ],
     "hidden_future_access": false,
     "capital_allocation_owner": "investment_decision",
-    "strategy_personnel_capital_scope": "deployment_within_authorized_capital"
+    "strategy_personnel_capital_scope": "risk_preference_input_only_no_direct_capital_haircut"
   },
   "mandate_fields": {
     "continuation_weight": {"unit": "ratio_0_to_1"},
     "reversion_weight": {"unit": "ratio_0_to_1"},
     "continuation_overlay_intensity": {"unit": "ratio_0_to_1"},
-    "capital_deployment_pct_of_allocated_equity": {"unit": "percent"},
     "adjustment_speed": {"unit": "ratio_0_to_1"},
     "signal_deadband_abs": {"unit": "signed_signal_absolute_threshold"},
     "minimum_trade_edge_pct": {"unit": "percent"},
@@ -58,7 +57,7 @@
     "PM quality emerges only from observable historical track record and player evaluation, never from a system-preassigned hidden skill",
     "cross-department compatibility is never scored; forecast research, strategy, risk, and execution interact only through their business interfaces",
     "continuation and reversion weights sum to one; score 50 reproduces the prior 30 percent path-continuation baseline",
-    "capital deployment describes the PM tendency inside capital allocated by the investment-decision owner and never grants or reallocates company capital",
+    "capital deployment is a PM risk-expression preference consumed by strategy-risk and investment-decision review; it never directly multiplies committee-authorized capital",
     "research institution capability scores never enter the strategy personnel generator or its mandate",
     "contract margin rates, market position limits, market execution capacity, company risk, fees, spreads, and base slippage remain external owners",
     "the same seed and candidate index generate the same personnel, radar, resolved mandate, and profile hash",

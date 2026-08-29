@@ -199,6 +199,38 @@ class OilCalendarSpreadStrategyTests(unittest.TestCase):
         )
         self.assertEqual({"main", "next_main"}, set(first["legs"]))
 
+    def test_pm_capital_deployment_score_does_not_haircut_authorized_pair_capital(self) -> None:
+        low = build_default_oil_strategy_research_profile()
+        low.pop("profile_hash")
+        low["style_radar"]["capital_deployment"] = 0.0
+        high = deepcopy(low)
+        high["style_radar"]["capital_deployment"] = 100.0
+
+        low_decision = build_oil_calendar_spread_research_decision(
+            _market(),
+            _forecast(),
+            authorized_strategy_capital_usd=10_000_000.0,
+            strategy_research_profile=low,
+        )
+        high_decision = build_oil_calendar_spread_research_decision(
+            _market(),
+            _forecast(),
+            authorized_strategy_capital_usd=10_000_000.0,
+            strategy_research_profile=high,
+        )
+        low_capacity = low_decision["strategyRiskAdapter"]["capacity"]
+        high_capacity = high_decision["strategyRiskAdapter"]["capacity"]
+        self.assertEqual(10_000_000.0, low_capacity["capital_capacity_budget_usd"])
+        self.assertEqual(
+            low_capacity["capital_capacity_budget_usd"],
+            high_capacity["capital_capacity_budget_usd"],
+        )
+        self.assertEqual(
+            low_capacity["risk_capacity_units"],
+            high_capacity["risk_capacity_units"],
+        )
+        self.assertNotIn("capital_deployment_pct_of_authorized_capital", low_capacity)
+
     def test_pm_continuation_reversion_style_changes_visible_curve_component(self) -> None:
         market = _market()
         forecast = _forecast(

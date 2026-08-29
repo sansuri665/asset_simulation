@@ -152,7 +152,7 @@ S_t = P_main_t - P_next_t
 继续复用：
 
 - `continuation_reversion`
-- `capital_deployment`
+- `capital_deployment`（仅作为风险表达偏好；不直接乘委员会授权资本）
 - `responsiveness`
 - `selectivity`
 - `turnover_activity`
@@ -199,6 +199,8 @@ market leg position capacity
 all-contract gross cap / 2
 stressed visible dollar-spread volatility capacity
 ```
+
+其中 pair margin 与 spread-volatility 风险预算直接以 `authorized_strategy_capital_usd` 为上限资本参考。共享 PM 的 `capital_deployment` 只留给风险审查／未来投委会使用，跨期策略不会再将委员会额度乘一个通用 PM 百分比，避免方向策略校准误伤相对价值策略。
 
 到期/roll 检查不再自行重算：
 

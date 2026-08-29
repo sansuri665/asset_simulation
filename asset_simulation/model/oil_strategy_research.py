@@ -17,7 +17,7 @@ from .registry import load_registered_assets, sha256_json
 
 
 OIL_STRATEGY_RESEARCH_MODEL_VERSION = (
-    "asset-simulation-oil-strategy-research-v0.2.1"
+    "asset-simulation-oil-strategy-research-v0.2.2"
 )
 OIL_STRATEGY_RESEARCH_CONTRACT_ID = "oil_strategy_research_v2"
 STRATEGY_STYLE_DIMENSIONS = (
@@ -125,16 +125,14 @@ def _validate_registered_assets() -> tuple[dict[str, Any], dict[str, Any], dict[
         high = float(mapping[key]["maximum"])
         if not lower_bound <= low <= high <= upper_bound:
             raise ValueError(f"oil strategy research parameter bounds are invalid: {key}")
-    for key, lower_bound, upper_bound in (
-        ("continuation_weight", 0.0, 1.0),
-        ("capital_deployment_pct_of_allocated_equity", 0.0, 100.0),
-    ):
-        values = mapping[key]
-        low = float(values["minimum"])
-        neutral = float(values["neutral"])
-        high = float(values["maximum"])
-        if not lower_bound <= low <= neutral <= high <= upper_bound:
-            raise ValueError(f"oil strategy research centered bounds are invalid: {key}")
+    values = mapping["continuation_weight"]
+    low = float(values["minimum"])
+    neutral = float(values["neutral"])
+    high = float(values["maximum"])
+    if not 0.0 <= low <= neutral <= high <= 1.0:
+        raise ValueError(
+            "oil strategy research centered bounds are invalid: continuation_weight"
+        )
     for key in ("short_horizon_weights", "long_horizon_weights"):
         weights = [float(value) for value in mapping[key]]
         if len(weights) != 3 or any(value <= 0.0 for value in weights) or not math.isclose(
@@ -270,10 +268,7 @@ def _resolved_policy(
                 "next_main": 1.0 - main_weight,
             },
             "capital_deployment_score": deployment_score,
-            "capital_deployment_pct_of_allocated_equity": _centered_linear(
-                mapping["capital_deployment_pct_of_allocated_equity"],
-                deployment_score,
-            ),
+            "capital_deployment_semantics": "risk_preference_input_only",
         },
         "execution": {
             "turnover_intensity": turnover_score,
@@ -352,6 +347,7 @@ def _pack_profile(
             "investment_decision_owner": "system_proxy_pending_department",
             "trading_execution_owner": "neutral_execution_engine_pending_trader",
             "hard_risk_owner": "market_and_account_rules",
+            "capital_deployment_direct_capital_haircut": False,
         },
         "identity": {
             "model_version": OIL_STRATEGY_RESEARCH_MODEL_VERSION,

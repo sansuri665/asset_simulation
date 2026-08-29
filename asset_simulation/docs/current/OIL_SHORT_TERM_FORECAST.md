@@ -4,7 +4,7 @@
 >
 > 权威范围：预测研究人员的隐藏专业能力／研究风格、当前主力／下一主力周线预测、滚动修订与事后评分
 >
-> 代码基线：`asset-simulation-oil-short-term-forecast-v0.2.0`
+> 代码基线：`asset-simulation-oil-short-term-forecast-v0.2.1`
 > 最近核对：2026-08-28
 
 ## 1. 部门边界
@@ -92,6 +92,8 @@ latent professional traits
 - 修正风格调整 `revision_speed` 与 `thesis_persistence`。
 
 永久方向偏置和期限结构偏置仍保持中性基准。研究风格不改变六维能力，不直接放大仓位，也不越过 PM、风控和交易部。
+
+专业能力对隐藏未来形状的合成混合使用二次传导 `truth_mix = (skill/100)^2`。该混合仅用于制造可区分的合成研究质量，不是玩家可见信息，也不进入策略仓位公式。相比旧 smoothstep，普通和良好研究员得到的隐藏路径形状显著降低：15分约2.25%、50分25%、70分49%、100分100%，从源头压低“研究能力分 → 可交易 alpha”的过强斜率。
 
 ## 4. 预测目标与连续 vintage
 

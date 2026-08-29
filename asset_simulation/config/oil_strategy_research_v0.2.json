@@ -1,7 +1,7 @@
 {
   "schema_version": "asset-simulation-oil-strategy-research-config-v2",
-  "config_id": "asset-simulation-oil-strategy-research-base-v0.2.1",
-  "model_version": "asset-simulation-oil-strategy-research-v0.2.1",
+  "config_id": "asset-simulation-oil-strategy-research-base-v0.2.2",
+  "model_version": "asset-simulation-oil-strategy-research-v0.2.2",
   "signal_engine_id": "forecast_continuation_reversion_directional_edge_sized_turnover_v7",
   "appointment_role": "oil_strategy_research_director",
   "default_director": {
@@ -62,7 +62,6 @@
   },
   "parameter_mapping": {
     "continuation_weight": {"minimum": 0.05, "neutral": 0.30, "maximum": 0.90, "curve": "centered_linear"},
-    "capital_deployment_pct_of_allocated_equity": {"minimum": 25, "neutral": 50, "maximum": 75, "curve": "centered_linear"},
     "adjustment_speed": {"minimum": 0.26, "maximum": 0.74},
     "signal_deadband_abs": {"minimum": 0.05, "maximum": 0.25},
     "minimum_trade_edge_pct": {"minimum": 0.20, "maximum": 2.10},

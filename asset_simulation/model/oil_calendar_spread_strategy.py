@@ -795,7 +795,6 @@ def _risk_capacity(
     next_price_usd: float,
     historical_change_volatility_usd_per_bbl: float,
     authorized_strategy_capital_usd: float,
-    capital_deployment_pct: float,
     config: Mapping[str, Any],
 ) -> dict[str, Any]:
     specification = dict(market["contractSpecification"])
@@ -810,17 +809,13 @@ def _risk_capacity(
         raise ValueError("oil calendar spread initial margin rate is invalid")
 
     risk_config = config["risk_adapter"]
-    deployment_budget = (
-        float(authorized_strategy_capital_usd)
-        * float(capital_deployment_pct)
-        / 100.0
-    )
+    capital_capacity_budget = float(authorized_strategy_capital_usd)
     pair_margin_per_unit = (
         (float(main_price_usd) + float(next_price_usd))
         * contract_size
         * initial_margin_rate
     )
-    margin_budget = deployment_budget * float(
+    margin_budget = capital_capacity_budget * float(
         risk_config["maximum_margin_pct_of_deployed_capital"]
     ) / 100.0
     margin_capacity = math.floor(margin_budget / max(1e-9, pair_margin_per_unit))
@@ -848,7 +843,7 @@ def _risk_capacity(
         spread_vol_usd_per_bbl
         * float(risk_config["spread_volatility_stress_multiplier"]),
     )
-    stressed_loss_budget = deployment_budget * float(
+    stressed_loss_budget = capital_capacity_budget * float(
         risk_config["maximum_stressed_spread_loss_pct_of_deployed_capital"]
     ) / 100.0
     spread_volatility_capacity = math.floor(
@@ -885,10 +880,8 @@ def _risk_capacity(
     )
     return {
         "authorized_strategy_capital_usd": float(authorized_strategy_capital_usd),
-        "capital_deployment_pct_of_authorized_capital": float(
-            capital_deployment_pct
-        ),
-        "capital_deployment_budget_usd": deployment_budget,
+        "capital_capacity_budget_usd": capital_capacity_budget,
+        "capital_capacity_owner": "investment_decision_committee",
         "contract_size_bbl": contract_size,
         "initial_margin_rate": initial_margin_rate,
         "pair_margin_per_unit_usd": pair_margin_per_unit,
@@ -1099,8 +1092,9 @@ def build_oil_calendar_spread_research_decision(
 ) -> dict[str, Any]:
     """Build a deterministic main-versus-next-main spread research decision.
 
-    ``authorized_strategy_capital_usd`` is intentionally explicit.  The PM may
-    deploy only a style-dependent share of this committee-owned allocation.
+    ``authorized_strategy_capital_usd`` is intentionally explicit.  The PM
+    capital-deployment style is a risk-review input and never haircuts this
+    committee-owned allocation inside the strategy.
     """
 
     assets, config, contract = _validate_registered_assets()
@@ -1156,9 +1150,6 @@ def build_oil_calendar_spread_research_decision(
         strategy_policy=strategy_policy,
         config=config,
     )
-    capital_deployment_pct = float(
-        strategy_policy["risk"]["capital_deployment_pct_of_allocated_equity"]
-    )
     capacity = _risk_capacity(
         market,
         main_contract=main_contract,
@@ -1169,7 +1160,6 @@ def build_oil_calendar_spread_research_decision(
             signal_report["historical_change_volatility_usd_per_bbl"]
         ),
         authorized_strategy_capital_usd=authorized_capital,
-        capital_deployment_pct=capital_deployment_pct,
         config=config,
     )
 
@@ -1304,7 +1294,7 @@ def build_oil_calendar_spread_research_decision(
                 "target_leg_balance_ok": target_main_lots + target_next_lots == 0,
                 "target_within_risk_capacity": abs(target_spread_units) <= risk_capacity_units,
                 "target_margin_within_budget": float(target_risk["margin_usage_usd"])
-                <= float(capacity["capital_deployment_budget_usd"]) + 1e-9,
+                <= float(capacity["capital_capacity_budget_usd"]) + 1e-9,
                 "expiry_roll_mismatch": bool(capacity["expiry_roll_mismatch"]),
             },
         },

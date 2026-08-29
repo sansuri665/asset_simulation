@@ -86,9 +86,13 @@ class OilStrategyResearchTests(unittest.TestCase):
     def test_default_profile_preserves_the_prior_signal_mix_and_tempo(self) -> None:
         profile = build_default_oil_strategy_research_profile()
         policy = profile["resolved_policy"]
+        self.assertEqual(50.0, policy["risk"]["capital_deployment_score"])
         self.assertEqual(
-            50.0,
-            policy["risk"]["capital_deployment_pct_of_allocated_equity"],
+            "risk_preference_input_only",
+            policy["risk"]["capital_deployment_semantics"],
+        )
+        self.assertNotIn(
+            "capital_deployment_pct_of_allocated_equity", policy["risk"]
         )
         self.assertEqual(0.3, policy["signal"]["continuation_weight"])
         self.assertEqual(0.7, policy["signal"]["reversion_weight"])
@@ -167,13 +171,13 @@ class OilStrategyResearchTests(unittest.TestCase):
         aggressive["style_radar"]["responsiveness"] = 100.0
         _, conservative_policy = resolve_oil_strategy_runtime_policy(conservative)
         _, aggressive_policy = resolve_oil_strategy_runtime_policy(aggressive)
-        self.assertLess(
-            conservative_policy["risk"][
-                "capital_deployment_pct_of_allocated_equity"
-            ],
-            aggressive_policy["risk"][
-                "capital_deployment_pct_of_allocated_equity"
-            ],
+        self.assertEqual(0.0, conservative_policy["risk"]["capital_deployment_score"])
+        self.assertEqual(100.0, aggressive_policy["risk"]["capital_deployment_score"])
+        self.assertNotIn(
+            "capital_deployment_pct_of_allocated_equity", conservative_policy["risk"]
+        )
+        self.assertNotIn(
+            "capital_deployment_pct_of_allocated_equity", aggressive_policy["risk"]
         )
         self.assertLess(
             conservative_policy["execution"]["adjustment_speed"],

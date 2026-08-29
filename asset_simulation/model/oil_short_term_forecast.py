@@ -27,7 +27,7 @@ from .registry import load_registered_assets, sha256_json
 
 
 OIL_SHORT_TERM_FORECAST_MODEL_VERSION = (
-    "asset-simulation-oil-short-term-forecast-v0.2.0"
+    "asset-simulation-oil-short-term-forecast-v0.2.1"
 )
 RADAR_DIMENSIONS = (
     "direction",
@@ -323,13 +323,13 @@ def _recent_weekly_range_log(contract: Mapping[str, Any]) -> float:
 def _skill_truth_mix(score: float) -> float:
     """Gate hidden-path shape behind capability instead of using it as the base.
 
-    Smoothstep keeps the endpoints exact while making very weak institutions
-    depend overwhelmingly on visible history.  A score of 15 retains about 6%
-    of hidden shape, 70 retains about 78%, and 100 retains all of it.
+    A quadratic transfer keeps the endpoints exact while reducing the tradable
+    hidden-path advantage of ordinary and good institutions.  A score of 15
+    retains about 2% of hidden shape, 70 retains 49%, and 100 retains all of it.
     """
 
     skill = clamp(float(score) / 100.0, 0.0, 1.0)
-    return skill * skill * (3.0 - 2.0 * skill)
+    return skill * skill
 
 
 def _previous_prediction_map(

@@ -99,10 +99,20 @@ class OilTradingStrategyTests(unittest.TestCase):
             first["riskBudget"]["gross_market_cap_lots"],
         )
         self.assertEqual(
-            50.0,
-            first["riskBudget"][
-                "capital_deployment_pct_of_allocated_equity"
-            ],
+            first["riskBudget"]["allocated_strategy_capital_usd"],
+            first["riskBudget"]["capital_capacity_budget_usd"],
+        )
+        self.assertEqual(
+            "investment_decision_committee",
+            first["riskBudget"]["capital_capacity_owner"],
+        )
+        self.assertFalse(
+            first["informationPolicy"][
+                "pm_capital_deployment_directly_scales_authorized_capital"
+            ]
+        )
+        self.assertNotIn(
+            "capital_deployment_pct_of_allocated_equity", first["riskBudget"]
         )
 
     def test_forecast_band_location_and_path_direction_drive_the_signal(self) -> None:
@@ -336,10 +346,16 @@ class OilTradingStrategyTests(unittest.TestCase):
             )
             for profile in roster["candidates"]
         ]
-        self.assertGreater(
-            len({item["riskBudget"]["target_gross_lots"] for item in decisions}),
-            1,
-        )
+        runtime_policy_fingerprints = {
+            (
+                float(item["strategy"]["resolved_policy"]["signal"]["continuation_weight"]),
+                float(item["strategy"]["resolved_policy"]["execution"]["adjustment_speed"]),
+                float(item["strategy"]["resolved_policy"]["execution"]["gross_turnover_multiplier"]),
+                float(item["strategy"]["resolved_policy"]["risk"]["capital_deployment_score"]),
+            )
+            for item in decisions
+        }
+        self.assertGreater(len(runtime_policy_fingerprints), 1)
         for profile, decision in zip(roster["candidates"], decisions, strict=True):
             strategy = decision["strategy"]
             self.assertEqual(
@@ -357,7 +373,7 @@ class OilTradingStrategyTests(unittest.TestCase):
                     target["binding_capacity"],
                     {
                         "market_position_limit",
-                        "capital_deployment_budget",
+                        "committee_authorized_capital",
                         "new_trades_closed",
                     },
                 )
