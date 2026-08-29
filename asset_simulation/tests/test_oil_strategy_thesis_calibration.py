@@ -48,7 +48,8 @@ class OilStrategyThesisCalibrationTests(unittest.TestCase):
             self._end(99.0),
         )
         evaluation = outcome["evaluations"][0]
-        self.assertLess(evaluation["forecast_direction_z"], 0.35)
+        threshold = float(self.policy["minimum_direction_forecast_z"])
+        self.assertLess(evaluation["forecast_direction_z"], threshold)
         self.assertFalse(evaluation["direction_miss_eligible"])
         self.assertFalse(evaluation["direction_miss"])
 
@@ -58,7 +59,8 @@ class OilStrategyThesisCalibrationTests(unittest.TestCase):
             self._end(99.0),
         )
         evaluation = outcome["evaluations"][0]
-        self.assertGreaterEqual(evaluation["forecast_direction_z"], 0.35)
+        threshold = float(self.policy["minimum_direction_forecast_z"])
+        self.assertGreaterEqual(evaluation["forecast_direction_z"], threshold)
         self.assertTrue(evaluation["direction_miss_eligible"])
         self.assertTrue(evaluation["direction_miss"])
 
