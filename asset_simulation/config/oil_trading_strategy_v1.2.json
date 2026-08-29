@@ -1,6 +1,6 @@
 {
   "schema_version": "asset-simulation-oil-trading-strategy-config-v6",
-  "config_id": "asset-simulation-oil-continuation-reversion-v1.3.2",
+  "config_id": "asset-simulation-oil-continuation-reversion-v1.3.3",
   "model_version": "asset-simulation-oil-trading-strategy-v1.3.1",
   "strategy_id": "forecast_continuation_reversion_directional_edge_sized_turnover_v7",
   "display_name": "任命制单合约延续／回归策略",
@@ -34,7 +34,7 @@
     "material_band_breach_z": 1.35,
     "severe_band_breach_z": 2.00,
     "minimum_direction_move_log": 0.004,
-    "minimum_direction_forecast_z": 0.35,
+    "minimum_direction_forecast_z": 0.50,
     "direction_reversal_signal_threshold": 0.2,
     "invalidated_can_increase_same_direction": false,
     "direction_reversal_requires_exit_first": true,
