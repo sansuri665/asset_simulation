@@ -1,0 +1,41 @@
+{
+  "contract_id": "oil_calendar_spread_research_v1",
+  "schema_version": "asset-simulation-oil-calendar-spread-research-contract-v1",
+  "model_version": "asset-simulation-oil-calendar-spread-research-v0.1.0",
+  "role": "Strategy-type-specific PM style projection for the short-horizon crude-oil calendar-spread strategy. It derives one dedicated style radar from an appointed oil strategy-research person without introducing a second person, an alpha score, or direct execution/risk authority.",
+  "style_dimensions": {
+    "curve_continuation_reversion": "preference for continuation versus mean reversion in the main-minus-adjacent-next dollar spread",
+    "forecast_vs_visible_curve": "relative reliance on published two-leg forecast spread change versus currently visible curve evidence",
+    "dislocation_selectivity": "preference for waiting for larger spread dislocations versus participating broadly",
+    "capital_deployment": "normal willingness to deploy committee-authorized capital into this strategy",
+    "adjustment_tempo": "normal speed for moving spread exposure toward a new strategy target",
+    "rebalance_activity": "normal willingness to refresh or rebalance spread exposure when the thesis remains active",
+    "holding_patience": "persistence of an existing spread position when the desired target shrinks but does not reverse",
+    "forecast_horizon": "preference within the short-horizon two-leg forecast window"
+  },
+  "projection_invariants": [
+    "the dedicated radar is derived from the already appointed oil strategy-research person and never creates a second appointment",
+    "the default compatibility appointment projects to exactly 50 on every dedicated style dimension",
+    "generated-personnel projections are deterministic functions of the source profile plus a strategy-specific idiosyncratic stream",
+    "strategy-specific idiosyncrasy may make directional and calendar-spread preferences differ for the same person but does not make them unrelated",
+    "all dedicated style scores remain between the registered floor and ceiling",
+    "no dedicated style dimension is an investment-quality, alpha or capability score",
+    "the dedicated radar cannot read hidden future prices, forecast truth or realized PnL"
+  ],
+  "runtime_invariants": [
+    "curve_continuation_reversion, dislocation_selectivity, capital_deployment, adjustment_tempo, rebalance_activity, holding_patience and forecast_horizon adapt into the existing strategy-research parameter mapping",
+    "forecast_vs_visible_curve is calendar-spread-specific and changes only the mixture of already computed forecast-spread and visible-curve signal components",
+    "forecast_vs_visible_curve cannot alter the component signs, read future prices or bypass the signal deadband",
+    "near-month focus is intentionally not a calendar-spread style axis because v1 requires an exact one-to-one real-leg target",
+    "construction capability remains owned by oil_strategy_research_v2 and is not duplicated into the dedicated style radar",
+    "execution ability remains owned by oil_execution_desk_v2 and strategy risk remains owned by the calendar-spread risk adapter"
+  ],
+  "forbidden_fields": [
+    "preference_total_score",
+    "alpha_score",
+    "quality_score",
+    "capability_total_score",
+    "future_truth",
+    "realized_future_pnl"
+  ]
+}
