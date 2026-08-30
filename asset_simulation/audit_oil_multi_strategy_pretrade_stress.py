@@ -53,10 +53,10 @@ def _positive_capacity(*values: int, cap: int = 1000) -> int:
     return candidate
 
 
-def _directional(main_id: str, delta: int, *, mandatory: int = 0) -> dict[str, Any]:
+def _directional(contract_id: str, delta: int, *, mandatory: int = 0) -> dict[str, Any]:
     return {
         "strategy_id": DIRECTIONAL_ID,
-        "contract_id": main_id,
+        "contract_id": contract_id,
         "requested_delta_lots": int(delta),
         "mandatory_delta_lots": int(mandatory),
     }
@@ -132,40 +132,47 @@ def _scenario_turn_collision(
     main_id, next_id, main, next_main = _main_next(market)
     main_position, main_turn = _limits(main)
     next_position, next_turn = _limits(next_main)
-    capacity = _positive_capacity(
-        main_turn,
-        main_position,
-        max(2, next_position * 2),
-        max(2, next_turn * 2),
+
+    # Use Next Main as the shared external-turn bottleneck. Directional sells
+    # Next while a positive calendar spread also sells Next; the spread's Main
+    # leg has materially more room on the real market path. This lets the real
+    # published Next turn limit, rather than an audit cap, create the collision.
+    capacity = min(
+        next_turn,
+        next_position,
+        2 * main_turn,
+        2 * main_position,
     )
+    if capacity < 2:
+        raise ValueError("real turn-collision scenario has insufficient capacity")
     request = multiplier * capacity
     report = allocate_oil_dual_strategy_pretrade(
         market,
         account_positions={},
-        directional_request=_directional(main_id, request),
+        directional_request=_directional(next_id, -request),
         calendar_spread_request=_spread(main_id, next_id, request),
     )
     directional = abs(int(report["ordinaryAllocation"]["directional_allocated_lots"]))
     spread = abs(int(report["ordinaryAllocation"]["calendar_spread_allocated_units"]))
-    main_flow = report["internalNettingPreview"]["by_contract"][main_id]
-    external = int(main_flow["external_gross_turnover_lots"])
-    binding_capacity = min(main_turn, main_position)
-    expected = min(capacity, binding_capacity)
+    next_flow = report["internalNettingPreview"]["by_contract"][next_id]
+    external = int(next_flow["external_gross_turnover_lots"])
     passed = (
-        external == expected
+        external == capacity
         and abs(directional - spread) <= 1
+        and directional + spread == capacity
         and bool(report["hardLimitChecks"]["all_hard_limits_ok"])
     )
     return {
-        "scenario": "shared_turn_or_position_capacity_equal_split",
+        "scenario": "shared_next_turn_capacity_equal_split",
         "stress_request_multiplier": multiplier,
-        "effective_shared_capacity_lots": expected,
+        "effective_shared_capacity_lots": capacity,
         "requested_each_lots": request,
         "directional_allocated_lots": directional,
         "calendar_spread_allocated_units": spread,
-        "external_main_turnover_lots": external,
+        "external_next_turnover_lots": external,
+        "published_next_turn_limit_lots": next_turn,
+        "published_next_position_limit_lots": next_position,
         "published_main_turn_limit_lots": main_turn,
-        "published_main_position_limit_lots": main_position,
         "passed": passed,
     }
 
@@ -375,7 +382,7 @@ def build_oil_multi_strategy_pretrade_stress_audit(
         "turn_collision_passed": all(
             bool(item["passed"])
             for item in scenario_rows
-            if item["scenario"] == "shared_turn_or_position_capacity_equal_split"
+            if item["scenario"] == "shared_next_turn_capacity_equal_split"
         ),
         "pair_bottleneck_passed": all(
             bool(item["passed"])
