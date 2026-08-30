@@ -4,6 +4,9 @@ The audit propagates only Strategy Book position previews from realized fills.
 It does not create a Formal Account, settle cash/margin, or claim strategy PnL.
 Pair identity changes reset the research execution book because a dedicated
 calendar-spread lifecycle/roll scheduler is still a later owner.
+
+The upstream strategy owner is v0.2.3 so score-100 zero-error construction stays
+an identity mapping even after real fills create nonzero position state.
 """
 
 from __future__ import annotations
@@ -22,14 +25,15 @@ from .model.oil_calendar_spread_pair_execution_v11 import (
 from .model.oil_calendar_spread_strategy_v2 import (
     OIL_CALENDAR_SPREAD_STRATEGY_V2_ID,
 )
-from .model.oil_calendar_spread_strategy_v22 import (
-    build_oil_calendar_spread_strategy_v22_decision,
+from .model.oil_calendar_spread_strategy_v23 import (
+    OIL_CALENDAR_SPREAD_STRATEGY_V23_MODEL_VERSION,
+    build_oil_calendar_spread_strategy_v23_decision,
 )
 from .model.oil_strategy_book import build_oil_strategy_book
 from .model.registry import sha256_json
 
 
-AUDIT_VERSION = "asset-simulation-oil-calendar-spread-pair-execution-audit-v0.1.0"
+AUDIT_VERSION = "asset-simulation-oil-calendar-spread-pair-execution-audit-v0.1.1"
 DEFAULT_SEEDS = (0, 42, 99, 197)
 
 
@@ -86,12 +90,10 @@ def _run_seed(seed: int, horizon_years: int) -> dict[str, Any]:
         end_market = item["end_market"]
         pair = _pair_ids(start_market)
         if previous_pair is not None and pair != previous_pair:
-            # No spread lifecycle scheduler yet: do not teleport the old pair into
-            # the new contract identities in a Gate-A execution audit.
             positions = {}
             pair_reset_count += 1
         book = _book(seed, positions)
-        decision = build_oil_calendar_spread_strategy_v22_decision(
+        decision = build_oil_calendar_spread_strategy_v23_decision(
             start_market,
             item["forecast"],
             authorized_strategy_capital_usd=10_000_000.0,
@@ -111,7 +113,9 @@ def _run_seed(seed: int, horizon_years: int) -> dict[str, Any]:
         active_request_turns += int(request > 0)
         executed_pair_turns += int(executed > 0)
         gross_leg_turnover_lots += int(report["legs"]["main"]["gross_turnover_lots"])
-        gross_leg_turnover_lots += int(report["legs"]["next_main"]["gross_turnover_lots"])
+        gross_leg_turnover_lots += int(
+            report["legs"]["next_main"]["gross_turnover_lots"]
+        )
         total_execution_cost_usd += float(report["costs"]["execution_cost_usd"])
         total_spread_cost_usd += float(report["costs"]["spread_cost_usd"])
         total_slippage_cost_usd += float(report["costs"]["slippage_cost_usd"])
@@ -202,9 +206,7 @@ def _run_seed(seed: int, horizon_years: int) -> dict[str, Any]:
         previous_pair = pair
 
     completion = (
-        1.0
-        if requested_pair_lots == 0
-        else executed_pair_lots / requested_pair_lots
+        1.0 if requested_pair_lots == 0 else executed_pair_lots / requested_pair_lots
     )
     return {
         "seed": int(seed),
@@ -267,6 +269,7 @@ def build_oil_calendar_spread_pair_execution_audit(
     }
     result = {
         "audit_version": AUDIT_VERSION,
+        "strategy_model_version": OIL_CALENDAR_SPREAD_STRATEGY_V23_MODEL_VERSION,
         "pair_execution_model_version": (
             OIL_CALENDAR_SPREAD_PAIR_EXECUTION_V11_MODEL_VERSION
         ),
