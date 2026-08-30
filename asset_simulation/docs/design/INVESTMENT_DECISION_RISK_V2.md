@@ -100,14 +100,63 @@ This is the intended qualitative behavior:
 
 The real replay therefore validates the two-week horizon correction without requiring a change to the company Risk Appetite mapping.
 
+## Broad three-year personnel shadow
+
+A broader non-binding shadow then tests the personnel architecture itself rather than one default officer:
+
+- seeds 0-3;
+- 2030-01-H1 through 2033-01-H1;
+- capital authorization at 10%, 35%, 60% and 100%;
+- 1,120 active real PM turns in total;
+- six stable personnel identities per controlled level;
+- style sweep at capability 70: tolerant=20, neutral=50, conservative=80 on all five style axes;
+- capability sweep at neutral style: low=35, medium=52, high=70 on all three capability axes.
+
+### Style is structurally larger than capability
+
+Across all allocations, the per-turn range in approval ratios is:
+
+| Effect | Mean range | Median range | P90 range | Median range when effect is active |
+|---|---:|---:|---:|---:|
+| Risk style | **13.69 pp** | **11.06 pp** | **34.23 pp** | **19.50 pp** |
+| Capability | 1.43 pp | 0.68 pp | 4.26 pp | 1.91 pp |
+
+The mean style effect is about **9.5x** the capability effect; on turns where each effect is non-zero, the median style range is about **10.2x** the capability range. This is the intended asymmetry: risk philosophy dominates normal personnel differentiation, while capability remains economically visible around marginal decisions.
+
+The ordering is also clean. Across all **1,120 active turns**, tolerant style approved at least as much as conservative style in **1,120 / 1,120** cases, with no reversals.
+
+By capital authorization, mean/median approval ratios for controlled styles are:
+
+| Capital | Tolerant mean / median | Neutral mean / median | Conservative mean / median |
+|---:|---:|---:|---:|
+| 10% | 88.65% / 100% | 83.70% / 100% | 74.44% / 95.83% |
+| 35% | 80.82% / 100% | 76.06% / 99.52% | 66.95% / 71.10% |
+| 60% | 67.06% / 71.46% | 61.92% / 59.15% | 52.72% / 41.67% |
+| 100% | 53.55% / 43.05% | 48.86% / 35.62% | 41.19% / 25.03% |
+
+The style distinction therefore remains visible both in small books and when company materiality dominates large books.
+
+### Capability does not become a hidden permissiveness score
+
+Across the same 1,120 active turns, high capability relative to low capability was:
+
+- more permissive on 149 turns;
+- more restrictive on 495 turns;
+- equal on 476 turns.
+
+So `capability=70` is not equivalent to “approve more risk”. Its primary value remains tighter estimation error rather than a preferred risk appetite.
+
+There is a small residual mean-level asymmetry in this fixed six-identity sample: low-capability mean approval is roughly 0.7-0.9 percentage points above high-capability mean approval across the four capital levels. This is an order of magnitude smaller than the style effect. It is not treated as a capability ranking, but it should be rechecked with a larger or explicitly paired identity sample before binding cutover because bounded nonlinear approval and fixed profile-hash draws can create small sampling/convexity biases.
+
 ## Test retention
 
 The following tests retain the evidence:
 
 - `tests/test_oil_short_horizon_risk_quantitative_audit.py`: controlled materiality and capability sweeps;
-- `tests/test_oil_short_horizon_risk_shadow_audit.py`: real Directional legacy-vs-v2 shadow replay;
+- `tests/test_oil_short_horizon_risk_shadow_audit.py`: real Directional legacy-vs-v2 one-year shadow replay;
+- `tests/test_oil_short_horizon_risk_broad_shadow_audit.py`: three-year style/capability shadow across four capital levels;
 - `tests/test_oil_short_horizon_risk_calendar_horizon.py`: two-week calendar-spread sigma and single tail/model multiplier semantics.
 
 ## Current cutover rule
 
-The legacy Directional Oil risk path remains binding. v2 remains non-binding until a broader shadow/calibration pass covers more seeds, longer paths and multiple risk-personnel styles/capabilities. Any later cutover must preserve the frozen Directional Oil signal, thesis, execution and account semantics; only the governance/risk approval path is eligible to change.
+The legacy Directional Oil risk path remains binding. The broader style/capability shadow now passes, but v2 remains non-binding until counterfactual **economic** replay is run with v2 approvals actually feeding the existing execution/account path. That replay must establish that the new governance/risk path changes risk outcomes for coherent reasons rather than merely truncating the already-frozen strategy economics. A later cutover must preserve the frozen Directional Oil signal, thesis, execution and account semantics; only the governance/risk approval path is eligible to change.
