@@ -31,12 +31,12 @@ from asset_simulation.model.registry import load_registered_assets
 class OilCalendarSpreadPairExecutionTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        cls.run = run_global_macro(42, 8)
+        cls.macro_run = run_global_macro(42, 8)
         cls.start_market = oil_futures_payload(
-            cls.run, as_of_year=2030, as_of_month=1, as_of_half=1
+            cls.macro_run, as_of_year=2030, as_of_month=1, as_of_half=1
         )
         cls.end_market = oil_futures_payload(
-            cls.run, as_of_year=2030, as_of_month=1, as_of_half=2
+            cls.macro_run, as_of_year=2030, as_of_month=1, as_of_half=2
         )
         forecast_profile = generate_institution_profile_for_score_range(
             seed=20260831,
@@ -44,7 +44,7 @@ class OilCalendarSpreadPairExecutionTests(unittest.TestCase):
             score_max=65.0,
         )
         cls.forecast = generate_oil_short_term_forecast(
-            cls.run,
+            cls.macro_run,
             as_of_year=2030,
             as_of_month=1,
             as_of_half=1,
@@ -222,7 +222,7 @@ class OilCalendarSpreadPairExecutionTests(unittest.TestCase):
                 strategy_book=changed_book,
             )
         later = oil_futures_payload(
-            self.run, as_of_year=2030, as_of_month=2, as_of_half=1
+            self.macro_run, as_of_year=2030, as_of_month=2, as_of_half=1
         )
         with self.assertRaisesRegex(ValueError, "adjacent half-month"):
             execute_oil_calendar_spread_pair_turn(
