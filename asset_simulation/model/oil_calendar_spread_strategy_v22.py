@@ -3,11 +3,11 @@
 v0.2.1 established strategy-book ownership and a dedicated PM style layer, but
 its hardened v0.1.2 reference primitives inherited a schema mismatch: the market
 owner publishes year/month on parent monthly nodes while the spread history
-reader expects those coordinates on weekly children.  As a result the visible
+reader expects those coordinates on weekly children. As a result the visible
 curve component had no real weekly history.
 
 v0.2.2 preserves v0.2.1 decision semantics and inserts one metadata-only adapter
-at the strategy boundary.  The adapter deep-copies the market payload, inherits
+at the strategy boundary. The adapter deep-copies the market payload, inherits
 parent year/month into weekly children, and never changes prices, liquidity,
 market identity or write-back state.
 """
@@ -24,12 +24,13 @@ from .oil_calendar_spread_strategy_v2 import (
     OIL_CALENDAR_SPREAD_STRATEGY_V2_ID,
     build_oil_calendar_spread_strategy_v2_decision,
 )
-from .registry import sha256_json
+from .registry import load_registered_assets, sha256_json
 
 
 OIL_CALENDAR_SPREAD_STRATEGY_V22_MODEL_VERSION = (
     "asset-simulation-oil-calendar-spread-strategy-v0.2.2"
 )
+OIL_CALENDAR_SPREAD_STRATEGY_V22_CONTRACT_ID = "oil_calendar_spread_strategy_v22"
 OIL_CALENDAR_SPREAD_STRATEGY_V22_ID = OIL_CALENDAR_SPREAD_STRATEGY_V2_ID
 
 
@@ -45,6 +46,34 @@ def _round_nested(value: Any) -> Any:
     return value
 
 
+def _validate_registered_assets() -> tuple[dict[str, Any], dict[str, Any]]:
+    assets = load_registered_assets()
+    config = assets["oil_calendar_spread_strategy_v22_config"]
+    contract = assets["oil_calendar_spread_strategy_v22_contract"]
+    if config["model_version"] != OIL_CALENDAR_SPREAD_STRATEGY_V22_MODEL_VERSION:
+        raise ValueError("registered calendar spread v0.2.2 config version mismatch")
+    if contract["contract_id"] != OIL_CALENDAR_SPREAD_STRATEGY_V22_CONTRACT_ID:
+        raise ValueError("registered calendar spread v0.2.2 contract id mismatch")
+    if contract["model_version"] != OIL_CALENDAR_SPREAD_STRATEGY_V22_MODEL_VERSION:
+        raise ValueError("registered calendar spread v0.2.2 contract version mismatch")
+    if config["strategy_id"] != OIL_CALENDAR_SPREAD_STRATEGY_V22_ID:
+        raise ValueError("registered calendar spread v0.2.2 strategy id mismatch")
+    adapter = dict(config["market_history_adapter"])
+    if adapter["model_version"] != OIL_CALENDAR_SPREAD_MARKET_HISTORY_ADAPTER_VERSION:
+        raise ValueError("registered calendar spread history adapter version mismatch")
+    if any(
+        bool(adapter[key])
+        for key in (
+            "price_fields_modified",
+            "liquidity_fields_modified",
+            "market_identity_modified",
+            "write_back",
+        )
+    ):
+        raise ValueError("calendar spread v0.2.2 history adapter must be metadata-only")
+    return assets, config
+
+
 def build_oil_calendar_spread_strategy_v22_decision(
     market: Mapping[str, Any],
     forecast_vintage: Mapping[str, Any],
@@ -56,6 +85,7 @@ def build_oil_calendar_spread_strategy_v22_decision(
 ) -> dict[str, Any]:
     """Build a v0.2.2 decision from a strategy-local normalized market view."""
 
+    assets, config = _validate_registered_assets()
     normalized_market, adapter_report = normalize_oil_calendar_spread_market_history(
         market
     )
@@ -73,6 +103,7 @@ def build_oil_calendar_spread_strategy_v22_decision(
     strategy.update(
         {
             "candidate_model_version": OIL_CALENDAR_SPREAD_STRATEGY_V22_MODEL_VERSION,
+            "candidate_config_id": str(config["config_id"]),
             "prior_candidate_model_version": str(base_identity["model_version"]),
             "market_history_adapter_owner": (
                 OIL_CALENDAR_SPREAD_MARKET_HISTORY_ADAPTER_VERSION
@@ -104,6 +135,12 @@ def build_oil_calendar_spread_strategy_v22_decision(
     identity = {
         "model_version": OIL_CALENDAR_SPREAD_STRATEGY_V22_MODEL_VERSION,
         "strategy_id": OIL_CALENDAR_SPREAD_STRATEGY_V22_ID,
+        "config_id": str(config["config_id"]),
+        "config_hash": assets["oil_calendar_spread_strategy_v22_config_hash"],
+        "field_contract_id": OIL_CALENDAR_SPREAD_STRATEGY_V22_CONTRACT_ID,
+        "field_contract_hash": assets[
+            "oil_calendar_spread_strategy_v22_contract_hash"
+        ],
         "base_decision_identity_hash": str(base_identity["identity_hash"]),
         "base_decision_result_hash": str(base_identity["result_hash"]),
         "market_history_adapter_model_version": (
