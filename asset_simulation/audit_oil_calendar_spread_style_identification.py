@@ -6,6 +6,9 @@ forecast-vs-visible-curve, curve continuation-vs-reversion, and holding patience
 It also reports component availability/magnitude so a lack of conflicts can be
 distinguished from a degenerate visible-curve signal. It does not tune thresholds
 and is not itself an acceptance gate.
+
+Because a formal spread lifecycle scheduler does not yet exist, research-book
+spread units are reset when the current Main/Adjacent-Next pair identity changes.
 """
 
 from __future__ import annotations
@@ -19,12 +22,12 @@ from .audit_oil_formal_account_calibration import _build_visible_path, _round_ne
 from .audit_oil_calendar_spread_style_economic_acceptance import (
     _controlled_decision_with_reversal_guard,
 )
-from .audit_oil_calendar_spread_style_economics import _controlled_radar
+from .audit_oil_calendar_spread_style_economics import _controlled_radar, _pair_ids
 from .model.registry import sha256_json
 
 
 IDENTIFICATION_VERSION = (
-    "asset-simulation-oil-calendar-spread-style-identification-v0.1.1"
+    "asset-simulation-oil-calendar-spread-style-identification-v0.1.2"
 )
 DEFAULT_DEVELOPMENT_SEEDS = tuple(range(16))
 DEFAULT_VALIDATION_SEEDS = tuple(range(100, 116))
@@ -51,10 +54,16 @@ def _percentile(values: Sequence[float], p: float) -> float:
 
 def _scan_partition(seeds: Sequence[int], years: int) -> dict[str, Any]:
     rows: list[dict[str, Any]] = []
+    pair_reset_count = 0
     for seed in map(int, seeds):
         path = _build_visible_path(seed, years)
         current_units = 0
+        previous_pair: tuple[str, str] | None = None
         for turn_index, item in enumerate(path):
+            current_pair = _pair_ids(item["start_market"])
+            if previous_pair is not None and current_pair != previous_pair:
+                current_units = 0
+                pair_reset_count += 1
             decision = _controlled_decision_with_reversal_guard(
                 item["start_market"],
                 item["forecast"],
@@ -69,7 +78,6 @@ def _scan_partition(seeds: Sequence[int], years: int) -> dict[str, Any]:
             reversion_signal = float(signal["curve_mean_reversion_signal"])
             ideal = int(decision["ideal_target_spread_units"])
             current = int(decision["current_spread_units"])
-            shrink = current * ideal > 0 and abs(ideal) < abs(current)
             rows.append(
                 {
                     "seed": seed,
@@ -84,14 +92,14 @@ def _scan_partition(seeds: Sequence[int], years: int) -> dict[str, Any]:
                     "momentum_reversion_opposite": momentum_signal * reversion_signal < 0.0,
                     "forecast_visible_min_strength": min(abs(forecast_signal), abs(visible_signal)),
                     "momentum_reversion_min_strength": min(abs(momentum_signal), abs(reversion_signal)),
-                    "same_direction_shrink": shrink,
-                    "current_spread_units": current,
-                    "ideal_target_spread_units": ideal,
+                    "same_direction_shrink": (
+                        current * ideal > 0 and abs(ideal) < abs(current)
+                    ),
                 }
             )
             current_units = int(decision["target_spread_units"])
+            previous_pair = current_pair
 
-    total = len(rows)
     forecast_strengths = [
         row["forecast_visible_min_strength"]
         for row in rows
@@ -139,7 +147,8 @@ def _scan_partition(seeds: Sequence[int], years: int) -> dict[str, Any]:
     }
     return {
         "seed_count": len(tuple(seeds)),
-        "turn_observations": total,
+        "turn_observations": len(rows),
+        "pair_identity_reset_count": pair_reset_count,
         "forecast_visible_opposite_any_strength": len(forecast_strengths),
         "momentum_reversion_opposite_any_strength": len(curve_strengths),
         "same_direction_shrink_count": sum(row["same_direction_shrink"] for row in rows),
@@ -182,6 +191,7 @@ def build_oil_calendar_spread_style_identification_scan(
             "natural_frequency_only": True,
             "thresholds_are_diagnostic_not_tuned": True,
             "component_availability_is_reported": True,
+            "pair_identity_change_resets_research_book": True,
             "no_gate_is_relaxed_by_this_scan": True,
         },
     }
