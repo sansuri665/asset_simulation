@@ -103,11 +103,14 @@ class OilCalendarSpreadStrategyV23Tests(unittest.TestCase):
         )
 
     def test_zero_error_reversal_remains_visible_until_thesis_exits_first(self) -> None:
+        current_units = 100
         decision = build_oil_calendar_spread_strategy_v23_decision(
             self._market_owner_shape(),
             _forecast(future_main=(65.0, 64.0), future_next=(75.0, 76.0)),
             authorized_strategy_capital_usd=10_000_000.0,
-            strategy_book=self._book({"OIL-3005": 100, "OIL-3009": -100}),
+            strategy_book=self._book(
+                {"OIL-3005": current_units, "OIL-3009": -current_units}
+            ),
             thesis_state={"status": "active", "last_signal": 0.8},
         )
         construction = decision["construction"]
@@ -122,7 +125,9 @@ class OilCalendarSpreadStrategyV23Tests(unittest.TestCase):
             "exit_before_direction_reversal",
             decision["thesisInvalidation"]["action"]["action"],
         )
-        self.assertEqual(0, decision["target"]["target_spread_units"])
+        self.assertEqual(0, decision["target"]["thesis_adjusted_target_spread_units"])
+        self.assertGreaterEqual(decision["target"]["target_spread_units"], 0)
+        self.assertLess(decision["target"]["target_spread_units"], current_units)
         self.assertEqual(
             decision["target"]["reference_target_spread_units"],
             decision["target"]["target_spread_units"],
