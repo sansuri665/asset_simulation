@@ -17,6 +17,7 @@ from asset_simulation.model.oil_strategy_book import (
 )
 from asset_simulation.model.oil_strategy_research import (
     build_default_oil_strategy_research_profile,
+    generate_oil_strategy_research_candidate,
 )
 from asset_simulation.model.registry import load_registered_assets
 from asset_simulation.tests.test_oil_calendar_spread_strategy import _forecast, _market
@@ -40,6 +41,9 @@ class OilCalendarSpreadStrategyV2Tests(unittest.TestCase):
             "relative_value_calendar_spread",
             config["strategy_taxonomy"]["strategy_type"],
         )
+        self.assertEqual(
+            "oil_calendar_spread_research_v1", config["strategy_research_style_owner"]
+        )
         decision = build_oil_calendar_spread_strategy_v2_decision(
             _market(),
             _forecast(),
@@ -55,8 +59,14 @@ class OilCalendarSpreadStrategyV2Tests(unittest.TestCase):
             decision["strategyBook"]["aggregate_account_positions_consumed"]
         )
         self.assertTrue(decision["informationPolicy"]["strategy_owned_book_only"])
+        profile = decision["strategy"]["strategy_research_profile"]
+        self.assertEqual(
+            "oil_calendar_spread_research_v1", profile["dedicated_style_owner"]
+        )
+        self.assertIsNone(profile["preference_total_score"])
+        self.assertIsNone(profile["alpha_score"])
 
-    def test_default_score_100_construction_reproduces_reference_target(self) -> None:
+    def test_default_score_100_construction_and_neutral_style_reproduce_reference_target(self) -> None:
         market = _market()
         forecast = _forecast()
         reference = build_oil_calendar_spread_research_decision(
@@ -74,12 +84,50 @@ class OilCalendarSpreadStrategyV2Tests(unittest.TestCase):
         self.assertEqual(0.0, construction["pair_target_scale_error"])
         self.assertEqual(0.0, construction["pair_transition_gap_error"])
         self.assertEqual(0.0, construction["curve_lifecycle_planning_error"])
+        self.assertTrue(
+            all(
+                value == 50.0
+                for value in decision["strategy"]["strategy_research_profile"][
+                    "dedicated_style_radar"
+                ].values()
+            )
+        )
+        self.assertEqual(0.70, decision["signal"]["forecast_component_weight"])
+        self.assertEqual(0.30, decision["signal"]["visible_curve_component_weight"])
         self.assertEqual(
             reference["target"]["target_spread_units"],
             decision["target"]["target_spread_units"],
         )
         self.assertTrue(
-            construction["reference_target_reproduced_when_all_errors_zero"]
+            construction["reference_target_reproduced_when_compatibility_mode"]
+        )
+
+    def test_generated_personnel_get_strategy_specific_style_projection(self) -> None:
+        source = generate_oil_strategy_research_candidate(seed=42, candidate_index=2)
+        decision = build_oil_calendar_spread_strategy_v2_decision(
+            _market(),
+            _forecast(),
+            authorized_strategy_capital_usd=10_000_000.0,
+            strategy_book=self._book(),
+            strategy_research_profile=source,
+        )
+        profile = decision["strategy"]["strategy_research_profile"]
+        self.assertEqual(source["profile_hash"], profile["source_profile_hash"])
+        self.assertNotEqual(
+            source["style_radar"]["continuation_reversion"],
+            profile["dedicated_style_radar"]["curve_continuation_reversion"],
+        )
+        self.assertEqual(
+            profile["dedicated_style_profile_hash"],
+            decision["identity"]["dedicated_style_profile_hash"],
+        )
+        self.assertEqual(
+            "oil_calendar_spread_research_v1", decision["signal"]["component_mix_owner"]
+        )
+        self.assertAlmostEqual(
+            1.0,
+            decision["signal"]["forecast_component_weight"]
+            + decision["signal"]["visible_curve_component_weight"],
         )
 
     def test_low_construction_capability_is_deterministic_and_pair_safe(self) -> None:
