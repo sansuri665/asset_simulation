@@ -371,19 +371,24 @@ class OilShortHorizonRiskBroadShadowAuditTests(unittest.TestCase):
             "high_capability_equal_low_turns": high_cap_eq_low,
         }
 
-        # This audit deliberately avoids demanding that high capability be more
-        # permissive. Capability should narrow uncertainty, not determine taste.
-        self.assertGreater(tolerant_ge_conservative, tolerant_lt_conservative)
-        self.assertGreater(high_cap_gt_low + high_cap_lt_low, 0)
+        # Risk philosophy must remain the dominant personnel difference, while
+        # higher professional capability must not collapse into a permissiveness
+        # score. The 5x margin leaves substantial room around the observed ~10x
+        # separation without pinning exact calibration values.
+        self.assertEqual(0, tolerant_lt_conservative)
+        self.assertGreater(tolerant_ge_conservative, 0)
+        self.assertGreater(high_cap_gt_low, 0)
+        self.assertGreater(high_cap_lt_low, 0)
+        self.assertGreater(high_cap_eq_low, 0)
         self.assertGreater(len(global_active_style_ranges), 0)
         self.assertGreater(len(global_active_capability_ranges), 0)
         self.assertGreater(
             float(active_style_summary["median"]),
-            float(active_capability_summary["median"]),
+            5.0 * float(active_capability_summary["median"]),
         )
         self.assertGreater(
             float(style_summary["mean"]),
-            float(capability_summary["mean"]),
+            5.0 * float(capability_summary["mean"]),
         )
 
         print("RISK_V2_BROAD_SHADOW_AUDIT=" + json.dumps(report, sort_keys=True))
