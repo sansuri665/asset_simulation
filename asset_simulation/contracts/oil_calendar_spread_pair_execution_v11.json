@@ -2,7 +2,7 @@
   "contract_id": "oil_calendar_spread_pair_execution_v11",
   "schema_version": "asset-simulation-oil-calendar-spread-pair-execution-contract-v11",
   "model_version": "asset-simulation-oil-calendar-spread-pair-execution-v0.1.1",
-  "role": "Current Gate-A execution candidate: execute one risk-approved crude-oil calendar-spread mandate on two real named futures legs with schedule weights frozen from pre-decision visible liquidity and realized weekly prices/volumes used only after they become observable.",
+  "role": "Current Gate-A execution candidate for calendar-spread strategy v0.2.3: execute one risk-approved mandate on two real named futures legs with schedule weights frozen from pre-decision visible liquidity and realized weekly prices/volumes used only after they become observable.",
   "identity_fields": [
     "model_version",
     "strategy_id",
@@ -15,7 +15,7 @@
     "result_hash"
   ],
   "invariants": [
-    "only a v0.2.2 calendar-spread decision at the execution start cutoff may be executed",
+    "only a v0.2.3 calendar-spread decision at the execution start cutoff may be executed",
     "start and end markets are adjacent half-month cutoffs in one deterministic world",
     "strategy-book identity must equal the identity frozen in the decision",
     "future execution-window volume, OHLC and prices cannot influence the two-window scheduling weights",
