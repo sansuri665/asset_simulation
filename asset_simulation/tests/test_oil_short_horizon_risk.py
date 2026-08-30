@@ -122,6 +122,11 @@ class OilShortHorizonRiskTests(unittest.TestCase):
             allocated_strategy_capital_usd=allocated,
             company_risk_appetite=self.appetite,
         )
+        self.assertEqual(2.0, float(review["riskHorizon"]["review_horizon_weeks"]))
+        self.assertEqual(
+            2.0,
+            float(review["softRiskEstimatesBeforePortfolioScale"]["risk_horizon_weeks"]),
+        )
         self.assertFalse(review["capitalContext"]["capital_recommendation_produced"])
         self.assertFalse(review["governance"]["capital_recommendation_produced"])
         self.assertNotIn("recommended_capital_authorization_pct_of_company_equity", str(review))
