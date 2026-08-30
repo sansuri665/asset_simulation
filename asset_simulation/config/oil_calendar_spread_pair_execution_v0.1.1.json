@@ -1,0 +1,54 @@
+{
+  "schema_version": "asset-simulation-oil-calendar-spread-pair-execution-config-v11",
+  "config_id": "asset-simulation-oil-calendar-spread-pair-execution-base-v0.1.1",
+  "model_version": "asset-simulation-oil-calendar-spread-pair-execution-v0.1.1",
+  "strategy_id": "oil.short.relative_value.calendar_spread.v1",
+  "strategy_decision_model_version": "asset-simulation-oil-calendar-spread-strategy-v0.2.2",
+  "execution_desk_owner": "oil_execution_desk_v2",
+  "execution_desk_model_version": "asset-simulation-oil-execution-desk-v0.2.0",
+  "execution_primitive_reference": "asset-simulation-oil-calendar-spread-pair-execution-v0.1.0",
+  "friction_primitive_owner": "oil_trading_strategy_v8.execution_friction",
+  "friction_primitive_model_version": "asset-simulation-oil-trading-strategy-v1.6.0",
+  "window_policy": {
+    "execution_windows_per_half_turn": 2,
+    "schedule_information_cutoff": "decision_start_cutoff",
+    "schedule_visible_lookback_weeks": 2,
+    "pair_liquidity_measure": "minimum_of_main_and_next_visible_weekly_volume",
+    "schedule_method": "execution_desk_adjusted_common_predecision_liquidity_weights",
+    "realized_price_benchmark": "newly_realized_weekly_ohlc4",
+    "realized_volume_use": "impact_and_cost_only_not_scheduling",
+    "new_pair_execution_method": "balanced_real_leg_fills_per_window",
+    "synthetic_spread_fill_allowed": false
+  },
+  "completion_policy": {
+    "normal_pair_completion_source": "oil_execution_desk_v2.normal_order_completion_ratio",
+    "normal_capacity_source": "oil_execution_desk_v2.normal_trade_capacity_multiplier",
+    "normal_capacity_cannot_exceed_strategy_mandate": true,
+    "imbalance_remediation_is_mandatory_risk_reduction": true,
+    "mandatory_remediation_bypasses_style_completion_penalty": true,
+    "mandatory_remediation_still_obeys_each_leg_hard_turn_limit": true,
+    "execution_can_increase_authorized_order": false
+  },
+  "legging_policy": {
+    "new_pair_fills_are_balanced_within_each_window": true,
+    "existing_residual_legs_are_remediated_before_new_pair_fills": true,
+    "new_pair_execution_does_not_create_end_of_window_residual_direction": true,
+    "asynchronous_leg_microtiming_deferred": true
+  },
+  "cost_policy": {
+    "spread_cost": true,
+    "square_root_slippage": true,
+    "exchange_clearing_broker_fees": true,
+    "fee_rebates": true,
+    "neutral_score_50_tca": true,
+    "costs_are_computed_per_real_leg": true,
+    "pair_cost_is_sum_of_leg_costs": true,
+    "pair_execution_price_uses_new_pair_fills_only": true
+  },
+  "settlement_boundary": {
+    "strategy_book_mutated": false,
+    "formal_account_mutated": false,
+    "fills_returned_for_future_strategy_book_settlement": true,
+    "cash_margin_interest_financing_owned_here": false
+  }
+}
