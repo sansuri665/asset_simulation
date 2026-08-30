@@ -5,12 +5,16 @@ on:
     branches:
       - main
     paths:
+      - 'asset_simulation/model/oil_calendar_spread_research.py'
       - 'asset_simulation/model/oil_calendar_spread_strategy_v2.py'
       - 'asset_simulation/model/oil_strategy_book.py'
       - 'asset_simulation/model/registry.py'
+      - 'asset_simulation/config/oil_calendar_spread_research_v0.1.json'
       - 'asset_simulation/config/oil_calendar_spread_strategy_v0.2.json'
+      - 'asset_simulation/contracts/oil_calendar_spread_research_v1.json'
       - 'asset_simulation/contracts/oil_calendar_spread_strategy_v2.json'
       - 'asset_simulation/contracts/oil_strategy_book_v1.json'
+      - 'asset_simulation/tests/test_oil_calendar_spread_research.py'
       - 'asset_simulation/tests/test_oil_calendar_spread_strategy_v2.py'
       - 'asset_simulation/tests/test_oil_strategy_book.py'
       - '.github/workflows/calendar-spread-v02-candidate.yml'
@@ -46,9 +50,12 @@ jobs:
       - name: Compile candidate modules
         run: |
           python -m py_compile asset_simulation/model/oil_strategy_book.py
+          python -m py_compile asset_simulation/model/oil_calendar_spread_research.py
           python -m py_compile asset_simulation/model/oil_calendar_spread_strategy_v2.py
       - name: Strategy-book tests
         run: python -m unittest asset_simulation.tests.test_oil_strategy_book -v
+      - name: Calendar-spread PM style tests
+        run: python -m unittest asset_simulation.tests.test_oil_calendar_spread_research -v
       - name: Calendar-spread v2 tests
         run: python -m unittest asset_simulation.tests.test_oil_calendar_spread_strategy_v2 -v
       - name: Hardened v0.1.2 reference tests
