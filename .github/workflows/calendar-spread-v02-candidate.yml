@@ -12,6 +12,7 @@ on:
       - 'asset_simulation/model/oil_calendar_spread_pair_execution_v11.py'
       - 'asset_simulation/model/oil_calendar_spread_market_history.py'
       - 'asset_simulation/model/oil_calendar_spread_research.py'
+      - 'asset_simulation/model/oil_multi_strategy_pretrade_allocator.py'
       - 'asset_simulation/model/oil_strategy_book.py'
       - 'asset_simulation/model/registry.py'
       - 'asset_simulation/config/oil_calendar_spread_strategy_v0.2.json'
@@ -20,18 +21,21 @@ on:
       - 'asset_simulation/config/oil_calendar_spread_pair_execution_v0.1.json'
       - 'asset_simulation/config/oil_calendar_spread_pair_execution_v0.1.1.json'
       - 'asset_simulation/config/oil_calendar_spread_research_v0.1.json'
+      - 'asset_simulation/config/oil_multi_strategy_pretrade_allocator_v0.1.json'
       - 'asset_simulation/contracts/oil_calendar_spread_strategy_v2.json'
       - 'asset_simulation/contracts/oil_calendar_spread_strategy_v22.json'
       - 'asset_simulation/contracts/oil_calendar_spread_strategy_v23.json'
       - 'asset_simulation/contracts/oil_calendar_spread_pair_execution_v1.json'
       - 'asset_simulation/contracts/oil_calendar_spread_pair_execution_v11.json'
       - 'asset_simulation/contracts/oil_calendar_spread_research_v1.json'
+      - 'asset_simulation/contracts/oil_multi_strategy_pretrade_allocator_v1.json'
       - 'asset_simulation/contracts/oil_strategy_book_v1.json'
       - 'asset_simulation/audit_oil_calendar_spread_pair_execution.py'
       - 'asset_simulation/audit_oil_calendar_spread_style_economics.py'
       - 'asset_simulation/audit_oil_calendar_spread_style_economic_acceptance.py'
       - 'asset_simulation/audit_oil_calendar_spread_style_identification.py'
       - 'asset_simulation/audit_oil_calendar_spread_style_same_state_acceptance.py'
+      - 'asset_simulation/audit_oil_multi_strategy_pretrade_stress.py'
       - 'asset_simulation/tests/test_oil_calendar_spread_strategy_v2.py'
       - 'asset_simulation/tests/test_oil_calendar_spread_strategy_v22.py'
       - 'asset_simulation/tests/test_oil_calendar_spread_strategy_v23.py'
@@ -42,6 +46,7 @@ on:
       - 'asset_simulation/tests/test_oil_calendar_spread_style_economics.py'
       - 'asset_simulation/tests/test_oil_calendar_spread_style_economic_acceptance.py'
       - 'asset_simulation/tests/test_oil_calendar_spread_style_same_state_acceptance.py'
+      - 'asset_simulation/tests/test_oil_multi_strategy_pretrade_allocator.py'
       - 'asset_simulation/tests/test_oil_strategy_book.py'
       - '.github/workflows/calendar-spread-v02-candidate.yml'
   workflow_dispatch:
@@ -83,13 +88,17 @@ jobs:
           python -m py_compile asset_simulation/model/oil_calendar_spread_strategy_v23.py
           python -m py_compile asset_simulation/model/oil_calendar_spread_pair_execution.py
           python -m py_compile asset_simulation/model/oil_calendar_spread_pair_execution_v11.py
+          python -m py_compile asset_simulation/model/oil_multi_strategy_pretrade_allocator.py
           python -m py_compile asset_simulation/audit_oil_calendar_spread_pair_execution.py
+          python -m py_compile asset_simulation/audit_oil_multi_strategy_pretrade_stress.py
           python -m py_compile asset_simulation/audit_oil_calendar_spread_style_economics.py
           python -m py_compile asset_simulation/audit_oil_calendar_spread_style_economic_acceptance.py
           python -m py_compile asset_simulation/audit_oil_calendar_spread_style_identification.py
           python -m py_compile asset_simulation/audit_oil_calendar_spread_style_same_state_acceptance.py
       - name: Strategy-book tests
         run: python -m unittest asset_simulation.tests.test_oil_strategy_book -v
+      - name: Dual-strategy pretrade allocator tests
+        run: python -m unittest asset_simulation.tests.test_oil_multi_strategy_pretrade_allocator -v
       - name: Calendar-spread market-history adapter tests
         run: python -m unittest asset_simulation.tests.test_oil_calendar_spread_market_history -v
       - name: Calendar-spread PM style tests
@@ -112,6 +121,27 @@ jobs:
         run: python -m unittest asset_simulation.tests.test_oil_calendar_spread_pair_execution_v11 -v
       - name: Historical v0.1.2 reference invariant tests
         run: python -m unittest asset_simulation.tests.test_oil_calendar_spread_strategy -v
+
+  pretrade-limit-stress:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Fixed 50-50 oversized-request limit stress
+        run: |
+          mkdir -p artifacts
+          python -m asset_simulation.audit_oil_multi_strategy_pretrade_stress \
+            --seeds 0,42,99,197 \
+            --request-multiplier 4 \
+            --output artifacts/oil-multi-strategy-pretrade-stress.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: oil-multi-strategy-pretrade-stress
+          path: artifacts/oil-multi-strategy-pretrade-stress.json
 
   pair-execution-audit:
     runs-on: ubuntu-latest
