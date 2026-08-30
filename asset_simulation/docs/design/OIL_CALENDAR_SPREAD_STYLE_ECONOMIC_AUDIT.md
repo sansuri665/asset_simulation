@@ -1,168 +1,183 @@
 # 原油短期跨期价差：专属 PM 风格经济审计
 
-> 状态：v0.2.1 研究候选验收方法  
+> 状态：v0.2.2 研究候选行为验收已通过  
 > Strategy style owner：`oil_calendar_spread_research_v1`  
-> Audit engine：`audit_oil_calendar_spread_style_economics.py`  
-> Acceptance runner：`audit_oil_calendar_spread_style_economic_acceptance.py`
+> Natural identification：`audit_oil_calendar_spread_style_identification.py`  
+> Final acceptance：`audit_oil_calendar_spread_style_same_state_acceptance.py`
 
-## 1. 审计目的
+## 1. 审计目标
 
-本审计不回答“哪个 PM 风格赚钱最多”，而回答一个更基础的问题：
+本审计不回答“哪个 PM 风格赚钱最多”，而回答：
 
-> 当第二策略的某个专属风格维度从低分移动到高分时，真实可见市场路径上的决策行为是否按照该维度定义发生变化？
+> 第二策略八个专属风格维度改变时，真实可见市场路径上的决策行为是否按定义发生变化？
 
-只有这一层先成立，后续才有资格讨论不同市场状态下的收益差异。
+收益、下一回合 markout 和最终排名都不能作为通过门禁。只有行为语义先成立，后续 Pair Execution 完成后才有资格做正式收益校准。
 
-## 2. 受控识别
+## 2. 审计首先发现的真实策略缺陷
 
-八个专属轴逐个审计：
+首轮 v0.2.1 审计发现：真实市场路径中 visible-curve signal 实际从未工作。
 
-```text
-curve_continuation_reversion
-forecast_vs_visible_curve
-dislocation_selectivity
-capital_deployment
-adjustment_tempo
-rebalance_activity
-holding_patience
-forecast_horizon
-```
-
-每个轴只取：
+根因不是 PM 映射，而是市场与 spread reader 的坐标边界不一致：
 
 ```text
-10 / 50 / 90
+oil_futures_overlay：
+monthly[{year, month, weekly:[{week, OHLC, ...}]}]
+
+旧 spread reader：
+要求 weekly 子节点自己携带 year/month 或 week_serial
 ```
 
-当某一轴变化时，其余七轴严格固定 50。
+市场已经公开的周线因此被 reader 丢弃，每个回合只剩追加的 decision-cutoff 一个点，导致：
 
-同时冻结：
+- momentum = 0；
+- mean reversion = 0；
+- visible curve = 0；
+- `curve_continuation_reversion` 无法产生真实行为差异；
+- `forecast_vs_visible_curve` 退化为预测信号的缩放旋钮。
 
-- 同一 Seed 的全球宏观与原油期货路径；
-- 同一预测机构与同一 forecast vintage；
-- 默认三项 construction capability = 100，因此构造误差严格为零；
-- 相同策略资本授权；
-- 不读取未来市场形成决策。
+v0.2.2 新增 strategy-local metadata adapter，只把父 monthly.year/month 继承给 weekly child；不改价格、成交量、OI、limits、market identity 或 cutoff，也不写回市场。
 
-因此这是 dedicated style axis 的受控语义审计，不是生成候选之间的生态相关性比较。
+## 3. 修复后的自然事件覆盖
 
-## 3. Research Book 状态
-
-当前尚未接入正式 Pair Execution 与 Strategy Book settlement ledger，因此审计不能伪装成账户回测。
-
-为了观察 `holding_patience` 和 `adjustment_tempo` 的跨回合作用，研究审计使用：
+冻结开发 Seed 0—15、验证 Seed 100—115，每个 Seed 覆盖 2 年，共：
 
 ```text
-本回合 target
-→ 直接作为下一回合 research-book spread units
+Development: 16 × 48 = 768 半月截点
+Validation:  16 × 48 = 768 半月截点
+Total:                     1536 截点
 ```
 
-这等价于“研究目标状态传播”，不是成交模型。
+主力／次主力 pair identity 改变时 research book 清零，因为正式 spread lifecycle scheduler 尚未存在。两个分区各发生 80 次 pair reset。
 
-仍保留生产策略的一条硬不变量：
+修复后：
+
+| 指标 | Development | Validation |
+|---|---:|---:|
+| 12 周历史可用 | 768 / 768 | 768 / 768 |
+| forecast signal 非零 | 768 / 768 | 768 / 768 |
+| visible-curve signal 非零 | 768 / 768 | 768 / 768 |
+| momentum signal 非零 | 768 / 768 | 768 / 768 |
+| mean-reversion signal 非零 | 768 / 768 | 768 / 768 |
+| forecast 与 visible curve 任意强度反向 | 369 | 368 |
+| momentum 与 reversion 任意强度反向 | 646 | 654 |
+| 同方向缩仓事件 | 40 | 30 |
+
+严格要求冲突双方绝对值均至少 `0.15` 后，仍有：
+
+| 条件事件 | Development | Validation |
+|---|---:|---:|
+| forecast vs visible curve | 154 | 138 |
+| momentum vs mean reversion | 406 | 401 |
+
+这证明两个核心专属轴现在拥有足够的自然识别事件，不需要人为构造冲突场景，也不需要下调门槛。
+
+## 4. 最终验收方法：Broad Same-State
+
+最终验收不让低分 PM 与高分 PM 各自跑出不同历史再比较，而是：
 
 ```text
-已有 spread 方向
-→ 新信号反向
-→ 本回合先向 0 退出
-→ 不允许一步跨零开反向仓
+中性 50 分 PM
+→ 产生唯一 research-book 状态路径
+→ 冻结当期 market + forecast + current spread state
+→ 同时计算某一轴 10 分与 90 分
+→ 比较同一个状态下的行为响应
 ```
 
-审计不运行 thesis 的预测表现反馈，以免不同风格因为不同历史 PnL/预测命中状态产生二次路径污染。
+因此：
 
-## 4. 八个硬门禁
+- 市场相同；
+- forecast vintage 相同；
+- 当前 spread 仓位相同；
+- 其它七个专属轴相同；
+- construction error 不进入验收；
+- 正式 execution / account PnL 不进入验收；
+- pair identity 改变时先清空 research book。
 
-### 4.1 Forecast vs Visible Curve
+只有 `capital_deployment` 会重新计算 spread capacity，因为它本来就应该改变已授权资本的实际部署预算；其它七轴直接使用同一组 neutral signal primitives。
 
-只观察 forecast signal 与 visible-curve signal 明显反向的回合。
+## 5. 八轴开发／验证结果
 
-要求：高分相较低分，最终 raw signal 更接近 forecast component。
+10 分与 90 分比较结果如下。表内数值都是**行为指标**，不是收益。
 
-### 4.2 Curve Continuation / Reversion
+| Axis | Development 10→90 | Validation 10→90 | 结果 |
+|---|---:|---:|---|
+| `curve_continuation_reversion` | momentum alignment `-0.738 → +0.517`（406事件） | `-0.688 → +0.481`（401事件） | PASS |
+| `forecast_vs_visible_curve` | forecast alignment `0.000 → 0.869`（154事件） | `0.000 → 0.833`（138事件） | PASS |
+| `dislocation_selectivity` | active rate `98.05% → 93.23%` | `97.01% → 92.19%` | PASS |
+| `capital_deployment` | mean capacity `129.3 → 302.3` units | `124.1 → 290.2` units | PASS |
+| `adjustment_tempo` | gap completion `31.32% → 68.54%` | `31.24% → 68.37%` | PASS |
+| `rebalance_activity` | advisory turnover `61.3 → 465.4` units | `59.4 → 451.1` units | PASS |
+| `holding_patience` | retention `0.05% → 58.84%`（40事件） | `0.14% → 59.04%`（30事件） | PASS |
+| `forecast_horizon` | 4w weight `23.6% → 36.4%` | `23.6% → 36.4%` | PASS |
 
-只观察 curve momentum 与 curve mean-reversion 明显反向的回合。
+三个条件轴最低要求 10 个自然事件；开发与验证均远高于门槛。
 
-要求：高分相较低分，visible-curve signal 更接近 momentum component。
-
-### 4.3 Dislocation Selectivity
-
-要求：高选择性不得产生更高的 active-signal frequency。
-
-这一轴不是“高分更强”，只是更愿意等待大偏离。
-
-### 4.4 Capital Deployment
-
-要求：高部署意愿不得降低在相同授权资本下的 spread risk capacity。
-
-实际 target 仍可能受 signal、流动性和风险边界约束，因此不要求每回合仓位机械放大。
-
-### 4.5 Adjustment Tempo
-
-要求：高分在相同 desired gap 下完成更高比例的目标调整。
-
-### 4.6 Rebalance Activity
-
-要求：高分拥有更高的 advisory pair turnover budget。
-
-目前尚无正式 Pair Execution，因此只验证策略请求层，不宣称实际成交量。
-
-### 4.7 Holding Patience
-
-只观察已有仓位与新目标同方向、但新目标绝对值缩小的回合。
-
-要求：高分相较低分保留更多旧 exposure。
-
-### 4.8 Forecast Horizon
-
-要求：高分提高 4 周 forecast component 的权重。
-
-在 2 周与 4 周预测方向冲突时，同时记录 forecast spread change 是否向 4 周组件移动，但当前硬门禁优先使用注册期限权重本身，避免偶然价格尺度主导验收。
-
-## 5. 开发与验证分离
-
-当前首轮 CI 使用：
+最终：
 
 ```text
-Development: Seed 0, 42
-Validation:  Seed 99, 197
-Horizon:     2030 年 24 个半月回合
+Development hard gate = PASS 8 / 8
+Validation  hard gate = PASS 8 / 8
+Overall                 = PASS
 ```
 
-开发与验证必须分别通过全部八个行为门禁，才算 style semantics 通过首轮真实路径验收。
+## 6. 各轴门禁含义
 
-后续在 Pair Execution 完成后，应扩大到更多 Seed 与更长窗口，但不能反过来用扩样本掩盖基本方向错误。
+### `forecast_vs_visible_curve`
 
-## 6. Markout 只作观察
+只在 forecast 与 visible curve 都至少 0.15 且方向相反时比较。高分必须让 raw signal 更接近 forecast component。
 
-审计额外记录：
+### `curve_continuation_reversion`
 
-```text
-idealized next-half-turn target markout
-```
+只在 momentum 与 mean-reversion 都至少 0.15 且方向相反时比较。高分必须让 visible curve expression 更接近 momentum。
 
-定义是假设 target 在决策参考价瞬间建立，并持有至下一半月，因此：
+### `dislocation_selectivity`
 
-- 不含两腿真实 fill；
-- 不含 spread / slippage / fee；
-- 不含 margin constraint；
-- 不含 legging；
-- 不含 portfolio risk；
-- 不是 Formal Account PnL。
+高分不得提高 active-signal frequency。该轴表达“等待更明显异常”，不是质量分。
 
-它只用于观察“不同风格表达在这些市场路径上大致朝哪个方向产生经济差异”，**绝不能作为风格轴通过/失败门禁，也不能用于证明高分优于低分。**
+### `capital_deployment`
 
-## 7. 当前结论边界
+在相同投委会授权资本下，高分不得降低 spread risk capacity。最终 target 仍受 signal、市场限额和风险边界限制。
 
-只要首轮开发/验证全部行为门禁通过，可以宣称：
+### `adjustment_tempo`
 
-> 第二策略的八个专属 PM 风格已经从静态参数语义进入真实市场路径上的可辨识决策行为。
+高分必须完成更高比例的同一目标缺口。
+
+### `rebalance_activity`
+
+高分必须形成更高 advisory pair turnover budget。正式实际成交量仍归未来 Pair Execution owner。
+
+### `holding_patience`
+
+只在当前仓位与新 ideal target 同方向、但目标绝对值缩小时比较。高分必须保留更多已有 exposure。
+
+### `forecast_horizon`
+
+高分必须提高 4 周预测权重。该门禁不要求 4 周预测赚钱更多。
+
+## 7. 明确不使用的门禁
+
+以下都只允许作为未来观察项：
+
+- idealized next-half-turn markout；
+- 某一风格累计收益；
+- 某一风格 Sharpe；
+- 某一风格胜率；
+- 候选 PM 长期排名。
+
+原因是第二策略尚无正式 Pair Execution、Strategy Book settlement ledger 和 portfolio risk；此时宣称收益成熟会混淆研究目标与真实成交结果。
+
+## 8. 当前结论
+
+现在可以正式宣称：
+
+> **Calendar Spread 的八个专属 PM 风格已经从静态参数设计进入真实市场路径上的经济可辨识行为，并在开发／验证分离样本上全部通过。**
 
 仍不能宣称：
 
 - 第二策略收益校准成熟；
 - 某一风格长期更优；
 - 已有正式执行 PnL；
-- 已具备多策略组合表现；
+- 已有多策略组合收益；
 - 可以立即接入四机构竞技。
 
-真正的收益校准必须等待 Pair Execution Adapter 与 Strategy Book settlement ledger 完成后再做。
+下一阶段的首要任务仍是 Pair Execution Adapter，其后才是 Strategy Book settlement ledger、Portfolio Risk / Investment Decision 与正式收益校准。
