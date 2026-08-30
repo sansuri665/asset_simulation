@@ -5,17 +5,19 @@ on:
     branches:
       - main
     paths:
-      - 'asset_simulation/model/oil_calendar_spread_research.py'
       - 'asset_simulation/model/oil_calendar_spread_strategy_v2.py'
+      - 'asset_simulation/model/oil_calendar_spread_research.py'
       - 'asset_simulation/model/oil_strategy_book.py'
       - 'asset_simulation/model/registry.py'
-      - 'asset_simulation/config/oil_calendar_spread_research_v0.1.json'
       - 'asset_simulation/config/oil_calendar_spread_strategy_v0.2.json'
-      - 'asset_simulation/contracts/oil_calendar_spread_research_v1.json'
+      - 'asset_simulation/config/oil_calendar_spread_research_v0.1.json'
       - 'asset_simulation/contracts/oil_calendar_spread_strategy_v2.json'
+      - 'asset_simulation/contracts/oil_calendar_spread_research_v1.json'
       - 'asset_simulation/contracts/oil_strategy_book_v1.json'
-      - 'asset_simulation/tests/test_oil_calendar_spread_research.py'
+      - 'asset_simulation/audit_oil_calendar_spread_style_economics.py'
       - 'asset_simulation/tests/test_oil_calendar_spread_strategy_v2.py'
+      - 'asset_simulation/tests/test_oil_calendar_spread_research.py'
+      - 'asset_simulation/tests/test_oil_calendar_spread_style_economics.py'
       - 'asset_simulation/tests/test_oil_strategy_book.py'
       - '.github/workflows/calendar-spread-v02-candidate.yml'
   workflow_dispatch:
@@ -52,14 +54,39 @@ jobs:
           python -m py_compile asset_simulation/model/oil_strategy_book.py
           python -m py_compile asset_simulation/model/oil_calendar_spread_research.py
           python -m py_compile asset_simulation/model/oil_calendar_spread_strategy_v2.py
+          python -m py_compile asset_simulation/audit_oil_calendar_spread_style_economics.py
       - name: Strategy-book tests
         run: python -m unittest asset_simulation.tests.test_oil_strategy_book -v
       - name: Calendar-spread PM style tests
         run: python -m unittest asset_simulation.tests.test_oil_calendar_spread_research -v
+      - name: Calendar-spread PM economic semantics tests
+        run: python -m unittest asset_simulation.tests.test_oil_calendar_spread_style_economics -v
       - name: Calendar-spread v2 tests
         run: python -m unittest asset_simulation.tests.test_oil_calendar_spread_strategy_v2 -v
       - name: Hardened v0.1.2 reference tests
         run: python -m unittest asset_simulation.tests.test_oil_calendar_spread_strategy -v
+
+  style-economic-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Controlled dedicated-style development/validation audit
+        run: |
+          mkdir -p artifacts
+          python -m asset_simulation.audit_oil_calendar_spread_style_economics \
+            --development-seeds 0,42 \
+            --validation-seeds 99,197 \
+            --years 1 \
+            --output artifacts/calendar-spread-style-economic-audit.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: calendar-spread-style-economic-audit
+          path: artifacts/calendar-spread-style-economic-audit.json
 
   directional-regression-smoke:
     runs-on: ubuntu-latest
