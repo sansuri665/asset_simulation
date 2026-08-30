@@ -5,10 +5,12 @@ be isolated. Production calendar-spread semantics nevertheless require an
 existing spread position to exit before the opposite direction may be opened.
 This runner restores that invariant in the research-book state propagation.
 
-The hardened v0.1.2 reference engine is used here only to obtain current signal
-primitives and visible risk capacity. It therefore receives a flat reference
-position: the controlled research-book position is owned entirely by this audit
-layer and cannot leak back into the neutral 70/30 reference target path.
+The hardened v0.1.2 reference engine is used only to obtain current signal
+primitives and visible risk capacity.  Before it is called, a metadata-only
+strategy adapter inherits parent month year/month coordinates into the market
+owner's weekly children so the already-visible named-contract history is not
+silently discarded.  The reference engine receives a flat position; controlled
+research-book state remains owned entirely by this audit layer.
 """
 
 from __future__ import annotations
@@ -19,6 +21,9 @@ from pathlib import Path
 from typing import Any, Mapping
 
 from . import audit_oil_calendar_spread_style_economics as base
+from .model.oil_calendar_spread_market_history import (
+    normalize_oil_calendar_spread_market_history,
+)
 from .model.oil_calendar_spread_strategy import (
     _apply_spread_position_persistence,
     _paired_execution_mandate,
@@ -30,7 +35,7 @@ from .model.registry import load_registered_assets
 
 
 ACCEPTANCE_VERSION = (
-    "asset-simulation-oil-calendar-spread-style-economic-acceptance-v0.1.1"
+    "asset-simulation-oil-calendar-spread-style-economic-acceptance-v0.1.2"
 )
 
 
@@ -43,11 +48,14 @@ def _controlled_decision_with_reversal_guard(
     authorized_strategy_capital_usd: float,
 ) -> dict[str, Any]:
     _, reference_profile, policy = base._runtime_bundle(dedicated_radar)
+    normalized_market, history_adapter = normalize_oil_calendar_spread_market_history(
+        market
+    )
 
-    # Reference owner is deliberately flat.  It supplies pair identity, forecast
+    # Reference owner is deliberately flat. It supplies pair identity, forecast
     # and visible-curve components plus capacity; it does not own audit book state.
     reference = build_oil_calendar_spread_research_decision(
-        market,
+        normalized_market,
         forecast,
         authorized_strategy_capital_usd=float(authorized_strategy_capital_usd),
         positions={},
@@ -100,6 +108,7 @@ def _controlled_decision_with_reversal_guard(
         "target_spread_units": target,
         "reversal_exit_applied": reversal_exit_applied,
         "reference_engine_flat_for_primitives": True,
+        "market_history_adapter": history_adapter,
         "paired_execution_mandate": mandate,
         "legs": {
             "main": dict(reference["legs"]["main"]),
@@ -122,6 +131,7 @@ def build_oil_calendar_spread_style_economic_acceptance(**kwargs: Any) -> dict[s
         **dict(report["method"]),
         "reversal_policy": "exit_existing_spread_before_opposite_direction",
         "reference_engine_position_state": "flat_primitives_only",
+        "market_history_coordinate_policy": "inherit_parent_month_coordinates_only",
         "controlled_book_owner": "style_economic_acceptance_runner",
         "thesis_performance_feedback_included": False,
     }
