@@ -1,17 +1,10 @@
 """Strategy-book-aware short-horizon crude-oil calendar-spread v0.2 candidate.
 
-This candidate deliberately composes the already hardened v0.1.2 calendar-
-spread primitives instead of changing their market, forecast, risk-capacity or
-pair-execution semantics.  The new responsibilities are narrower and explicit:
-
-* identify the strategy as oil -> short horizon -> calendar-spread relative value;
-* consume only a strategy-owned position book, never aggregate account positions;
-* apply the appointed PM's bounded construction capability to the ideal spread
-  target before persistence, thesis and final execution planning;
-* preserve the exact 1:-1 target and no-lookahead invariants.
-
-The module is a research candidate and is intentionally not wired into the
-current OilInvestmentCompetitionSession.
+The candidate composes the hardened v0.1.2 market, forecast, risk-capacity and
+pair-execution primitives, but gives the second strategy its own PM style layer.
+One appointed strategy-research person is projected into a dedicated calendar-
+spread radar before the reference primitives run.  Construction capability is
+still owned separately by oil_strategy_research_v2.
 """
 
 from __future__ import annotations
@@ -20,6 +13,10 @@ import math
 from typing import Any, Mapping
 
 from .math_utils import clamp
+from .oil_calendar_spread_research import (
+    CALENDAR_SPREAD_STYLE_DIMENSIONS,
+    resolve_oil_calendar_spread_runtime_policy,
+)
 from .oil_calendar_spread_strategy import (
     OIL_CALENDAR_SPREAD_STRATEGY_MODEL_VERSION as REFERENCE_MODEL_VERSION,
     _apply_spread_position_persistence,
@@ -33,13 +30,13 @@ from .oil_calendar_spread_strategy import (
 from .oil_strategy_book import resolve_oil_strategy_book
 from .oil_strategy_research import (
     build_oil_strategy_construction_adjustments,
-    resolve_oil_strategy_runtime_policy,
+    resolve_oil_strategy_research_profile,
 )
 from .registry import load_registered_assets, sha256_json
 
 
 OIL_CALENDAR_SPREAD_STRATEGY_V2_MODEL_VERSION = (
-    "asset-simulation-oil-calendar-spread-strategy-v0.2.0"
+    "asset-simulation-oil-calendar-spread-strategy-v0.2.1"
 )
 OIL_CALENDAR_SPREAD_STRATEGY_V2_CONTRACT_ID = "oil_calendar_spread_strategy_v2"
 OIL_CALENDAR_SPREAD_STRATEGY_V2_ID = "oil.short.relative_value.calendar_spread.v1"
@@ -69,6 +66,10 @@ def _validate_registered_assets() -> tuple[dict[str, Any], dict[str, Any], dict[
         raise ValueError("registered oil calendar spread v2 contract version mismatch")
     if config["strategy_id"] != OIL_CALENDAR_SPREAD_STRATEGY_V2_ID:
         raise ValueError("registered oil calendar spread v2 strategy id mismatch")
+    if config.get("strategy_research_style_owner") != "oil_calendar_spread_research_v1":
+        raise ValueError("calendar spread v2 style owner is invalid")
+    if config.get("construction_capability_owner") != "oil_strategy_research_v2":
+        raise ValueError("calendar spread v2 construction owner is invalid")
     taxonomy = dict(config["strategy_taxonomy"])
     expected_taxonomy = {
         "asset_class": "commodity",
@@ -98,8 +99,6 @@ def _visible_state_hash(
     *,
     authorized_strategy_capital_usd: float,
 ) -> str:
-    """Hash only decision-time objects used to address construction-error streams."""
-
     return sha256_json(
         {
             "market_identity": dict(market.get("identity", {})),
@@ -122,17 +121,17 @@ def _pair_construction_errors(
         raise ValueError("calendar spread construction lacks one of the real pair legs")
     main = dict(contracts[main_contract_id])
     next_main = dict(contracts[next_main_contract_id])
-    target_error = 0.5 * (
-        float(main["target_scale_error"]) + float(next_main["target_scale_error"])
-    )
-    gap_error = 0.5 * (
-        float(main["transition_gap_error"]) + float(next_main["transition_gap_error"])
-    )
-    lifecycle_error = float(adjustments["portfolio"]["role_weight_error"])
     return {
-        "pair_target_scale_error": target_error,
-        "pair_transition_gap_error": gap_error,
-        "curve_lifecycle_planning_error": lifecycle_error,
+        "pair_target_scale_error": 0.5
+        * (float(main["target_scale_error"]) + float(next_main["target_scale_error"])),
+        "pair_transition_gap_error": 0.5
+        * (
+            float(main["transition_gap_error"])
+            + float(next_main["transition_gap_error"])
+        ),
+        "curve_lifecycle_planning_error": float(
+            adjustments["portfolio"]["role_weight_error"]
+        ),
     }
 
 
@@ -144,8 +143,6 @@ def _apply_pair_construction(
     target_scale_error: float,
     transition_gap_error: float,
 ) -> dict[str, Any]:
-    """Apply bounded symmetric pair errors without manufacturing a new direction."""
-
     capacity = max(0, int(capacity_units))
     current = int(clamp(float(current_spread_units), -float(capacity), float(capacity)))
     ideal = int(clamp(float(ideal_target_spread_units), -float(capacity), float(capacity)))
@@ -193,6 +190,46 @@ def _apply_pair_construction(
     }
 
 
+def _dedicated_signal_mix(
+    reference_signal: Mapping[str, Any],
+    strategy_policy: Mapping[str, Any],
+) -> dict[str, Any]:
+    signal_policy = dict(strategy_policy["signal"])
+    forecast_weight = float(signal_policy["forecast_component_weight"])
+    visible_weight = float(signal_policy["visible_curve_component_weight"])
+    if min(forecast_weight, visible_weight) < 0.0 or not math.isclose(
+        forecast_weight + visible_weight, 1.0, rel_tol=0.0, abs_tol=1e-12
+    ):
+        raise ValueError("calendar spread dedicated signal weights are invalid")
+    forecast_signal = float(reference_signal["forecast_signal"])
+    visible_signal = float(reference_signal["visible_curve_signal"])
+    raw_signal = forecast_weight * forecast_signal + visible_weight * visible_signal
+    deadband = float(signal_policy["signal_deadband_abs"])
+    if abs(raw_signal) <= deadband:
+        final_signal = 0.0
+    else:
+        final_signal = math.copysign(
+            (abs(raw_signal) - deadband) / max(1e-9, 1.0 - deadband),
+            raw_signal,
+        )
+    return _round_nested(
+        {
+            **dict(reference_signal),
+            "reference_engine_raw_signal": float(reference_signal["raw_signal"]),
+            "reference_engine_signal": float(reference_signal["signal"]),
+            "forecast_component_weight": forecast_weight,
+            "visible_curve_component_weight": visible_weight,
+            "forecast_vs_visible_curve_score": float(
+                signal_policy["forecast_vs_visible_curve_score"]
+            ),
+            "component_mix_owner": "oil_calendar_spread_research_v1",
+            "raw_signal": raw_signal,
+            "signal_deadband_abs": deadband,
+            "signal": clamp(final_signal, -1.0, 1.0),
+        }
+    )
+
+
 def build_oil_calendar_spread_strategy_v2_decision(
     market: Mapping[str, Any],
     forecast_vintage: Mapping[str, Any],
@@ -202,7 +239,7 @@ def build_oil_calendar_spread_strategy_v2_decision(
     strategy_research_profile: Mapping[str, Any] | None = None,
     thesis_state: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """Build the v0.2 calendar-spread candidate from one strategy-owned book."""
+    """Build the calendar-spread candidate from one strategy-owned book."""
 
     assets, config, contract = _validate_registered_assets()
     authorized_capital = float(authorized_strategy_capital_usd)
@@ -213,8 +250,9 @@ def build_oil_calendar_spread_strategy_v2_decision(
         strategy_book,
         expected_strategy_id=OIL_CALENDAR_SPREAD_STRATEGY_V2_ID,
     )
-    strategy_profile, strategy_policy = resolve_oil_strategy_runtime_policy(
-        strategy_research_profile
+    source_profile = resolve_oil_strategy_research_profile(strategy_research_profile)
+    dedicated_profile, strategy_policy, reference_profile = (
+        resolve_oil_calendar_spread_runtime_policy(strategy_research_profile)
     )
 
     reference = build_oil_calendar_spread_research_decision(
@@ -222,9 +260,10 @@ def build_oil_calendar_spread_strategy_v2_decision(
         forecast_vintage,
         authorized_strategy_capital_usd=authorized_capital,
         positions=supplied_book["positions"],
-        strategy_research_profile=strategy_profile,
+        strategy_research_profile=reference_profile,
         thesis_state=thesis_state,
     )
+    signal_report = _dedicated_signal_mix(reference["signal"], strategy_policy)
     main_contract_id = str(reference["legs"]["main"]["contract_id"])
     next_main_contract_id = str(reference["legs"]["next_main"]["contract_id"])
     current_main_lots = int(supplied_book["positions"].get(main_contract_id, 0))
@@ -233,6 +272,9 @@ def build_oil_calendar_spread_strategy_v2_decision(
     capacity = dict(reference["strategyRiskAdapter"]["capacity"])
     risk_capacity_units = int(capacity["risk_capacity_units"])
     current_spread_units = int(current_risk["spread_units"])
+    dedicated_ideal_target = int(
+        round(float(signal_report["signal"]) * risk_capacity_units)
+    )
 
     state_hash = _visible_state_hash(
         market,
@@ -241,7 +283,7 @@ def build_oil_calendar_spread_strategy_v2_decision(
         authorized_strategy_capital_usd=authorized_capital,
     )
     construction_adjustments = build_oil_strategy_construction_adjustments(
-        strategy_profile,
+        source_profile,
         visible_state_hash=state_hash,
         contract_ids=[main_contract_id, next_main_contract_id],
     )
@@ -252,14 +294,10 @@ def build_oil_calendar_spread_strategy_v2_decision(
     )
     construction = _apply_pair_construction(
         current_spread_units=current_spread_units,
-        ideal_target_spread_units=int(
-            reference["target"]["pre_persistence_target_spread_units"]
-        ),
+        ideal_target_spread_units=dedicated_ideal_target,
         capacity_units=risk_capacity_units,
         target_scale_error=float(construction_errors["pair_target_scale_error"]),
-        transition_gap_error=float(
-            construction_errors["pair_transition_gap_error"]
-        ),
+        transition_gap_error=float(construction_errors["pair_transition_gap_error"]),
     )
 
     persistent_target = _apply_spread_position_persistence(
@@ -274,7 +312,7 @@ def build_oil_calendar_spread_strategy_v2_decision(
     thesis_adjusted_target, thesis_action = _apply_thesis_policy(
         current_spread_units=current_spread_units,
         proposed_target_units=persistent_target,
-        signal=float(reference["signal"]["signal"]),
+        signal=float(signal_report["signal"]),
         thesis_state=resolved_thesis_state,
         thesis_config=config["thesis_invalidation"],
     )
@@ -319,8 +357,7 @@ def build_oil_calendar_spread_strategy_v2_decision(
         config=config,
     )
 
-    reference_target = int(reference["target"]["target_spread_units"])
-    default_construction_is_exact = all(
+    construction_is_exact = all(
         math.isclose(float(value), 0.0, rel_tol=0.0, abs_tol=1e-12)
         for value in (
             construction_errors["pair_target_scale_error"],
@@ -328,21 +365,32 @@ def build_oil_calendar_spread_strategy_v2_decision(
             construction_errors["curve_lifecycle_planning_error"],
         )
     )
-    if default_construction_is_exact and target_spread_units != reference_target:
+    dedicated_style_is_neutral = all(
+        math.isclose(
+            float(dedicated_profile["style_radar"][key]),
+            50.0,
+            rel_tol=0.0,
+            abs_tol=1e-12,
+        )
+        for key in CALENDAR_SPREAD_STYLE_DIMENSIONS
+    )
+    reference_target = int(reference["target"]["target_spread_units"])
+    compatibility_mode = construction_is_exact and dedicated_style_is_neutral
+    if compatibility_mode and target_spread_units != reference_target:
         raise ValueError(
-            "score-100 zero-error construction must reproduce the reference target"
+            "neutral dedicated style plus score-100 construction must reproduce reference target"
         )
 
     construction_report = {
         "schemaVersion": "asset-simulation-oil-calendar-spread-construction-v2",
         "source_owner": "oil_strategy_research_v2",
-        "strategy_profile_hash": strategy_profile["profile_hash"],
+        "strategy_profile_hash": source_profile["profile_hash"],
         "visible_state_hash": state_hash,
         "construction_adjustment_hash": construction_adjustments["identity"][
             "result_hash"
         ],
         "construction_capability_radar": dict(
-            strategy_profile["construction_capability_radar"]
+            source_profile["construction_capability_radar"]
         ),
         "strategy_specific_interpretation": {
             "exposure_construction": "spread_exposure_construction",
@@ -356,9 +404,8 @@ def build_oil_calendar_spread_strategy_v2_decision(
         ),
         "curve_lifecycle_error_applied_to_target": False,
         "exact_pair_balance_preserved": True,
-        "reference_target_reproduced_when_all_errors_zero": (
-            (not default_construction_is_exact)
-            or target_spread_units == reference_target
+        "reference_target_reproduced_when_compatibility_mode": (
+            (not compatibility_mode) or target_spread_units == reference_target
         ),
     }
 
@@ -372,13 +419,19 @@ def build_oil_calendar_spread_strategy_v2_decision(
             "runtime_status": "research_candidate_not_default_competition_engine",
             "reference_engine_model_version": REFERENCE_MODEL_VERSION,
             "strategy_research_profile": {
-                "appointment": strategy_profile["appointment"],
-                "style_radar": strategy_profile["style_radar"],
-                "style_tags": strategy_profile["style_tags"],
-                "construction_capability_radar": strategy_profile[
-                    "construction_capability_radar"
-                ],
-                "profile_hash": strategy_profile["profile_hash"],
+                "appointment": dict(source_profile["appointment"]),
+                "source_style_radar": dict(source_profile["style_radar"]),
+                "source_style_tags": list(source_profile["style_tags"]),
+                "source_profile_hash": source_profile["profile_hash"],
+                "dedicated_style_owner": "oil_calendar_spread_research_v1",
+                "dedicated_style_radar": dict(dedicated_profile["style_radar"]),
+                "dedicated_style_tags": list(dedicated_profile["style_tags"]),
+                "dedicated_style_profile_hash": dedicated_profile["profile_hash"],
+                "preference_total_score": None,
+                "alpha_score": None,
+                "construction_capability_radar": dict(
+                    source_profile["construction_capability_radar"]
+                ),
             },
         },
         "strategyBook": {
@@ -403,7 +456,7 @@ def build_oil_calendar_spread_strategy_v2_decision(
                 "target_position_lots": target_next_lots,
             },
         },
-        "signal": dict(reference["signal"]),
+        "signal": signal_report,
         "construction": construction_report,
         "target": {
             "current_spread_units": current_spread_units,
@@ -446,6 +499,7 @@ def build_oil_calendar_spread_strategy_v2_decision(
             "published_forecast_vintage_only": True,
             "strategy_owned_book_only": True,
             "aggregate_account_positions_available": False,
+            "dedicated_style_projection_uses_future": False,
             "hidden_future_available": False,
             "forecast_truth_available": False,
             "market_write_back": False,
@@ -456,6 +510,7 @@ def build_oil_calendar_spread_strategy_v2_decision(
                 "adjacent_next_main",
                 "one_to_one_lot_ratio",
                 "strategy_owned_position_book",
+                "dedicated_calendar_spread_pm_style",
                 "bounded_pm_construction",
             ],
             "excluded": list(config["scope_exclusions"]),
@@ -472,7 +527,8 @@ def build_oil_calendar_spread_strategy_v2_decision(
             "oil_calendar_spread_strategy_v2_contract_hash"
         ],
         "strategy_book_identity_hash": supplied_book["identity"]["identity_hash"],
-        "strategy_profile_hash": strategy_profile["profile_hash"],
+        "source_strategy_profile_hash": source_profile["profile_hash"],
+        "dedicated_style_profile_hash": dedicated_profile["profile_hash"],
         "reference_decision_hash": reference["identity"]["result_hash"],
         "construction_adjustment_hash": construction_adjustments["identity"][
             "result_hash"
