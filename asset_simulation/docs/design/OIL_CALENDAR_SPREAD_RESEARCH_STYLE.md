@@ -1,9 +1,10 @@
 # 原油短期跨期价差策略：策略研究特质体系
 
-> 状态：第二策略 v0.2.1 研究候选设计  
+> 状态：第二策略 v0.2.2 研究候选设计  
 > Style owner：`oil_calendar_spread_research_v1`  
 > Personnel owner：`oil_strategy_research_v2`  
-> Construction capability owner：`oil_strategy_research_v2`
+> Construction capability owner：`oil_strategy_research_v2`  
+> Visible-history adapter：`oil_calendar_spread_market_history_adapter`
 
 ## 1. 设计原则
 
@@ -94,7 +95,7 @@ score 50  → forecast weight 70%
 score 100 → forecast weight 90%
 ```
 
-默认 50 分严格保留 v0.1.2 的 70/30 基线。
+默认 50 分严格保留 70/30 的中性组合约定。
 
 这一维不允许：
 
@@ -105,6 +106,46 @@ score 100 → forecast weight 90%
 - 把能力分变成信号奖励。
 
 它只是回答：**当研究预测与当前期限结构证据意见不完全一致时，这位 PM 更相信谁。**
+
+### 3.2 v0.2.2：Visible Curve 从“公式存在”变为“真实输入可用”
+
+受控经济审计发现 v0.2.1 之前存在一个策略输入边界错误：
+
+```text
+oil_futures_overlay 实际发布：
+monthly[{year, month, weekly:[{week, OHLC, ...}]}]
+
+旧 calendar-spread reader 预期：
+weekly[{year, month, week, ...}]
+```
+
+因此市场已经公开的周线没有被 spread reader 正确识别，真实运行中 historical spread history 每回合只剩手工追加的 decision-cutoff 一个点；momentum、mean-reversion 与 visible-curve signal 实际长期为 0。
+
+v0.2.2 不修改市场 owner，而在策略边界增加 metadata-only adapter：
+
+```text
+父 monthly.year / monthly.month
+        ↓ inherit only
+子 weekly.year / weekly.month
+```
+
+它：
+
+- 不改变任何价格；
+- 不改变 volume / open interest / limits；
+- 不改变 market identity 或 cutoff；
+- 不写回市场；
+- 只让策略正确读取本来已经可见的命名合约历史。
+
+修复后对开发 Seed 0—15 与验证 Seed 100—115、各 2 年共 1536 个真实半月截点扫描：
+
+- 1536 / 1536 个截点均恢复 12 周对齐 spread history；
+- forecast、visible-curve、momentum、mean-reversion 四个 signal component 均 1536 / 1536 非零；
+- forecast 与 visible curve 自然反向：开发 369 次、验证 368 次；
+- momentum 与 mean-reversion 自然反向：开发 646 次、验证 654 次；
+- 在双方绝对值均至少 0.15 的严格识别门槛下，forecast-vs-curve 仍有开发 154 次、验证 138 次；momentum-vs-reversion 有开发 406 次、验证 401 次。
+
+因此从 v0.2.2 起，`forecast_vs_visible_curve` 与 `curve_continuation_reversion` 才能被视为真实经济选择，而不是装饰参数。v0.2.1 以前的收益或人员风格结果不得用于这两个轴的经济校准基线。
 
 ## 4. 同一个人如何得到不同策略画像
 
@@ -126,7 +167,7 @@ score 100 → forecast weight 90%
 - 不使用市场未来、预测真值或历史 PnL；
 - 最终分数强制落在 10—90。
 
-默认兼容负责人是唯一特例：八维全部严格 50，用于保证旧基线可复现。
+默认兼容负责人是唯一特例：八维全部严格 50，用于提供稳定的中性行为锚点。
 
 ## 5. 风格与能力严格分离
 
@@ -162,18 +203,45 @@ Dedicated PM style
 
 四者不得互相代替。
 
-## 6. 当前边界
+## 6. 经济可辨识验收
 
-本版专属 style 已进入 v0.2.1 candidate decision。
+最终验收使用 broad same-state 方法，而不是让低分与高分各自跑出不同历史：
+
+```text
+中性 50 分 PM 路径
+→ 冻结当期 market + forecast + research-book state
+→ 同时计算某一轴 10 分与 90 分
+→ 比较同状态决策差异
+```
+
+主力／次主力 pair identity 一旦改变，research-book spread units 清零；正式 spread lifecycle scheduler 尚未建立前，不允许把旧 pair 仓位抽象搬运给新 pair。
+
+conditional axes：
+
+- `forecast_vs_visible_curve`：只在两类证据显著反向时比较；
+- `curve_continuation_reversion`：只在 momentum / reversion 显著反向时比较；
+- `holding_patience`：只在同方向缩仓时比较。
+
+其余五轴在全部真实截点比较。开发与验证分区均必须通过，且收益/markout 不参与门禁。
+
+## 7. 当前边界
+
+当前 v0.2.2 已经具备：
+
+- 专属 8 维 PM 风格；
+- 同一人员的 strategy-type-specific 投影；
+- Strategy Book 持仓隔离；
+- 三项 construction capability 的 spread-specific 解释；
+- 真实 12 周 visible spread history；
+- 开发／验证分离的自然事件扫描与 same-state 行为验收框架。
 
 仍未完成：
 
-- 长样本 style economics calibration；
-- 专属风格的开发／验证 Seed 分离；
-- pair execution trader adapter；
+- Pair Execution trader adapter；
 - Strategy Book settlement ledger；
 - portfolio capital allocation；
 - 多策略组合风险；
+- 带真实成交成本的长样本收益校准；
 - 正式竞技接入。
 
-因此当前只能宣称：**专属风格语义、确定性投影、信息隔离和默认兼容已经实现**，不能宣称这八维的经济区分度已经成熟。
+因此即使八维行为门禁全部通过，也只能宣称**策略研究风格已经经济可辨识**，不能宣称第二策略收益校准成熟或已经具备正式竞技资格。
