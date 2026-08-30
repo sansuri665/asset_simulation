@@ -20,6 +20,10 @@ from asset_simulation.model.oil_short_horizon_risk import (
 from asset_simulation.model.oil_trading_strategy import simulate_oil_trading_strategy
 
 
+ANNUALIZATION_WEEKS = 52.0
+COUNTERFACTUAL_RISK_HORIZONS = (2, 4, 8)
+
+
 def _gross(targets: dict[str, int]) -> int:
     return sum(abs(int(value)) for value in targets.values())
 
@@ -52,6 +56,70 @@ def _summary(values: list[float]) -> dict[str, float]:
     }
 
 
+def _counterfactual_horizon_approval(
+    shadow: dict,
+    *,
+    horizon_weeks: int,
+) -> tuple[float, dict[str, int], list[str]]:
+    """Re-scale only the soft stress horizon; do not change production risk code."""
+
+    estimates = shadow["softRiskEstimatesBeforePortfolioScale"]
+    policy = shadow["companyRiskAppetite"]["resolved_limits"]
+    equity = float(shadow["capitalContext"]["company_equity_usd"])
+    allocated = float(shadow["capitalContext"]["allocated_strategy_capital_usd"])
+    annualized_stress = float(estimates["estimated_stress_loss_usd"])
+    horizon_stress = annualized_stress * math.sqrt(
+        float(horizon_weeks) / ANNUALIZATION_WEEKS
+    )
+    margin = float(estimates["initial_margin_usd"])
+    stress_strategy_limit = allocated * float(
+        policy["max_strategy_stress_loss_pct_of_allocated_capital"]
+    ) / 100.0
+    stress_company_limit = equity * float(
+        policy["max_company_stress_loss_pct_of_equity_per_strategy"]
+    ) / 100.0
+    margin_strategy_limit = allocated * float(
+        policy["max_margin_pct_of_allocated_capital"]
+    ) / 100.0
+    margin_company_limit = equity * float(
+        policy["max_company_margin_pct_of_equity_per_strategy"]
+    ) / 100.0
+    candidates = {
+        "strategy_stress": 1.0
+        if horizon_stress <= 1e-12
+        else stress_strategy_limit / horizon_stress,
+        "company_materiality": 1.0
+        if horizon_stress <= 1e-12
+        else stress_company_limit / horizon_stress,
+        "strategy_margin": 1.0
+        if margin <= 1e-12
+        else margin_strategy_limit / margin,
+        "company_margin_materiality": 1.0
+        if margin <= 1e-12
+        else margin_company_limit / margin,
+    }
+    scale = max(0.0, min(1.0, *candidates.values()))
+    minimum = min(candidates.values())
+    bindings = sorted(
+        key
+        for key, value in candidates.items()
+        if value < 1.0 and math.isclose(value, minimum, rel_tol=1e-8, abs_tol=1e-10)
+    )
+    preliminary = {
+        str(contract_id): int(item["target_lots"])
+        for contract_id, item in estimates["per_contract"].items()
+    }
+    approved = {
+        contract_id: (
+            int(math.copysign(math.floor(abs(target) * scale), target))
+            if target
+            else 0
+        )
+        for contract_id, target in preliminary.items()
+    }
+    return scale, approved, bindings
+
+
 class OilShortHorizonRiskShadowAuditTests(unittest.TestCase):
     def test_shadow_compare_real_directional_replays(self) -> None:
         appetite = build_company_risk_appetite()
@@ -64,6 +132,10 @@ class OilShortHorizonRiskShadowAuditTests(unittest.TestCase):
                 "shadow_changes_realized_trades": False,
                 "committee_shadow_policy": "preserve_full_pm_intent",
                 "company_risk_appetite": "default_committee_policy",
+                "production_v2_stress_window": "annualized_proxy",
+                "counterfactual_windows_are_diagnostic_only": list(
+                    COUNTERFACTUAL_RISK_HORIZONS
+                ),
             },
             "allocations": {},
         }
@@ -71,6 +143,9 @@ class OilShortHorizonRiskShadowAuditTests(unittest.TestCase):
         for allocation_pct in allocations:
             rows: list[dict[str, object]] = []
             binding_counts: Counter[str] = Counter()
+            horizon_binding_counts = {
+                horizon: Counter() for horizon in COUNTERFACTUAL_RISK_HORIZONS
+            }
             for seed in seeds:
                 global_run = run_global_macro(seed, 7)
                 simulation = simulate_oil_trading_strategy(
@@ -151,6 +226,20 @@ class OilShortHorizonRiskShadowAuditTests(unittest.TestCase):
                     legacy_final_gross = _gross(legacy_final_targets)
                     shadow_gross = _gross(shadow_targets)
                     binding_counts.update(shadow["portfolioBindingRules"])
+                    horizon_reports: dict[str, object] = {}
+                    for horizon in COUNTERFACTUAL_RISK_HORIZONS:
+                        scale, targets, bindings = _counterfactual_horizon_approval(
+                            shadow,
+                            horizon_weeks=horizon,
+                        )
+                        horizon_binding_counts[horizon].update(bindings)
+                        candidate_gross = _gross(targets)
+                        horizon_reports[str(horizon)] = {
+                            "portfolio_scale": scale,
+                            "approved_gross": candidate_gross,
+                            "approval_ratio": _ratio(candidate_gross, pm_gross),
+                            "bindings": bindings,
+                        }
                     rows.append(
                         {
                             "seed": seed,
@@ -190,6 +279,7 @@ class OilShortHorizonRiskShadowAuditTests(unittest.TestCase):
                                     "stress_loss_pct_of_allocated_strategy_capital"
                                 ]
                             ),
+                            "counterfactual_horizons": horizon_reports,
                         }
                     )
 
@@ -205,6 +295,45 @@ class OilShortHorizonRiskShadowAuditTests(unittest.TestCase):
             delta_final = [
                 int(row["shadow_vs_legacy_final_delta_lots"]) for row in active
             ]
+            horizon_summary: dict[str, object] = {}
+            for horizon in COUNTERFACTUAL_RISK_HORIZONS:
+                key = str(horizon)
+                ratios = [
+                    float(row["counterfactual_horizons"][key]["approval_ratio"])
+                    for row in active
+                ]
+                gross_deltas_vs_strategy = [
+                    int(row["counterfactual_horizons"][key]["approved_gross"])
+                    - int(row["legacy_strategy_gross"])
+                    for row in active
+                ]
+                gross_deltas_vs_final = [
+                    int(row["counterfactual_horizons"][key]["approved_gross"])
+                    - int(row["legacy_final_gross"])
+                    for row in active
+                ]
+                horizon_summary[key] = {
+                    "approval_ratio": _summary(ratios),
+                    "more_restrictive_than_legacy_strategy_turn_share": (
+                        sum(value < 0 for value in gross_deltas_vs_strategy)
+                        / max(1, len(active))
+                    ),
+                    "less_restrictive_than_legacy_strategy_turn_share": (
+                        sum(value > 0 for value in gross_deltas_vs_strategy)
+                        / max(1, len(active))
+                    ),
+                    "equal_legacy_strategy_turn_share": (
+                        sum(value == 0 for value in gross_deltas_vs_strategy)
+                        / max(1, len(active))
+                    ),
+                    "more_restrictive_than_legacy_final_turn_share": (
+                        sum(value < 0 for value in gross_deltas_vs_final)
+                        / max(1, len(active))
+                    ),
+                    "binding_counts": dict(
+                        sorted(horizon_binding_counts[horizon].items())
+                    ),
+                }
             allocation_report = {
                 "turns": len(rows),
                 "active_turns": len(active),
@@ -248,6 +377,7 @@ class OilShortHorizonRiskShadowAuditTests(unittest.TestCase):
                 "shadow_strategy_stress_pct": _summary(
                     [float(row["shadow_stress_pct_strategy"]) for row in active]
                 ),
+                "counterfactual_risk_horizon_weeks": horizon_summary,
                 "largest_absolute_divergences": sorted(
                     (
                         {
