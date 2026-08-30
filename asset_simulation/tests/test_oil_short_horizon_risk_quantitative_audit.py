@@ -136,6 +136,13 @@ class OilShortHorizonRiskQuantitativeAuditTests(unittest.TestCase):
             float(position_rows[-1]["stress_pct_of_company_equity"]),
             float(position_rows[0]["stress_pct_of_company_equity"]),
         )
+        self.assertEqual([], position_rows[4]["binding_rules"])
+        self.assertIn("company_materiality", position_rows[5]["binding_rules"])
+        self.assertIn("company_materiality", position_rows[6]["binding_rules"])
+        self.assertGreater(float(position_rows[5]["approval_ratio"]), 0.85)
+        self.assertLess(float(position_rows[5]["approval_ratio"]), 0.95)
+        self.assertGreater(float(position_rows[6]["approval_ratio"]), 0.65)
+        self.assertLess(float(position_rows[6]["approval_ratio"]), 0.80)
 
         # Capability is intentionally narrow. Sample many stable personnel identities
         # while holding style, market, appetite, capital and target fixed.
@@ -201,6 +208,8 @@ class OilShortHorizonRiskQuantitativeAuditTests(unittest.TestCase):
         )
         self.assertLessEqual(high["measurement_abs_error"]["max"], 0.03 + 1e-12)
         self.assertLessEqual(high["stress_analysis_abs_error"]["max"], 0.04 + 1e-12)
+        self.assertGreaterEqual(high["approval_ratio"]["min"], 0.90)
+        self.assertLess(low["approval_ratio"]["min"], 0.80)
 
         report = {
             "position_materiality_sweep": position_rows,
