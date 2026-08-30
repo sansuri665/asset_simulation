@@ -29,7 +29,8 @@
     "market_history_adapter_model_version",
     "market_history_adapter_result_hash",
     "strategy_book_identity_hash",
-    "strategy_profile_hash",
+    "source_strategy_profile_hash",
+    "dedicated_style_profile_hash",
     "upstream_global_identity_hash",
     "forecast_vintage_id",
     "result_hash"
