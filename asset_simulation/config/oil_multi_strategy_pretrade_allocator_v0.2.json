@@ -1,0 +1,48 @@
+{
+  "schema_version": "asset-simulation-oil-multi-strategy-pretrade-allocator-config-v2",
+  "config_id": "asset-simulation-oil-multi-strategy-pretrade-allocator-base-v0.2.0",
+  "model_version": "asset-simulation-oil-multi-strategy-pretrade-allocator-v0.2.0",
+  "prior_model_version": "asset-simulation-oil-multi-strategy-pretrade-allocator-v0.1.0",
+  "allocation_policy_id": "system_proxy_fixed_equal_split_v2",
+  "development_only": true,
+  "strategy_entitlements": {
+    "directional": 0.5,
+    "calendar_spread": 0.5
+  },
+  "unallocated_reserve_fraction": 0.0,
+  "directional_request_policy": {
+    "mode": "strategy_wide_proportional_named_contract_vector",
+    "progress_unit": "one_gross_directional_lot",
+    "preserve_final_requested_vector_exactly": true
+  },
+  "calendar_spread_request_policy": {
+    "mode": "atomic_main_adjacent_next_pair_units",
+    "preserve_exact_one_to_one": true
+  },
+  "ordinary_risk_increase_policy": {
+    "method": "deterministic_weighted_max_min_progressive_fill",
+    "service_metric": "fraction_of_strategy_risk_approved_request",
+    "call_order_can_change_result": false,
+    "unused_entitlement_reallocation": true
+  },
+  "mandatory_reduction_policy": {
+    "priority": "before_ordinary_risk_increase",
+    "hard_market_limits_still_bind": true,
+    "blocked_result_requires_portfolio_risk_escalation": true
+  },
+  "formal_account_constraints": {
+    "position_limit_basis": "aggregate_named_contract_position",
+    "turn_limit_basis": "external_net_market_order_after_internal_cross_preview",
+    "all_contract_gross_position_cap": true,
+    "initial_margin_owner": "oil_futures_account_v1",
+    "maximum_initial_margin_pct_of_equity": 90.0,
+    "minimum_free_collateral_pct_of_equity": 10.0,
+    "margin_is_checked_on_aggregate_named_contract_positions": true
+  },
+  "internal_netting_policy": {
+    "enabled_as_preview": true,
+    "strategy_ownership_preserved": true,
+    "transfer_price_owned_here": false,
+    "fills_created_here": false
+  }
+}
