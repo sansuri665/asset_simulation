@@ -1,0 +1,55 @@
+{
+  "contract_id": "oil_calendar_spread_pair_execution_v1",
+  "schema_version": "asset-simulation-oil-calendar-spread-pair-execution-contract-v1",
+  "model_version": "asset-simulation-oil-calendar-spread-pair-execution-v0.1.0",
+  "role": "Execute one risk-approved crude-oil calendar-spread pair mandate over the next realized half-month using two real named futures legs, appointed execution-desk personnel, visible weekly liquidity and explicit per-leg trading costs.",
+  "identity_fields": [
+    "model_version",
+    "strategy_id",
+    "strategy_decision_identity_hash",
+    "strategy_book_identity_hash",
+    "execution_profile_hash",
+    "start_market_result_hash",
+    "end_market_result_hash",
+    "result_hash"
+  ],
+  "required_inputs": [
+    "start_market",
+    "end_market",
+    "calendar_spread_v0.2.2_decision",
+    "strategy_book",
+    "execution_desk_profile_optional",
+    "prior_fee_state_optional"
+  ],
+  "output_fields": {
+    "executed_pair_units": {"unit": "spread_units"},
+    "executed_main_delta_lots": {"unit": "lots"},
+    "executed_next_main_delta_lots": {"unit": "lots"},
+    "ending_main_lots_preview": {"unit": "lots"},
+    "ending_next_main_lots_preview": {"unit": "lots"},
+    "spread_cost_usd": {"unit": "usd"},
+    "slippage_cost_usd": {"unit": "usd"},
+    "net_fee_usd": {"unit": "usd"},
+    "execution_cost_usd": {"unit": "usd"},
+    "neutral_execution_cost_usd": {"unit": "usd"},
+    "execution_value_added_usd": {"unit": "usd"},
+    "temporary_leg_imbalance_peak_lots": {"unit": "lots"}
+  },
+  "invariants": [
+    "only a v0.2.2 calendar-spread decision whose cutoff equals the execution start may be executed",
+    "execution start and end markets must be adjacent half-month cutoffs from the same deterministic world",
+    "the strategy book consumed at execution must exactly match the strategy-book identity frozen in the decision",
+    "the execution desk may reduce but never enlarge the strategy-approved discretionary pair request",
+    "existing residual-leg remediation is executed before any new pair exposure and is treated as mandatory risk reduction",
+    "mandatory residual remediation bypasses style completion penalties but never bypasses each leg hard turn limit",
+    "new pair fills are real named-contract fills and remain exactly balanced main versus adjacent next within each weekly execution window",
+    "no synthetic spread security or synthetic spread fill is created",
+    "weekly scheduling uses only newly realized weekly bars between the frozen decision cutoff and the adjacent end cutoff",
+    "execution personnel do not read bars beyond the end cutoff and do not write back to market liquidity or prices",
+    "spread, slippage and fee costs are computed independently for each real leg and summed for the pair",
+    "neutral score-50 TCA is computed on the same realized fills, not on hypothetical extra completion",
+    "temporary leg imbalance from new pair construction is zero in v0.1; only pre-existing residual remediation can be leg-specific",
+    "the execution report is a settlement input preview and does not mutate Strategy Book, Formal Account, cash, margin, interest or financing",
+    "portfolio internal order netting is outside this contract"
+  ]
+}
