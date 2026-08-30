@@ -1,17 +1,20 @@
 """Acceptance runner for the controlled calendar-spread PM style audit.
 
 The reusable audit engine intentionally omits thesis evaluation so style axes can
-be isolated.  Production calendar-spread semantics nevertheless require an
+be isolated. Production calendar-spread semantics nevertheless require an
 existing spread position to exit before the opposite direction may be opened.
-This runner restores that invariant in the research-book state propagation
-without reintroducing thesis-performance feedback.
+This runner restores that invariant in the research-book state propagation.
+
+The hardened v0.1.2 reference engine is used here only to obtain current signal
+primitives and visible risk capacity. It therefore receives a flat reference
+position: the controlled research-book position is owned entirely by this audit
+layer and cannot leak back into the neutral 70/30 reference target path.
 """
 
 from __future__ import annotations
 
 import argparse
 import json
-import math
 from pathlib import Path
 from typing import Any, Mapping
 
@@ -27,7 +30,7 @@ from .model.registry import load_registered_assets
 
 
 ACCEPTANCE_VERSION = (
-    "asset-simulation-oil-calendar-spread-style-economic-acceptance-v0.1.0"
+    "asset-simulation-oil-calendar-spread-style-economic-acceptance-v0.1.1"
 )
 
 
@@ -40,19 +43,21 @@ def _controlled_decision_with_reversal_guard(
     authorized_strategy_capital_usd: float,
 ) -> dict[str, Any]:
     _, reference_profile, policy = base._runtime_bundle(dedicated_radar)
-    positions = base._positions_for_units(market, current_spread_units)
+
+    # Reference owner is deliberately flat.  It supplies pair identity, forecast
+    # and visible-curve components plus capacity; it does not own audit book state.
     reference = build_oil_calendar_spread_research_decision(
         market,
         forecast,
         authorized_strategy_capital_usd=float(authorized_strategy_capital_usd),
-        positions=positions,
+        positions={},
         strategy_research_profile=reference_profile,
         thesis_state={"status": "active", "last_signal": 0.0},
     )
     signal = _dedicated_signal_mix(reference["signal"], policy)
     capacity = dict(reference["strategyRiskAdapter"]["capacity"])
     risk_capacity = int(capacity["risk_capacity_units"])
-    current = int(reference["strategyRiskAdapter"]["current"]["spread_units"])
+    current = max(-risk_capacity, min(risk_capacity, int(current_spread_units)))
     ideal = int(round(float(signal["signal"]) * risk_capacity))
     persistent = _apply_spread_position_persistence(
         current_spread_units=current,
@@ -94,6 +99,7 @@ def _controlled_decision_with_reversal_guard(
         "persistent_target_spread_units": persistent,
         "target_spread_units": target,
         "reversal_exit_applied": reversal_exit_applied,
+        "reference_engine_flat_for_primitives": True,
         "paired_execution_mandate": mandate,
         "legs": {
             "main": dict(reference["legs"]["main"]),
@@ -115,6 +121,8 @@ def build_oil_calendar_spread_style_economic_acceptance(**kwargs: Any) -> dict[s
     report["method"] = {
         **dict(report["method"]),
         "reversal_policy": "exit_existing_spread_before_opposite_direction",
+        "reference_engine_position_state": "flat_primitives_only",
+        "controlled_book_owner": "style_economic_acceptance_runner",
         "thesis_performance_feedback_included": False,
     }
     report["result_hash"] = base.sha256_json(
