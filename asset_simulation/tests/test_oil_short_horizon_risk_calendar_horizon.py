@@ -67,10 +67,13 @@ class OilShortHorizonRiskCalendarHorizonTests(unittest.TestCase):
 
         stress_error = float(estimates["stress_analysis_error_fraction"])
         expected_stress = units * 1000.0 * expected_move * (1.0 + stress_error)
+        # Review payloads round nested floats to 8 decimal places before this
+        # reconstruction. A sub-cent dollar tolerance locks the one-multiplier
+        # identity without mistaking serialization round-off for model drift.
         self.assertAlmostEqual(
             expected_stress,
             float(estimates["estimated_stress_loss_usd"]),
-            places=5,
+            delta=0.001,
         )
 
 
