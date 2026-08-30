@@ -1,0 +1,23 @@
+{
+  "contract_id": "oil_multi_strategy_pretrade_allocator_v2",
+  "schema_version": "asset-simulation-oil-multi-strategy-pretrade-allocator-contract-v2",
+  "model_version": "asset-simulation-oil-multi-strategy-pretrade-allocator-v0.2.0",
+  "role": "Development-only two-strategy pre-trade allocator that arbitrates the mature Directional strategy-wide named-contract request vector and one atomic Calendar Spread pair against one Formal Account's market and initial-margin constraints.",
+  "invariants": [
+    "fixed development entitlement is 50 percent Directional and 50 percent Calendar Spread",
+    "the allocator consumes risk-approved strategy requests and cannot create strategy alpha or expand either request",
+    "Directional ordinary allocation follows one deterministic proportional path across its whole named-contract request vector",
+    "Calendar Spread ordinary allocation remains an atomic plus-one/minus-one Main/Adjacent-Next pair",
+    "mandatory strategy-risk reductions are evaluated before ordinary risk-increasing flow",
+    "exchange hard limits still bind mandatory reductions and blocked mandatory reduction requires portfolio-risk escalation",
+    "single-contract position limits are checked on aggregate Formal Account named-contract positions",
+    "turn limits are checked on external net market orders after internal-cross preview",
+    "all-contract gross position cap is checked on aggregate Formal Account positions",
+    "initial margin is checked once on aggregate Formal Account named-contract positions using the Formal Account margin rate",
+    "internal netting changes external market footprint but never deletes strategy ownership",
+    "internal cross transfer price and fills are not owned by this allocator",
+    "unused entitlement may reallocate when one strategy is blocked by an additional constraint",
+    "strategy function call order is not an allocation input",
+    "no Strategy Book, Formal Account, cash, margin or market state is mutated"
+  ]
+}
