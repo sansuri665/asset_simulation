@@ -70,6 +70,12 @@ OIL_CALENDAR_SPREAD_PAIR_EXECUTION_V11_CONFIG_PATH = (
 OIL_CALENDAR_SPREAD_PAIR_EXECUTION_V11_CONTRACT_PATH = (
     PACKAGE_ROOT / "contracts" / "oil_calendar_spread_pair_execution_v11.json"
 )
+OIL_MULTI_STRATEGY_PRETRADE_ALLOCATOR_CONFIG_PATH = (
+    PACKAGE_ROOT / "config" / "oil_multi_strategy_pretrade_allocator_v0.1.json"
+)
+OIL_MULTI_STRATEGY_PRETRADE_ALLOCATOR_CONTRACT_PATH = (
+    PACKAGE_ROOT / "contracts" / "oil_multi_strategy_pretrade_allocator_v1.json"
+)
 OIL_STRATEGY_BOOK_CONTRACT_PATH = (
     PACKAGE_ROOT / "contracts" / "oil_strategy_book_v1.json"
 )
@@ -193,6 +199,12 @@ def load_registered_assets() -> dict[str, Any]:
     oil_calendar_spread_pair_execution_v11_contract = load_json(
         OIL_CALENDAR_SPREAD_PAIR_EXECUTION_V11_CONTRACT_PATH
     )
+    oil_multi_strategy_pretrade_allocator_config = load_json(
+        OIL_MULTI_STRATEGY_PRETRADE_ALLOCATOR_CONFIG_PATH
+    )
+    oil_multi_strategy_pretrade_allocator_contract = load_json(
+        OIL_MULTI_STRATEGY_PRETRADE_ALLOCATOR_CONTRACT_PATH
+    )
     oil_strategy_book_contract = load_json(OIL_STRATEGY_BOOK_CONTRACT_PATH)
     oil_execution_desk_config = load_json(OIL_EXECUTION_DESK_CONFIG_PATH)
     oil_execution_desk_contract = load_json(OIL_EXECUTION_DESK_CONTRACT_PATH)
@@ -294,6 +306,18 @@ def load_registered_assets() -> dict[str, Any]:
         "oil_calendar_spread_pair_execution_v11_contract": oil_calendar_spread_pair_execution_v11_contract,
         "oil_calendar_spread_pair_execution_v11_contract_hash": sha256_json(
             oil_calendar_spread_pair_execution_v11_contract
+        ),
+        "oil_multi_strategy_pretrade_allocator_config": (
+            oil_multi_strategy_pretrade_allocator_config
+        ),
+        "oil_multi_strategy_pretrade_allocator_config_hash": sha256_json(
+            oil_multi_strategy_pretrade_allocator_config
+        ),
+        "oil_multi_strategy_pretrade_allocator_contract": (
+            oil_multi_strategy_pretrade_allocator_contract
+        ),
+        "oil_multi_strategy_pretrade_allocator_contract_hash": sha256_json(
+            oil_multi_strategy_pretrade_allocator_contract
         ),
         "oil_strategy_book_contract": oil_strategy_book_contract,
         "oil_strategy_book_contract_hash": sha256_json(oil_strategy_book_contract),
