@@ -1,0 +1,29 @@
+{
+  "contract_id": "oil_dual_strategy_settlement_v1",
+  "schema_version": "asset-simulation-oil-dual-strategy-settlement-contract-v1",
+  "model_version": "asset-simulation-oil-dual-strategy-settlement-v0.1.0",
+  "role": "Development Gate-B settlement owner for a fixed 50:50 Directional plus Calendar-Spread oil portfolio. It assigns deterministic internal-cross fills, executes only residual external named-contract orders, returns fills to Strategy Books, attributes strategy trading PnL, and submits one reconciled statement to the Formal Account.",
+  "invariants": [
+    "starting Formal Account named-contract positions equal the aggregation of the two starting Strategy Books",
+    "strategy capital authorization is fixed 50:50 only in this development mode",
+    "pre-trade allocation is completed before fills are created",
+    "internal cross uses the decision-cutoff named-contract mark known to both strategies",
+    "both sides of one internal cross receive exactly the same transfer price",
+    "internal cross consumes no external market turnover and creates no company-level trading PnL at transfer time",
+    "only residual net named-contract orders are sent to external execution",
+    "external execution schedule is frozen from pre-decision visible liquidity and later weekly OHLC/volume cannot alter that schedule",
+    "v0.1 requires the neutral compatibility execution desk and full completion of the pre-trade external mandate",
+    "external fills are allocated back to strategies without changing the pre-trade strategy-owned deltas",
+    "Calendar Spread ending ordinary ownership remains one-to-one before any future lifecycle roll",
+    "strategy gross PnL equals starting-position mark-to-market plus fill-to-end-mark PnL",
+    "strategy execution cost is attributed only from the external fills allocated to that strategy",
+    "sum of strategy gross PnL equals company gross trading PnL",
+    "sum of strategy execution cost equals company execution cost",
+    "sum of strategy net trading PnL equals the Formal Account variation-margin trading statement",
+    "Formal Account cash and margin are settled exactly once",
+    "Strategy Books never own idle-cash interest, financing or independent margin",
+    "forced liquidation attribution is not invented; if the Formal Account forces liquidation this v0.1 settlement is not considered reconciled",
+    "calendar-spread pair identity changes require a later lifecycle/roll owner and may not erase old Strategy Book positions",
+    "no market write-back occurs"
+  ]
+}
