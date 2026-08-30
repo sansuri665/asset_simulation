@@ -16,6 +16,7 @@ on:
       - 'asset_simulation/contracts/oil_strategy_book_v1.json'
       - 'asset_simulation/audit_oil_calendar_spread_style_economics.py'
       - 'asset_simulation/audit_oil_calendar_spread_style_economic_acceptance.py'
+      - 'asset_simulation/audit_oil_calendar_spread_style_identification.py'
       - 'asset_simulation/tests/test_oil_calendar_spread_strategy_v2.py'
       - 'asset_simulation/tests/test_oil_calendar_spread_research.py'
       - 'asset_simulation/tests/test_oil_calendar_spread_style_economics.py'
@@ -58,6 +59,7 @@ jobs:
           python -m py_compile asset_simulation/model/oil_calendar_spread_strategy_v2.py
           python -m py_compile asset_simulation/audit_oil_calendar_spread_style_economics.py
           python -m py_compile asset_simulation/audit_oil_calendar_spread_style_economic_acceptance.py
+          python -m py_compile asset_simulation/audit_oil_calendar_spread_style_identification.py
       - name: Strategy-book tests
         run: python -m unittest asset_simulation.tests.test_oil_strategy_book -v
       - name: Calendar-spread PM style tests
@@ -70,6 +72,27 @@ jobs:
         run: python -m unittest asset_simulation.tests.test_oil_calendar_spread_strategy_v2 -v
       - name: Hardened v0.1.2 reference tests
         run: python -m unittest asset_simulation.tests.test_oil_calendar_spread_strategy -v
+
+  style-identification-scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Scan broad natural-event coverage
+        run: |
+          mkdir -p artifacts
+          python -m asset_simulation.audit_oil_calendar_spread_style_identification \
+            --development-seeds 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15 \
+            --validation-seeds 100,101,102,103,104,105,106,107,108,109,110,111,112,113,114,115 \
+            --years 2 \
+            --output artifacts/calendar-spread-style-identification.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: calendar-spread-style-identification
+          path: artifacts/calendar-spread-style-identification.json
 
   style-economic-audit:
     runs-on: ubuntu-latest
