@@ -3,7 +3,7 @@
 > 状态：v0.2.2 研究候选行为验收已通过  
 > Strategy style owner：`oil_calendar_spread_research_v1`  
 > Natural identification：`audit_oil_calendar_spread_style_identification.py`  
-> Final acceptance：`audit_oil_calendar_spread_style_same_state_acceptance.py`
+> Current hard gate：`audit_oil_calendar_spread_style_same_state_acceptance.py`
 
 ## 1. 审计目标
 
@@ -69,35 +69,29 @@ Total:                     1536 截点
 | forecast vs visible curve | 154 | 138 |
 | momentum vs mean reversion | 406 | 401 |
 
-这证明两个核心专属轴现在拥有足够的自然识别事件，不需要人为构造冲突场景，也不需要下调门槛。
+这证明两个核心专属轴拥有足够自然识别事件，不需要人为构造冲突，也不需要下调门槛。
 
 ## 4. 最终验收方法：Broad Same-State
 
-最终验收不让低分 PM 与高分 PM 各自跑出不同历史再比较，而是：
+最终验收不让低分 PM 与高分 PM 各自跑不同历史，而是：
 
 ```text
 中性 50 分 PM
 → 产生唯一 research-book 状态路径
-→ 冻结当期 market + forecast + current spread state
+→ 冻结 market + forecast + current spread state
 → 同时计算某一轴 10 分与 90 分
 → 比较同一个状态下的行为响应
 ```
 
-因此：
-
-- 市场相同；
-- forecast vintage 相同；
-- 当前 spread 仓位相同；
-- 其它七个专属轴相同；
-- construction error 不进入验收；
-- 正式 execution / account PnL 不进入验收；
-- pair identity 改变时先清空 research book。
+因此市场、forecast vintage、当前 spread 仓位和其余七轴完全相同。construction error、正式 execution、正式 account PnL 均不进入验收。
 
 只有 `capital_deployment` 会重新计算 spread capacity，因为它本来就应该改变已授权资本的实际部署预算；其它七轴直接使用同一组 neutral signal primitives。
 
+旧的 `audit_oil_calendar_spread_style_economics.py` 和 `audit_oil_calendar_spread_style_economic_acceptance.py` 保留为开发诊断与回归辅助，但不再是最终 hard gate；当前 CI 的 hard gate 是 broad same-state acceptance。
+
 ## 5. 八轴开发／验证结果
 
-10 分与 90 分比较结果如下。表内数值都是**行为指标**，不是收益。
+10 分与 90 分比较如下。表内都是行为指标，不是收益。
 
 | Axis | Development 10→90 | Validation 10→90 | 结果 |
 |---|---:|---:|---|
@@ -110,9 +104,7 @@ Total:                     1536 截点
 | `holding_patience` | retention `0.05% → 58.84%`（40事件） | `0.14% → 59.04%`（30事件） | PASS |
 | `forecast_horizon` | 4w weight `23.6% → 36.4%` | `23.6% → 36.4%` | PASS |
 
-三个条件轴最低要求 10 个自然事件；开发与验证均远高于门槛。
-
-最终：
+三个条件轴最低要求 10 个自然事件；开发与验证均高于门槛。
 
 ```text
 Development hard gate = PASS 8 / 8
@@ -120,43 +112,9 @@ Validation  hard gate = PASS 8 / 8
 Overall                 = PASS
 ```
 
-## 6. 各轴门禁含义
+## 6. 明确不使用的门禁
 
-### `forecast_vs_visible_curve`
-
-只在 forecast 与 visible curve 都至少 0.15 且方向相反时比较。高分必须让 raw signal 更接近 forecast component。
-
-### `curve_continuation_reversion`
-
-只在 momentum 与 mean-reversion 都至少 0.15 且方向相反时比较。高分必须让 visible curve expression 更接近 momentum。
-
-### `dislocation_selectivity`
-
-高分不得提高 active-signal frequency。该轴表达“等待更明显异常”，不是质量分。
-
-### `capital_deployment`
-
-在相同投委会授权资本下，高分不得降低 spread risk capacity。最终 target 仍受 signal、市场限额和风险边界限制。
-
-### `adjustment_tempo`
-
-高分必须完成更高比例的同一目标缺口。
-
-### `rebalance_activity`
-
-高分必须形成更高 advisory pair turnover budget。正式实际成交量仍归未来 Pair Execution owner。
-
-### `holding_patience`
-
-只在当前仓位与新 ideal target 同方向、但目标绝对值缩小时比较。高分必须保留更多已有 exposure。
-
-### `forecast_horizon`
-
-高分必须提高 4 周预测权重。该门禁不要求 4 周预测赚钱更多。
-
-## 7. 明确不使用的门禁
-
-以下都只允许作为未来观察项：
+以下只允许作为未来观察项：
 
 - idealized next-half-turn markout；
 - 某一风格累计收益；
@@ -164,9 +122,9 @@ Overall                 = PASS
 - 某一风格胜率；
 - 候选 PM 长期排名。
 
-原因是第二策略尚无正式 Pair Execution、Strategy Book settlement ledger 和 portfolio risk；此时宣称收益成熟会混淆研究目标与真实成交结果。
+第二策略尚无正式 Pair Execution、Strategy Book settlement ledger 和 portfolio risk，此时用收益反推人员风格会混淆研究目标与真实成交结果。
 
-## 8. 当前结论
+## 7. 当前结论
 
 现在可以正式宣称：
 
@@ -180,4 +138,4 @@ Overall                 = PASS
 - 已有多策略组合收益；
 - 可以立即接入四机构竞技。
 
-下一阶段的首要任务仍是 Pair Execution Adapter，其后才是 Strategy Book settlement ledger、Portfolio Risk / Investment Decision 与正式收益校准。
+下一阶段首要任务仍是 Pair Execution Adapter，其后才是 Strategy Book settlement ledger、Portfolio Risk / Investment Decision 与正式收益校准。
