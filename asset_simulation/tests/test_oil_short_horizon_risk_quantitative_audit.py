@@ -90,11 +90,13 @@ class OilShortHorizonRiskQuantitativeAuditTests(unittest.TestCase):
         market = _market()
         appetite = build_company_risk_appetite()
 
-        # Moderate constant risk intensity: the target scales with allocated capital.
-        # This isolates company materiality from strategy-relative risk intensity.
+        # Keep two-week strategy-relative stress intensity constant while scaling
+        # the strategy from experimental to core-book size. Forty lots per 1%
+        # allocation deliberately places the company-materiality crossover near
+        # the 35-40% range without changing risk formulas by allocation tier.
         position_rows: list[dict[str, object]] = []
         for pct in (1.0, 5.0, 10.0, 25.0, 35.0, 40.0, 50.0):
-            target_lots = int(round(8.0 * pct))
+            target_lots = int(round(40.0 * pct))
             mandate, allocated = _mandate(pct=pct, target_lots=target_lots)
             review = build_oil_short_horizon_risk_review(
                 market,
@@ -103,6 +105,7 @@ class OilShortHorizonRiskQuantitativeAuditTests(unittest.TestCase):
                 allocated_strategy_capital_usd=allocated,
                 company_risk_appetite=appetite,
             )
+            self.assertEqual(2.0, float(review["riskHorizon"]["review_horizon_weeks"]))
             materiality = review["materialityBeforePortfolioScale"]
             approved = int(review["riskApprovedTargets"][CONTRACT_ID])
             position_rows.append(
@@ -110,7 +113,7 @@ class OilShortHorizonRiskQuantitativeAuditTests(unittest.TestCase):
                     "allocation_pct": pct,
                     "target_lots": target_lots,
                     "approved_lots": approved,
-                    "approval_ratio": 0.0 if target_lots == 0 else approved / target_lots,
+                    "approval_ratio": approved / target_lots,
                     "stress_pct_of_allocated_capital": float(
                         materiality["stress_loss_pct_of_allocated_strategy_capital"]
                     ),
@@ -140,15 +143,19 @@ class OilShortHorizonRiskQuantitativeAuditTests(unittest.TestCase):
         self.assertIn("company_materiality", position_rows[5]["binding_rules"])
         self.assertIn("company_materiality", position_rows[6]["binding_rules"])
         self.assertGreater(float(position_rows[5]["approval_ratio"]), 0.85)
-        self.assertLess(float(position_rows[5]["approval_ratio"]), 0.95)
+        self.assertLess(float(position_rows[5]["approval_ratio"]), 0.97)
         self.assertGreater(float(position_rows[6]["approval_ratio"]), 0.65)
-        self.assertLess(float(position_rows[6]["approval_ratio"]), 0.80)
+        self.assertLess(float(position_rows[6]["approval_ratio"]), 0.82)
 
-        # Capability is intentionally narrow. Sample many stable personnel identities
-        # while holding style, market, appetite, capital and target fixed.
+        # Capability stays intentionally narrow. The larger target places the
+        # same 20%-allocated book near the two-week stress boundary so bounded
+        # estimation error can affect marginal approval without changing facts.
         capability_levels = (35.0, 52.0, 70.0)
         capability_report: dict[str, object] = {}
-        mandate, allocated = _mandate(pct=20.0, target_lots=220)
+        capability_target = 1_100
+        mandate, allocated = _mandate(
+            pct=20.0, target_lots=capability_target
+        )
         baseline_hard_facts = None
         for level in capability_levels:
             measurement_abs_errors: list[float] = []
@@ -170,6 +177,7 @@ class OilShortHorizonRiskQuantitativeAuditTests(unittest.TestCase):
                     baseline_hard_facts = review["hardFacts"]
                 self.assertEqual(baseline_hard_facts, review["hardFacts"])
                 estimates = review["softRiskEstimatesBeforePortfolioScale"]
+                self.assertEqual(2.0, float(estimates["risk_horizon_weeks"]))
                 per_contract = estimates["per_contract"][CONTRACT_ID]
                 measurement_abs_errors.append(
                     abs(float(per_contract["measurement_error_fraction"]))
@@ -179,7 +187,7 @@ class OilShortHorizonRiskQuantitativeAuditTests(unittest.TestCase):
                 )
                 portfolio_scales.append(float(review["portfolioScale"]))
                 approved = int(review["riskApprovedTargets"][CONTRACT_ID])
-                approval_ratios.append(approved / 220.0)
+                approval_ratios.append(approved / capability_target)
                 resolved_strategy_stress_limits.append(
                     float(
                         review["companyRiskAppetite"]["resolved_limits"]
@@ -208,10 +216,11 @@ class OilShortHorizonRiskQuantitativeAuditTests(unittest.TestCase):
         )
         self.assertLessEqual(high["measurement_abs_error"]["max"], 0.03 + 1e-12)
         self.assertLessEqual(high["stress_analysis_abs_error"]["max"], 0.04 + 1e-12)
-        self.assertGreaterEqual(high["approval_ratio"]["min"], 0.90)
-        self.assertLess(low["approval_ratio"]["min"], 0.80)
+        self.assertGreaterEqual(high["approval_ratio"]["min"], 0.85)
+        self.assertLess(low["approval_ratio"]["min"], 0.85)
 
         report = {
+            "risk_horizon_weeks": 2,
             "position_materiality_sweep": position_rows,
             "capability_sweep": capability_report,
             "interpretation_contract": {
