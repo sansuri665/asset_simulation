@@ -3,8 +3,8 @@
 > 状态：设计与研究候选，不是当前默认竞技运行事实  
 > 分支基线：`feature/oil-short-calendar-spread-v02`  
 > 当前第二策略候选：`asset-simulation-oil-calendar-spread-strategy-v0.2.2`  
-> 当前 PM style hard gate：`audit_oil_calendar_spread_style_same_state_acceptance.py`  
-> 目标：把“原油 → 短期 → 策略类型”冻结为可继续扩展的策略组织方式，同时保持第一方向策略行为不变。
+> 当前 PM style hard gate：`audit_oil_calendar_spread_style_same_state_acceptance.py`（开发／验证 8/8 PASS）  
+> 下一开发 Gate：Pair Execution Adapter
 
 ## 1. 顶层分类
 
@@ -37,31 +37,15 @@ Crude Oil
 
 ### v0.1.2 — 金融对象与硬边界
 
-历史 reference engine 解决：
-
-- spread = `P_main - P_adjacent_next`；
-- +1 unit = +1 Main / -1 Adjacent Next；
-- 不创建 synthetic security；
-- 相邻两腿身份校验；
-- 双腿容量、残腿、到期时间 owner；
-- thesis 成熟时序；
-- spread / residual-direction / carry PnL 恒等式。
-
-它保留为 invariant reference，不静默重写。
+历史 reference engine 解决：spread 对象、+1/-1 两腿、不创建 synthetic security、相邻两腿身份、双腿容量、残腿、到期时间 owner、thesis 成熟时序和 PnL 恒等式。它保留为 invariant reference，不静默重写。
 
 ### v0.2.1 — 多策略 owner 与专属 PM style
 
-增加：
-
-- 显式 taxonomy；
-- `oil_strategy_book_v1`；
-- dedicated owner `oil_calendar_spread_research_v1`；
-- 8 维 Calendar Spread PM 风格；
-- 通用 construction capability 的 spread-specific 解释。
+增加显式 taxonomy、`oil_strategy_book_v1`、`oil_calendar_spread_research_v1`、8 维 Calendar Spread PM 风格，以及通用 construction capability 的 spread-specific 解释。
 
 ### v0.2.2 — 恢复真实 visible spread history
 
-经济审计发现 v0.1.2/v0.2.1 的 visible-curve 历史读取存在 schema mismatch：市场 owner 把 `year/month` 放在父 monthly node，而旧 spread reader 要求 weekly child 自带坐标，因此真实周线被丢弃。
+经济审计发现旧 spread reader 没有继承 `monthly.year/month` 到 `weekly` 子节点，真实周线因此被丢弃。
 
 v0.2.2 增加 strategy-local metadata-only adapter：
 
@@ -91,7 +75,7 @@ Portfolio / Formal Account Aggregate
 
 Calendar Spread 只能看自己的 book，不能把账户汇总仓位误认成自己的残腿。
 
-Strategy Book 不是第二账户：不拥有现金、保证金、利息、融资或独立强平，只负责策略仓位所有权与未来 attribution。Formal Account 仍是现金与法定持仓真相。
+Strategy Book 不拥有现金、保证金、利息、融资或独立强平，只负责策略仓位所有权与未来 attribution。Formal Account 仍是现金与法定持仓真相。
 
 ## 5. 第二策略专属 PM style
 
@@ -110,11 +94,9 @@ forecast_horizon
 
 方向策略与跨期策略画像相关但不机械相同；默认兼容负责人八维严格为 50。无偏好总分、Alpha 分或质量分。
 
-`near_month_focus` 不进入第二策略专属 radar，因为 +1/-1 pair identity 已经拥有腿关系。
-
 ### Broad Same-State 行为验收
 
-中性 PM 路径冻结每个真实截点的 market、forecast 与 research-book state，然后在**同一状态**同时比较某一轴 10 分与 90 分。pair identity 改变时 research book 清零。
+中性 PM 路径冻结每个真实截点的 market、forecast 与 research-book state，然后在同一状态同时比较某一轴 10 分与 90 分。pair identity 改变时 research book 清零。
 
 开发与验证各 16 Seed × 2 年 = 768 截点；三个条件轴要求每个分区至少 10 个自然事件。
 
@@ -124,13 +106,7 @@ Validation:  8 / 8 PASS
 Overall:     PASS
 ```
 
-严格自然事件数：
-
-- forecast vs visible curve：154 / 138；
-- momentum vs mean reversion：406 / 401；
-- same-direction shrink：40 / 30。
-
-收益和 markout 不进入 style hard gate。
+严格自然事件数：forecast vs visible curve 154 / 138；momentum vs mean reversion 406 / 401；same-direction shrink 40 / 30。收益和 markout 不进入 style hard gate。
 
 ## 6. Construction capability
 
@@ -142,15 +118,7 @@ Overall:     PASS
 | `transition_planning` | pair transition planning |
 | `contract_lifecycle_planning` | curve lifecycle planning |
 
-前两项进入：
-
-```text
-ideal spread target
-→ bounded symmetric construction error
-→ submitted spread target
-```
-
-不能制造腿偏好、从零创造方向或跨零反向，并始终保持 `target_main + target_next = 0`。
+前两项进入 `ideal spread target → bounded symmetric construction error → submitted spread target`，不能制造腿偏好、从零创造方向或跨零反向，并始终保持 `target_main + target_next = 0`。
 
 `contract_lifecycle_planning` 当前只记录确定性有界 error，不改目标。正式 multi-turn spread roll scheduler owner 尚未存在前，不能让策略自己偷偷决定换月。
 
@@ -158,7 +126,7 @@ ideal spread target
 
 ### Gate A — Pair Execution Adapter
 
-**下一阶段首要任务。**
+**当前下一阶段。**
 
 一份 pair mandate 必须成为交易部可执行的两条真实腿，并明确：
 
@@ -171,8 +139,6 @@ ideal spread target
 - 禁止 synthetic spread fill。
 
 ### Gate B — Strategy Book Settlement Ledger
-
-正式账户按真实命名合约净持仓结算，同时把 fills/PnL 回分到 strategy books：
 
 ```text
 strategy requests
@@ -187,7 +153,7 @@ strategy requests
 
 ### Gate C — Portfolio Risk + Investment Decision
 
-第二策略真正上线后，`portfolioRisk = dormant_single_strategy` 必须结束。Investment Decision 至少拥有：原油总授权、两个策略各自额度、组合 gross/margin/liquidity、组合回撤/集中度、策略停用/只减仓。
+第二策略真正上线后，`portfolioRisk = dormant_single_strategy` 必须结束。Investment Decision 至少拥有原油总授权、两个策略各自额度、组合 gross/margin/liquidity、组合回撤/集中度、策略停用/只减仓。
 
 策略 risk mandate 先裁剪自己的意图；portfolio risk 只能继续缩小，不能放大。
 
@@ -209,26 +175,8 @@ Pair Execution 与 settlement 完成后再做：
 
 ## 8. 当前分支边界
 
-已实现：
+已实现：Strategy Book、v0.2.2 taxonomy/config/contract、dedicated 8-axis PM style、construction capability、visible-history metadata adapter、自然事件 identification、broad same-state 8/8 行为验收、v0.1.2/v0.2.1/v0.2.2 并行回归测试、第一方向策略回归保护。
 
-- Strategy Book；
-- v0.2.2 taxonomy / config / contract；
-- dedicated 8-axis PM style；
-- construction capability 接入；
-- visible-history metadata adapter；
-- 自然事件 identification scan；
-- broad same-state 开发／验证 8/8 行为验收；
-- v0.1.2、v0.2.1、v0.2.2 并行回归测试；
-- 第一方向策略回归保护。
-
-故意未实现：
-
-- 四机构竞技接入；
-- Pair Execution trader runtime；
-- formal-account strategy subledger；
-- portfolio risk 激活；
-- 多策略资本分配 UI；
-- internal order netting；
-- 带真实成交成本的 Calendar Spread 长样本收益校准。
+故意未实现：四机构竞技接入、Pair Execution trader runtime、formal-account strategy subledger、portfolio risk、多策略资本分配 UI、internal order netting、带真实成交成本的 Calendar Spread 长样本收益校准。
 
 现在第二策略已经从“研究接口正确”进入“策略研究行为可辨识”；下一道真正的工程门槛是 **Pair Execution Adapter**。
