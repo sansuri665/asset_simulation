@@ -38,7 +38,7 @@ from .investment_decision import (
     build_strategy_charter,
     build_strategy_position_mandate,
 )
-from .oil_short_horizon_risk import (
+from .oil_short_horizon_risk_v2 import (
     OIL_SHORT_HORIZON_RISK_MODEL_VERSION,
     build_oil_short_horizon_risk_review,
     generate_oil_short_horizon_risk_roster,

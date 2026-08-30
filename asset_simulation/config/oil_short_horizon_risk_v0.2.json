@@ -1,0 +1,28 @@
+{
+  "schema_version": "asset-simulation-oil-short-horizon-risk-config-v2",
+  "config_id": "asset-simulation-oil-short-horizon-risk-base-v0.2.0",
+  "model_version": "asset-simulation-oil-short-horizon-risk-v0.2.0",
+  "base_measurement_model_version": "asset-simulation-oil-short-horizon-risk-v0.1.1",
+  "governance": {
+    "binding_scope": "strategy_relative_plus_market_execution_constraints",
+    "company_materiality_in_strategy_review": "diagnostic_only",
+    "future_company_materiality_owner": "corporate_aggregate_risk",
+    "capital_allocation_owner": "investment_decision_committee"
+  },
+  "strategy_stress_parameter_mapping": {
+    "max_strategy_stress_loss_pct_of_allocated_capital": {
+      "score_0": 9.0,
+      "score_50": 18.0,
+      "score_100": 33.0
+    }
+  },
+  "calibration_note": "The v0.1.1 score-50 two-week stress budget was economically over-restrictive after company-level per-strategy caps were removed. v0.2 preserves score 50 as neutral policy and maps it to the approximately 18 percent two-week stress budget that restored about 95-99 percent of frozen Directional economics in the boundary counterfactual. Endpoints retain the prior piecewise geometry by a uniform 1.5x rescaling and remain subject to validation gates.",
+  "binding_portfolio_limits": [
+    "strategy_stress",
+    "strategy_margin"
+  ],
+  "nonbinding_company_diagnostics": [
+    "stress_loss_pct_of_company_equity",
+    "margin_pct_of_company_equity"
+  ]
+}
