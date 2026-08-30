@@ -31,6 +31,18 @@ from .corporate_risk_control import (
     CORPORATE_RISK_CONTROL_MODEL_VERSION,
     generate_corporate_risk_roster,
 )
+from .investment_decision import (
+    INVESTMENT_DECISION_MODEL_VERSION,
+    build_company_risk_appetite,
+    build_strategy_capital_mandate,
+    build_strategy_charter,
+    build_strategy_position_mandate,
+)
+from .oil_short_horizon_risk import (
+    OIL_SHORT_HORIZON_RISK_MODEL_VERSION,
+    build_oil_short_horizon_risk_review,
+    generate_oil_short_horizon_risk_roster,
+)
 
 __all__ = [
     "MODEL_VERSION",
@@ -54,4 +66,12 @@ __all__ = [
     "generate_oil_execution_desk_roster",
     "CORPORATE_RISK_CONTROL_MODEL_VERSION",
     "generate_corporate_risk_roster",
+    "INVESTMENT_DECISION_MODEL_VERSION",
+    "build_strategy_charter",
+    "build_strategy_capital_mandate",
+    "build_company_risk_appetite",
+    "build_strategy_position_mandate",
+    "OIL_SHORT_HORIZON_RISK_MODEL_VERSION",
+    "build_oil_short_horizon_risk_review",
+    "generate_oil_short_horizon_risk_roster",
 ]
