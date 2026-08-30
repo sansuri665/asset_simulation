@@ -1,0 +1,35 @@
+{
+  "contract_id": "oil_calendar_spread_pair_execution_v11",
+  "schema_version": "asset-simulation-oil-calendar-spread-pair-execution-contract-v11",
+  "model_version": "asset-simulation-oil-calendar-spread-pair-execution-v0.1.1",
+  "role": "Current Gate-A execution candidate: execute one risk-approved crude-oil calendar-spread mandate on two real named futures legs with schedule weights frozen from pre-decision visible liquidity and realized weekly prices/volumes used only after they become observable.",
+  "identity_fields": [
+    "model_version",
+    "strategy_id",
+    "strategy_decision_identity_hash",
+    "strategy_book_identity_hash",
+    "execution_profile_hash",
+    "start_market_result_hash",
+    "end_market_result_hash",
+    "schedule_input_hash",
+    "result_hash"
+  ],
+  "invariants": [
+    "only a v0.2.2 calendar-spread decision at the execution start cutoff may be executed",
+    "start and end markets are adjacent half-month cutoffs in one deterministic world",
+    "strategy-book identity must equal the identity frozen in the decision",
+    "future execution-window volume, OHLC and prices cannot influence the two-window scheduling weights",
+    "scheduling weights are frozen only from shared named-contract weekly volume visible at the start cutoff",
+    "newly realized weekly volume may affect realized market impact only after that weekly window exists",
+    "execution personnel may reduce but never enlarge an authorized discretionary pair request",
+    "existing residual remediation is mandatory risk reduction, bypasses ordinary style completion penalties and still obeys each leg hard turn limit",
+    "actual gross turnover, not merely net delta, must remain within each frozen leg hard turn limit",
+    "new pair fills are balanced one-for-one by real named-contract lots in every weekly window",
+    "no synthetic spread security or fill is created",
+    "pair execution prices are calculated only from the new-pair fill bucket; remediation fills have separate leg attribution",
+    "spread, square-root slippage and fees are calculated on each real leg and reconciled to pair cost",
+    "neutral score-50 TCA uses the same realized fills",
+    "no market, Strategy Book, Formal Account, cash, margin, interest or financing state is mutated",
+    "portfolio internal netting remains outside this contract"
+  ]
+}
