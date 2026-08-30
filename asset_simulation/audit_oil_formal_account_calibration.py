@@ -166,7 +166,6 @@ def _run_scenario(
         account_id=f"CAL-{seed}-{style_label}-{authorization_pct:g}",
         initial_cash_usd=initial_equity,
     )
-    corporate_risk_state = None
     strategy_risk_state = None
     thesis_state = None
     gross_turnover_history: list[int] = []
@@ -202,7 +201,6 @@ def _run_scenario(
             positions=account["positions"],
             equity_usd=before_equity,
             strategy_research_profile=strategy_profile,
-            risk_state=corporate_risk_state,
             strategy_risk_state=strategy_risk_state,
             thesis_state=thesis_state,
             capital_authorization_pct_of_company_equity=authorization_pct,
@@ -230,7 +228,6 @@ def _run_scenario(
         account = account_settlement["state"]
         ledger = account_settlement["ledger"]
         snapshot = account_settlement["accountAfter"]
-        corporate_risk_state = dict(decision["corporateRisk"]["state"])
         strategy_risk_state = dict(decision["strategyRisk"]["state"])
         thesis_report = strategy_settlement["thesisInvalidation"]
         thesis_state = dict(thesis_report["state"])

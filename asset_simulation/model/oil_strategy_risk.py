@@ -5,15 +5,16 @@ from __future__ import annotations
 import math
 from typing import Any, Mapping
 
-from .corporate_risk_control import resolve_corporate_risk_profile
 from .math_utils import clamp
 from .oil_strategy_research import resolve_oil_strategy_research_profile
 from .registry import load_registered_assets, sha256_json
 
 
-OIL_STRATEGY_RISK_MODEL_VERSION = "asset-simulation-oil-strategy-risk-v0.1.0"
+OIL_STRATEGY_RISK_MODEL_VERSION = "asset-simulation-oil-strategy-risk-v0.3.0"
 OIL_STRATEGY_RISK_CONTRACT_ID = "oil_strategy_risk_v1"
+REGISTERED_STRATEGY_RISK_MANDATE_ID = "oil_directional_strategy_risk_mandate_v1"
 RISK_STATUS_ORDER = ("normal", "watch", "restricted", "reduce_only")
+POSITION_RISK_TIER_ORDER = ("light", "moderate", "heavy", "danger")
 
 
 def _round_nested(value: Any) -> Any:
@@ -43,6 +44,47 @@ def _assets() -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
         raise ValueError(
             "PM capital deployment must not alter the independent strategy risk policy"
         )
+    if config.get("mandate_owner") != "oil_directional_strategy_design":
+        raise ValueError("oil strategy risk mandate owner mismatch")
+    registered_tolerance = config.get("registered_risk_tolerance_scores", {})
+    expected_tolerance = {
+        "capital_tolerance",
+        "volatility_tolerance",
+        "drawdown_tolerance",
+        "concentration_tolerance",
+        "liquidity_tolerance",
+        "roll_risk_tolerance",
+    }
+    if set(registered_tolerance) != expected_tolerance or any(
+        not math.isfinite(float(value)) or not 0.0 <= float(value) <= 100.0
+        for value in registered_tolerance.values()
+    ):
+        raise ValueError("registered oil strategy risk tolerance is invalid")
+    position_mandate = config["position_dependent_mandate"]
+    if position_mandate.get("owner") != "oil_directional_strategy_design":
+        raise ValueError("oil strategy position risk must be owned by strategy design")
+    if position_mandate.get("approval_owner") != "investment_decision_committee":
+        raise ValueError("oil strategy position risk must be approved by committee")
+    tiers = position_mandate["tiers"]
+    if tuple(tiers) != POSITION_RISK_TIER_ORDER:
+        raise ValueError("oil strategy position risk tiers are out of order")
+    previous_upper = 0.0
+    previous_completion = 1.0
+    for tier_name in POSITION_RISK_TIER_ORDER:
+        tier = tiers[tier_name]
+        upper = float(tier["upper_utilization"])
+        completion = float(tier["risk_increasing_gap_completion"])
+        if not previous_upper < upper <= 1.0:
+            raise ValueError("oil strategy position risk tier bounds are invalid")
+        if not 0.0 <= completion <= previous_completion:
+            raise ValueError("oil strategy position risk completion rates are invalid")
+        previous_upper = upper
+        previous_completion = completion
+    if not math.isclose(previous_upper, 1.0):
+        raise ValueError("oil strategy position risk tiers must end at full utilization")
+    reduce_only_trigger = float(position_mandate["reduce_only_trigger"])
+    if not float(tiers["heavy"]["upper_utilization"]) < reduce_only_trigger <= 1.0:
+        raise ValueError("oil strategy position risk reduce-only trigger is invalid")
     return assets, config, contract
 
 
@@ -108,17 +150,22 @@ def _review_rationales(
 
 def build_oil_strategy_risk_review(
     strategy_profile: Mapping[str, Any] | None,
-    corporate_risk_profile: Mapping[str, Any] | None,
+    corporate_risk_profile: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """Let the appointed risk department review one appointed strategy."""
+    """Build the registered single-strategy mandate from visible PM structure.
+
+    ``corporate_risk_profile`` is accepted only as a legacy call-site shim.  It
+    is deliberately ignored: the current single-strategy runtime has no CRO
+    personnel seat and no personnel-dependent risk tolerance.
+    """
 
     assets, config, contract = _assets()
     strategy = resolve_oil_strategy_research_profile(strategy_profile)
-    corporate = resolve_corporate_risk_profile(corporate_risk_profile)
+    _ = corporate_risk_profile
     radar = {key: float(value) for key, value in strategy["style_radar"].items()}
     risk_radar = {
         key: float(value)
-        for key, value in corporate["risk_appetite_radar"].items()
+        for key, value in config["registered_risk_tolerance_scores"].items()
     }
     derived = {
         **radar,
@@ -149,6 +196,7 @@ def build_oil_strategy_risk_review(
         for key in pressures
     }
     mapping = config["parameter_mapping"]
+    registered_position_mandate = config["position_dependent_mandate"]
     capital_recommendation = _piecewise(
         mapping["recommended_capital_authorization_pct_of_company_equity"],
         allowance["capacity"],
@@ -203,7 +251,42 @@ def build_oil_strategy_risk_review(
                 mapping["roll_buffer_half_turns"], allowance["roll"]
             )
         },
+        "positionUtilization": {
+            "owner": str(registered_position_mandate["owner"]),
+            "approval_owner": str(
+                registered_position_mandate["approval_owner"]
+            ),
+            "utilization_basis": str(
+                registered_position_mandate["utilization_basis"]
+            ),
+            "reduce_only_trigger": float(
+                registered_position_mandate["reduce_only_trigger"]
+            ),
+            "tiers": {
+                tier_name: {
+                    "upper_utilization": float(
+                        registered_position_mandate["tiers"][tier_name][
+                            "upper_utilization"
+                        ]
+                    ),
+                    "risk_increasing_gap_completion": float(
+                        registered_position_mandate["tiers"][tier_name][
+                            "risk_increasing_gap_completion"
+                        ]
+                    ),
+                }
+                for tier_name in POSITION_RISK_TIER_ORDER
+            },
+        },
     }
+    mandate_identity = {
+        "mandate_id": REGISTERED_STRATEGY_RISK_MANDATE_ID,
+        "owner": str(config["mandate_owner"]),
+        "personnel_id": None,
+        "personnel_profile_hash": None,
+        "registered_tolerance_scores": risk_radar,
+    }
+    mandate_identity["mandate_hash"] = sha256_json(mandate_identity)
     result = {
         "schemaVersion": "asset-simulation-oil-strategy-risk-review-v1",
         "strategy": {
@@ -212,11 +295,7 @@ def build_oil_strategy_risk_review(
             "display_name": strategy["appointment"]["display_name"],
             "profile_hash": strategy["profile_hash"],
         },
-        "riskDepartment": {
-            "personnel_id": corporate["appointment"]["personnel_id"],
-            "display_name": corporate["appointment"]["display_name"],
-            "profile_hash": corporate["profile_hash"],
-        },
+        "riskMandate": mandate_identity,
         "strategyRiskPressures": pressures,
         "reviewAllowanceScores": allowance,
         "proposedPolicy": proposed_policy,
@@ -224,13 +303,17 @@ def build_oil_strategy_risk_review(
             strategy_radar=radar, pressures=pressures
         ),
         "governance": {
-            "proposal_owner": "risk_department",
+            "proposal_owner": "oil_directional_strategy_design",
             "approval_owner": "investment_decision_committee",
             "capital_allocation_owner": "investment_decision_committee",
             "strategy_director_can_self_approve": False,
             "proposal_is_capital_allocation": False,
             "pm_capital_deployment_is_review_policy_input": False,
             "strategy_amount_is_review_policy_input": False,
+            "position_risk_mandate_owner": "oil_directional_strategy_design",
+            "risk_personnel_institution_enabled": False,
+            "risk_personnel_input_used": False,
+            "future_portfolio_risk_layer_status": "dormant_single_strategy",
             "market_hard_rules_unchanged": True,
         },
     }
@@ -242,7 +325,8 @@ def build_oil_strategy_risk_review(
         "field_contract_id": contract["contract_id"],
         "field_contract_hash": assets["oil_strategy_risk_contract_hash"],
         "strategy_profile_hash": strategy["profile_hash"],
-        "corporate_risk_profile_hash": corporate["profile_hash"],
+        "risk_mandate_id": mandate_identity["mandate_id"],
+        "risk_mandate_hash": mandate_identity["mandate_hash"],
         "write_back": False,
         "result_hash": sha256_json(rounded_result),
     }
@@ -292,9 +376,9 @@ def build_investment_committee_strategy_approval(
         "schemaVersion": "asset-simulation-investment-committee-strategy-approval-v1",
         "status": "approved" if approve_risk_policy else "rejected",
         "strategy": dict(review["strategy"]),
-        "riskDepartment": dict(review["riskDepartment"]),
+        "riskMandate": dict(review["riskMandate"]),
         "riskPolicyDecision": {
-            "method": "accept_risk_department_recommendation",
+            "method": config["committee_proxy"]["risk_policy_approval_method"],
             "approvedPolicy": (
                 dict(review["proposedPolicy"]) if approve_risk_policy else None
             ),
@@ -314,7 +398,8 @@ def build_investment_committee_strategy_approval(
         },
         "governance": {
             "approval_owner": config["decision_owner"],
-            "risk_proposal_owner": "risk_department",
+            "risk_mandate_owner": config["mandate_owner"],
+            "risk_personnel_institution_enabled": False,
             "capital_authorization_is_committee_discretion": True,
             "risk_policy_and_capital_are_separate_decisions": True,
             "market_capacity_is_not_authorized_here": True,
@@ -329,7 +414,8 @@ def build_investment_committee_strategy_approval(
         "field_contract_hash": assets["oil_strategy_risk_contract_hash"],
         "review_hash": review["identity"]["result_hash"],
         "strategy_profile_hash": review["strategy"]["profile_hash"],
-        "corporate_risk_profile_hash": review["riskDepartment"]["profile_hash"],
+        "risk_mandate_id": review["riskMandate"]["mandate_id"],
+        "risk_mandate_hash": review["riskMandate"]["mandate_hash"],
         "write_back": False,
         "result_hash": sha256_json(rounded_result),
     }
@@ -422,6 +508,103 @@ def _nonincreasing_target(current_position: int, desired_target: int) -> int:
     if current_position == 0 or desired_target == 0 or current_position * desired_target <= 0:
         return 0
     return int(math.copysign(min(abs(current_position), abs(desired_target)), current_position))
+
+
+def _budget_usage(amount: float, budget: float) -> float:
+    if budget <= 0.0:
+        return 0.0 if amount <= 0.0 else 1.0
+    return max(0.0, float(amount) / float(budget))
+
+
+def _position_risk_usage(
+    *,
+    gross_lots: int,
+    initial_margin_usd: float,
+    annualized_risk_usd: float,
+    gross_cap_lots: int,
+    initial_margin_budget_usd: float,
+    annualized_risk_budget_usd: float,
+) -> dict[str, Any]:
+    ratios = {
+        "gross": _budget_usage(float(gross_lots), float(gross_cap_lots)),
+        "initial_margin": _budget_usage(
+            initial_margin_usd, initial_margin_budget_usd
+        ),
+        "visible_volatility": _budget_usage(
+            annualized_risk_usd, annualized_risk_budget_usd
+        ),
+    }
+    binding_dimension = max(ratios, key=ratios.__getitem__)
+    return {
+        "gross_lots": int(gross_lots),
+        "initial_margin_usd": float(initial_margin_usd),
+        "annualized_risk_usd": float(annualized_risk_usd),
+        "utilization_by_dimension": ratios,
+        "binding_dimension": binding_dimension,
+        "maximum_utilization": float(ratios[binding_dimension]),
+    }
+
+
+def _position_risk_tier(
+    utilization: float, policy: Mapping[str, Any]
+) -> str:
+    value = max(0.0, float(utilization))
+    for tier_name in POSITION_RISK_TIER_ORDER:
+        if value <= float(policy["tiers"][tier_name]["upper_utilization"]):
+            return tier_name
+    return "danger"
+
+
+def _position_gap_completion(
+    *, current_utilization: float, proposed_utilization: float,
+    policy: Mapping[str, Any]
+) -> float:
+    """Resolve the risk-increasing gap rate from the actual current position."""
+
+    current = max(0.0, float(current_utilization))
+    proposed = max(0.0, float(proposed_utilization))
+    if proposed <= current:
+        return 1.0
+    reduce_only_trigger = float(policy["reduce_only_trigger"])
+    if current >= reduce_only_trigger:
+        return 0.0
+    current_tier = _position_risk_tier(current, policy)
+    return float(
+        policy["tiers"][current_tier]["risk_increasing_gap_completion"]
+    )
+
+
+def _apply_position_gap_completion(
+    *, current_position: int, desired_target: int, completion: float
+) -> int:
+    """Let reductions pass while slowing only the risk-increasing target gap."""
+
+    rate = clamp(float(completion), 0.0, 1.0)
+    current = int(current_position)
+    desired = int(desired_target)
+    if rate >= 1.0 or current == desired:
+        return desired
+    if desired == 0:
+        return 0
+    if current == 0:
+        return int(round(desired * rate))
+    if current * desired > 0:
+        if abs(desired) <= abs(current):
+            return desired
+        return current + int(round((desired - current) * rate))
+    return int(round(desired * rate))
+
+
+def _position_change_increases_risk(
+    *, current_position: int, desired_target: int
+) -> bool:
+    current = int(current_position)
+    desired = int(desired_target)
+    if desired == 0:
+        return False
+    if current == 0 or current * desired < 0:
+        return True
+    return abs(desired) > abs(current)
 
 
 def apply_oil_strategy_risk_mandate(
@@ -614,19 +797,169 @@ def apply_oil_strategy_risk_mandate(
                 abs(adjusted) * price * contract_size * initial_margin_rate
             )
 
-    gross_after = sum(abs(int(item["target_position_lots"])) for item in approved.values())
-    margin_after = sum(float(item["strategy_estimated_initial_margin_usd"]) for item in approved.values())
-    volatility_after = sum(float(item["strategy_estimated_annualized_risk_usd"]) for item in approved.values())
+    pre_position_curve_gross = sum(
+        abs(int(item["target_position_lots"])) for item in approved.values()
+    )
+    pre_position_curve_margin = sum(
+        float(item["strategy_estimated_initial_margin_usd"])
+        for item in approved.values()
+    )
+    pre_position_curve_volatility = sum(
+        float(item["strategy_estimated_annualized_risk_usd"])
+        for item in approved.values()
+    )
+    proposed_position_usage = _position_risk_usage(
+        gross_lots=pre_position_curve_gross,
+        initial_margin_usd=pre_position_curve_margin,
+        annualized_risk_usd=pre_position_curve_volatility,
+        gross_cap_lots=strategy_gross_cap,
+        initial_margin_budget_usd=strategy_margin_budget,
+        annualized_risk_budget_usd=strategy_volatility_budget,
+    )
+    current_gross = sum(abs(int(value)) for value in positions.values())
+    current_margin = 0.0
+    current_volatility = 0.0
+    for contract_id, lots_value in positions.items():
+        lots = abs(int(lots_value))
+        contract_item = contracts.get(str(contract_id))
+        if lots <= 0 or contract_item is None:
+            continue
+        price = float(contract_item["price_usd"])
+        visible_volatility = _visible_annualized_volatility(contract_item, config)
+        current_margin += lots * price * contract_size * initial_margin_rate
+        current_volatility += (
+            lots * price * contract_size * visible_volatility
+        )
+    current_position_usage = _position_risk_usage(
+        gross_lots=current_gross,
+        initial_margin_usd=current_margin,
+        annualized_risk_usd=current_volatility,
+        gross_cap_lots=strategy_gross_cap,
+        initial_margin_budget_usd=strategy_margin_budget,
+        annualized_risk_budget_usd=strategy_volatility_budget,
+    )
+    position_policy = policy["positionUtilization"]
+    current_utilization = float(current_position_usage["maximum_utilization"])
+    proposed_utilization = float(proposed_position_usage["maximum_utilization"])
+    position_tier = _position_risk_tier(current_utilization, position_policy)
+    current_reduce_only = (
+        current_utilization >= float(position_policy["reduce_only_trigger"])
+    )
+    contract_risk_increase_requested = any(
+        _position_change_increases_risk(
+            current_position=int(positions.get(contract_id, 0)),
+            desired_target=int(item["target_position_lots"]),
+        )
+        for contract_id, item in approved.items()
+    )
+    portfolio_risk_increase_requested = (
+        proposed_utilization > current_utilization + 1e-12
+    )
+    risk_increase_requested = portfolio_risk_increase_requested or (
+        current_reduce_only and contract_risk_increase_requested
+    )
+    position_gap_completion = (
+        0.0
+        if current_reduce_only and contract_risk_increase_requested
+        else _position_gap_completion(
+            current_utilization=current_utilization,
+            proposed_utilization=proposed_utilization,
+            policy=position_policy,
+        )
+    )
+    position_binding_rules: list[str] = []
+    if risk_increase_requested and position_gap_completion < 1.0:
+        position_binding_rules.append(f"strategy_position_{position_tier}")
+        if current_reduce_only:
+            position_binding_rules.append("strategy_position_reduce_only")
+        for contract_id, item in approved.items():
+            intent = int(item["strategy_intent_target_position_lots"])
+            prior = int(item["target_position_lots"])
+            adjusted = _apply_position_gap_completion(
+                current_position=int(positions.get(contract_id, 0)),
+                desired_target=prior,
+                completion=position_gap_completion,
+            )
+            if abs(adjusted) > abs(intent) or adjusted * intent < 0:
+                raise ValueError(
+                    "position-dependent strategy risk expanded or reversed intent"
+                )
+            item["target_position_lots"] = adjusted
+            item["strategy_risk_approved_target_position_lots"] = adjusted
+            item["strategy_risk_clip_lots"] = intent - adjusted
+            if adjusted != prior:
+                item["strategy_risk_binding_rules"] = sorted(
+                    set(
+                        item["strategy_risk_binding_rules"]
+                        + position_binding_rules
+                    )
+                )
+            contract_item = contracts.get(str(item["contract_id"]))
+            price = (
+                0.0 if contract_item is None else float(contract_item["price_usd"])
+            )
+            item["strategy_estimated_annualized_risk_usd"] = (
+                abs(adjusted)
+                * price
+                * contract_size
+                * float(item["strategy_visible_annualized_volatility"])
+            )
+            item["strategy_estimated_initial_margin_usd"] = (
+                abs(adjusted) * price * contract_size * initial_margin_rate
+            )
+    for item in approved.values():
+        item["strategy_position_risk_tier"] = position_tier
+        item["strategy_position_risk_gap_completion"] = position_gap_completion
+        item["strategy_position_risk_current_reduce_only"] = current_reduce_only
+
+    gross_after = sum(
+        abs(int(item["target_position_lots"])) for item in approved.values()
+    )
+    margin_after = sum(
+        float(item["strategy_estimated_initial_margin_usd"])
+        for item in approved.values()
+    )
+    volatility_after = sum(
+        float(item["strategy_estimated_annualized_risk_usd"])
+        for item in approved.values()
+    )
+    approved_position_usage = _position_risk_usage(
+        gross_lots=gross_after,
+        initial_margin_usd=margin_after,
+        annualized_risk_usd=volatility_after,
+        gross_cap_lots=strategy_gross_cap,
+        initial_margin_budget_usd=strategy_margin_budget,
+        annualized_risk_budget_usd=strategy_volatility_budget,
+    )
     result = {
         "schemaVersion": "asset-simulation-oil-strategy-risk-enforcement-v1",
         "review": {
             "strategy": dict(committee_approval["strategy"]),
-            "riskDepartment": dict(committee_approval["riskDepartment"]),
+            "riskMandate": dict(committee_approval["riskMandate"]),
             "review_hash": committee_approval["identity"]["review_hash"],
         },
         "committeeApproval": committee_approval,
         "approvedPolicy": policy,
         "state": drawdown,
+        "positionRisk": {
+            "owner": position_policy["owner"],
+            "approval_owner": position_policy["approval_owner"],
+            "policy": position_policy,
+            "current": current_position_usage,
+            "proposed": proposed_position_usage,
+            "approved": approved_position_usage,
+            "effective_tier": position_tier,
+            "risk_increase_requested": risk_increase_requested,
+            "portfolio_risk_increase_requested": (
+                portfolio_risk_increase_requested
+            ),
+            "contract_risk_increase_requested": (
+                contract_risk_increase_requested
+            ),
+            "risk_increasing_gap_completion": position_gap_completion,
+            "current_reduce_only": current_reduce_only,
+            "binding_rules": position_binding_rules,
+        },
         "strategyLimits": {
             "market_hard_gross_cap_lots": market_gross_cap,
             "strategy_gross_cap_lots": strategy_gross_cap,
@@ -643,7 +976,11 @@ def apply_oil_strategy_risk_mandate(
                 for item in approved.values()
             ),
             "pre_portfolio_approved_gross_lots": gross_before,
+            "pre_position_curve_approved_gross_lots": pre_position_curve_gross,
             "approved_gross_lots": gross_after,
+            "position_curve_clipped_gross_lots": (
+                pre_position_curve_gross - gross_after
+            ),
             "clipped_gross_lots": sum(
                 abs(int(item["strategy_intent_target_position_lots"]))
                 - abs(int(item["target_position_lots"]))
@@ -666,6 +1003,9 @@ def apply_oil_strategy_risk_mandate(
             "can_expand_strategy_intent": False,
             "pm_deployment_pct_used_as_risk_multiplier": False,
             "risk_limits_compare_against_strategy_intent": True,
+            "position_risk_uses_current_and_proposed_positions": True,
+            "position_risk_owner_is_strategy_design": True,
+            "position_risk_can_slow_only_risk_increasing_gap": True,
             "can_override_company_or_market_rules": False,
         },
     }

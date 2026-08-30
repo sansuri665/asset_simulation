@@ -1,7 +1,7 @@
 {
-  "schema_version": "asset-simulation-institution-organization-config-v1",
-  "config_id": "asset-simulation-institution-organization-base-v0.1.0",
-  "model_version": "asset-simulation-institution-organization-v0.1.0",
+  "schema_version": "asset-simulation-institution-organization-config-v2",
+  "config_id": "asset-simulation-institution-organization-base-v0.2.0",
+  "model_version": "asset-simulation-institution-organization-v0.2.0",
   "institution_type": "proprietary_trading_firm",
   "capital_base": {
     "initial_proprietary_capital_usd": 10000000.0,
@@ -18,7 +18,7 @@
       "layer_type": "governance_not_department",
       "runtime_owner_compatibility_id": "investment_decision_committee_system_proxy",
       "current_scope": [
-        "risk_policy_approval",
+        "strategy_mandate_approval",
         "strategy_capital_authorization"
       ],
       "single_strategy_default_capital_authorization_pct": 100.0,
@@ -38,11 +38,6 @@
     {
       "department_id": "investment_strategy",
       "display_name": "投资策略部",
-      "status": "runtime"
-    },
-    {
-      "department_id": "corporate_risk",
-      "display_name": "公司风险管理部",
       "status": "runtime"
     },
     {

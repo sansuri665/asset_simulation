@@ -21,7 +21,6 @@ from .oil_short_term_forecast import (
     generate_oil_short_term_forecast,
 )
 from .oil_strategy_research import generate_oil_strategy_research_roster
-from .corporate_risk_control import generate_corporate_risk_roster
 from .oil_strategy_risk import build_oil_strategy_risk_review
 from .oil_trading_strategy import (
     _half_turn_serial,
@@ -35,7 +34,7 @@ from .registry import load_registered_assets, sha256_json
 
 
 OIL_INVESTMENT_COMPETITION_MODEL_VERSION = (
-    "asset-simulation-oil-investment-competition-v0.5.0"
+    "asset-simulation-oil-investment-competition-v0.6.0"
 )
 GAME_START = (2030, 1, 1)
 PARTICIPANT_NAMES = (
@@ -94,14 +93,12 @@ def _appointment_summary(profile: Mapping[str, Any], kind: str) -> dict[str, Any
                 "capability_total_score": None,
                 "radar": profile["style_radar"],
                 "tags": profile["style_tags"],
-            }
-        )
-    elif kind == "risk":
-        result.update(
-            {
-                "capability_total_score": None,
-                "radar": profile["risk_appetite_radar"],
-                "tags": profile["risk_appetite_tags"],
+                "construction_capability_radar": profile[
+                    "construction_capability_radar"
+                ],
+                "construction_capability_tags": profile[
+                    "construction_capability_tags"
+                ],
             }
         )
     else:
@@ -116,7 +113,7 @@ def _appointment_summary(profile: Mapping[str, Any], kind: str) -> dict[str, Any
 
 
 def build_competition_participants(seed: int) -> list[dict[str, Any]]:
-    """Draw one deterministic four-seat committee for each institution."""
+    """Draw one deterministic three-role investment team per institution."""
 
     participants = []
     for index, (participant_id, display_name, is_player) in enumerate(
@@ -151,10 +148,6 @@ def build_competition_participants(seed: int) -> list[dict[str, Any]]:
             seed=participant_seed + 101,
             candidate_count=5,
         )["candidates"]
-        risk_roster = generate_corporate_risk_roster(
-            seed=participant_seed + 211,
-            candidate_count=5,
-        )["candidates"]
         execution_roster = generate_oil_execution_desk_roster(
             seed=participant_seed + 307,
             candidate_count=5,
@@ -162,23 +155,15 @@ def build_competition_participants(seed: int) -> list[dict[str, Any]]:
         strategy_index = _pick_index(
             participant_seed, f"oil_investment_demo.{participant_id}.strategy", 5
         )
-        risk_index = _pick_index(
-            participant_seed, f"oil_investment_demo.{participant_id}.risk", 5
-        )
         execution_index = _pick_index(
             participant_seed, f"oil_investment_demo.{participant_id}.execution", 5
         )
         strategy_profile = strategy_roster[strategy_index]
-        risk_profile = risk_roster[risk_index]
         execution_profile = execution_roster[execution_index]
-        strategy_risk_review = build_oil_strategy_risk_review(
-            strategy_profile,
-            risk_profile,
-        )
+        strategy_risk_review = build_oil_strategy_risk_review(strategy_profile)
         appointments = {
             "forecast": _appointment_summary(forecast_profile, "forecast"),
             "strategy": _appointment_summary(strategy_profile, "strategy"),
-            "risk": _appointment_summary(risk_profile, "risk"),
             "execution": _appointment_summary(execution_profile, "execution"),
         }
         participants.append(
@@ -191,12 +176,11 @@ def build_competition_participants(seed: int) -> list[dict[str, Any]]:
                 "profiles": {
                     "forecast": forecast_profile,
                     "strategy": strategy_profile,
-                    "risk": risk_profile,
                     "execution": execution_profile,
                 },
                 "strategy_risk_review": {
                     "strategy": strategy_risk_review["strategy"],
-                    "riskDepartment": strategy_risk_review["riskDepartment"],
+                    "riskMandate": strategy_risk_review["riskMandate"],
                     "strategyRiskPressures": strategy_risk_review[
                         "strategyRiskPressures"
                     ],
@@ -219,7 +203,6 @@ def _new_account(account_id: str, initial_equity_usd: float) -> dict[str, Any]:
             initial_cash_usd=initial_equity_usd,
         ),
         "previous_vintage": None,
-        "risk_state": None,
         "strategy_risk_state": None,
         "thesis_state": None,
         "gross_turnover_history": [],
@@ -233,8 +216,8 @@ def _new_account(account_id: str, initial_equity_usd: float) -> dict[str, Any]:
         "losing_turns": 0,
         "equity_peak_usd": float(initial_equity_usd),
         "maximum_drawdown_pct": 0.0,
-        "risk_status_counts": Counter(),
         "strategy_risk_status_counts": Counter(),
+        "strategy_position_risk_tier_counts": Counter(),
         "thesis_status_counts": Counter(),
     }
 
@@ -340,10 +323,16 @@ class OilInvestmentCompetitionSession:
                         "gross_pnl_before_cost_usd": 0.0,
                         "risk_status": "insolvent",
                         "strategy_risk_status": "insolvent",
+                        "strategy_position_risk_tier": "insolvent",
+                        "strategy_position_risk_current_utilization": None,
+                        "strategy_position_risk_proposed_utilization": None,
+                        "strategy_position_risk_approved_utilization": None,
+                        "strategy_position_risk_gap_completion": 0.0,
+                        "strategy_position_risk_current_reduce_only": True,
                         "thesis_statuses": {},
                         "capital_authorization_pct_of_company_equity": 0.0,
                         "capital_authorization_usd": 0.0,
-                        "risk_recommended_capital_pct_of_company_equity": 0.0,
+                        "strategy_mandate_reference_capital_pct_of_company_equity": 0.0,
                         "strategy_risk_clipped_gross_lots": 0,
                         "risk_clipped_gross_lots": 0,
                         "targets": [],
@@ -366,8 +355,6 @@ class OilInvestmentCompetitionSession:
                 equity_usd=before_equity,
                 strategy_research_profile=profiles["strategy"],
                 execution_desk_profile=profiles["execution"],
-                corporate_risk_profile=profiles["risk"],
-                risk_state=account["risk_state"],
                 strategy_risk_state=account["strategy_risk_state"],
                 thesis_state=account["thesis_state"],
                 fee_state={
@@ -399,14 +386,13 @@ class OilInvestmentCompetitionSession:
             after = account_settlement["accountAfter"]
             account_ledger = account_settlement["ledger"]
             execution = settlement["executionSummary"]
-            risk = decision["corporateRisk"]
+            portfolio_risk = decision["portfolioRisk"]
             strategy_risk = decision["strategyRisk"]
             after_equity = float(after["equity_usd"])
             turn_pnl = float(account_ledger["account_net_pnl_usd"])
             strategy_turn_pnl = float(settlement["accountAfter"]["turn_pnl_usd"])
             account["formal_account"] = account_settlement["state"]
             account["previous_vintage"] = vintage
-            account["risk_state"] = dict(risk["state"])
             account["strategy_risk_state"] = dict(strategy_risk["state"])
             account["thesis_state"] = dict(
                 settlement["thesisInvalidation"]["state"]
@@ -445,10 +431,13 @@ class OilInvestmentCompetitionSession:
             account["maximum_drawdown_pct"] = min(
                 float(account["maximum_drawdown_pct"]), drawdown_pct
             )
-            risk_status = str(risk["state"]["risk_status"])
-            account["risk_status_counts"][risk_status] += 1
             strategy_risk_status = str(strategy_risk["state"]["risk_status"])
             account["strategy_risk_status_counts"][strategy_risk_status] += 1
+            position_risk = strategy_risk["positionRisk"]
+            position_risk_tier = str(position_risk["effective_tier"])
+            account["strategy_position_risk_tier_counts"][
+                position_risk_tier
+            ] += 1
             targets = [
                 {
                     "contract_id": item["contract_id"],
@@ -474,6 +463,12 @@ class OilInvestmentCompetitionSession:
                         "company_risk_approved_target_position_lots"
                     ],
                     "strategy_risk_clip_lots": item["strategy_risk_clip_lots"],
+                    "strategy_position_risk_tier": item[
+                        "strategy_position_risk_tier"
+                    ],
+                    "strategy_position_risk_gap_completion": item[
+                        "strategy_position_risk_gap_completion"
+                    ],
                     "risk_clip_lots": item["risk_clip_lots"],
                 }
                 for item in decision["targets"]
@@ -540,8 +535,25 @@ class OilInvestmentCompetitionSession:
                     "gross_pnl_before_cost_usd": float(
                         execution["gross_pnl_before_cost_usd"]
                     ),
-                    "risk_status": risk_status,
+                    "risk_status": strategy_risk_status,
+                    "portfolio_risk_status": str(portfolio_risk["status"]),
                     "strategy_risk_status": strategy_risk_status,
+                    "strategy_position_risk_tier": position_risk_tier,
+                    "strategy_position_risk_current_utilization": (
+                        position_risk["current"]["maximum_utilization"]
+                    ),
+                    "strategy_position_risk_proposed_utilization": (
+                        position_risk["proposed"]["maximum_utilization"]
+                    ),
+                    "strategy_position_risk_approved_utilization": (
+                        position_risk["approved"]["maximum_utilization"]
+                    ),
+                    "strategy_position_risk_gap_completion": position_risk[
+                        "risk_increasing_gap_completion"
+                    ],
+                    "strategy_position_risk_current_reduce_only": position_risk[
+                        "current_reduce_only"
+                    ],
                     "thesis_statuses": {
                         key: value["status"]
                         for key, value in account["thesis_state"]
@@ -554,14 +566,17 @@ class OilInvestmentCompetitionSession:
                     "capital_authorization_usd": decision["riskBudget"][
                         "allocated_strategy_capital_usd"
                     ],
-                    "risk_recommended_capital_pct_of_company_equity": decision[
+                    "strategy_mandate_reference_capital_pct_of_company_equity": decision[
                         "riskBudget"
-                    ]["risk_recommended_capital_pct_of_company_equity"],
+                    ]["strategy_mandate_reference_capital_pct_of_company_equity"],
                     "strategy_risk_clipped_gross_lots": int(
                         strategy_risk["approvalSummary"]["clipped_gross_lots"]
                     ),
                     "risk_clipped_gross_lots": int(
-                        risk["approval_summary"]["clipped_gross_lots"]
+                        strategy_risk["approvalSummary"]["clipped_gross_lots"]
+                    ),
+                    "portfolio_risk_clipped_gross_lots": int(
+                        portfolio_risk["approval_summary"]["clipped_gross_lots"]
                     ),
                     "targets": targets,
                 }
@@ -740,7 +755,7 @@ class OilInvestmentCompetitionSession:
                 visible_reports = list(reversed(self.reports))
             result = {
                 "ok": True,
-                "schemaVersion": "asset-simulation-oil-investment-competition-v5",
+                "schemaVersion": "asset-simulation-oil-investment-competition-v6",
                 "asOf": {
                     "year": int(as_of_year),
                     "month": int(as_of_month),
@@ -773,7 +788,7 @@ class OilInvestmentCompetitionSession:
                     len(visible_reports) == len(self.reports)
                 )
             identity = {
-                "schema_version": "asset-simulation-oil-investment-competition-identity-v5",
+                "schema_version": "asset-simulation-oil-investment-competition-identity-v6",
                 "model_version": OIL_INVESTMENT_COMPETITION_MODEL_VERSION,
                 "seed": self.seed,
                 "upstream_global_identity_hash": self.run.identity["identity_hash"],

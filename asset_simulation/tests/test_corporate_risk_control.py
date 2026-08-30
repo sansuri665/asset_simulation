@@ -75,7 +75,7 @@ class CorporateRiskControlTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             resolve_corporate_risk_profile(modified)
 
-    def test_neutral_preserves_current_targets_and_strict_policy_only_clips(self) -> None:
+    def test_legacy_cro_profiles_do_not_enter_single_strategy_runtime(self) -> None:
         neutral_strategy_risk = build_default_corporate_risk_profile()
         neutral = build_oil_strategy_decision(
             self.market,
@@ -88,45 +88,35 @@ class CorporateRiskControlTests(unittest.TestCase):
             strategy_risk_profile=neutral_strategy_risk,
             corporate_risk_profile=_profile(0.0, "strict"),
         )
-        self.assertTrue(
-            all(
-                item["strategy_target_position_lots"] == item["target_position_lots"]
-                for item in neutral["targets"]
-            )
+        self.assertEqual(neutral, strict)
+        self.assertEqual("dormant_single_strategy", strict["portfolioRisk"]["status"])
+        self.assertIsNone(strict["portfolioRisk"]["personnel"])
+        self.assertEqual(
+            0, strict["portfolioRisk"]["approval_summary"]["clipped_gross_lots"]
         )
-        self.assertGreater(
-            strict["corporateRisk"]["approval_summary"]["clipped_gross_lots"], 0
-        )
-        for strict_item, neutral_item in zip(strict["targets"], neutral["targets"], strict=True):
-            self.assertEqual(
-                strict_item["strategy_target_position_lots"],
-                neutral_item["strategy_target_position_lots"],
-            )
-            self.assertLessEqual(
-                abs(strict_item["target_position_lots"]),
-                abs(strict_item["strategy_target_position_lots"]),
-            )
-            self.assertGreaterEqual(
-                strict_item["target_position_lots"]
-                * strict_item["strategy_target_position_lots"],
-                0,
-            )
 
-    def test_drawdown_reduce_only_and_recovery_cap_are_enforced(self) -> None:
-        strict = build_oil_strategy_decision(
+    def test_dormant_company_module_retains_future_portfolio_drawdown_logic(self) -> None:
+        decision = build_oil_strategy_decision(
             self.market,
             self.forecast,
-            corporate_risk_profile=_profile(0.0, "strict_drawdown"),
-            risk_state={"peak_equity_usd": 4_000_000_000.0, "drawdown_scale": 1.0},
         )
-        self.assertEqual("reduce_only", strict["corporateRisk"]["state"]["risk_status"])
-        self.assertTrue(all(item["target_position_lots"] == 0 for item in strict["targets"]))
-
         raw_targets = {
-            str(item["contract_id"]): dict(item) for item in strict["targets"]
+            str(item["contract_id"]): dict(item) for item in decision["targets"]
         }
         for item in raw_targets.values():
             item["target_position_lots"] = item["strategy_target_position_lots"]
+        _, strict = approve_oil_strategy_targets(
+            self.market,
+            raw_targets,
+            positions={},
+            equity_usd=3_000_000_000.0,
+            risk_profile=_profile(0.0, "strict_drawdown"),
+            risk_state={
+                "peak_equity_usd": 4_000_000_000.0,
+                "drawdown_scale": 1.0,
+            },
+        )
+        self.assertEqual("reduce_only", strict["state"]["risk_status"])
         _, recovered = approve_oil_strategy_targets(
             self.market,
             raw_targets,

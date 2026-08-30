@@ -36,10 +36,6 @@ from .model.oil_execution_desk import (
     OIL_EXECUTION_DESK_MODEL_VERSION,
     generate_oil_execution_desk_roster,
 )
-from .model.corporate_risk_control import (
-    CORPORATE_RISK_CONTROL_MODEL_VERSION,
-    generate_corporate_risk_roster,
-)
 from .model.oil_strategy_risk import OIL_STRATEGY_RISK_MODEL_VERSION
 from .model.oil_trading_strategy import OIL_TRADING_STRATEGY_MODEL_VERSION
 from .model.oil_futures_account import OIL_FUTURES_ACCOUNT_MODEL_VERSION
@@ -50,7 +46,7 @@ from .model.oil_investment_competition import (
 from .model.registry import clear_registered_assets_cache
 
 
-SERVICE_ID = "asset-simulation-macro-ui-v5.41"
+SERVICE_ID = "asset-simulation-macro-ui-v5.42"
 VIEWER_ROOT = Path(__file__).resolve().parent / "viewer"
 MAX_CACHE_ENTRIES = 64
 MAX_COMPETITION_CACHE_ENTRIES = 8
@@ -306,19 +302,6 @@ def build_oil_execution_desk_roster_payload(
     )
 
 
-def build_corporate_risk_roster_payload(
-    *,
-    seed: int,
-    candidate_count: int | None = None,
-) -> dict[str, Any]:
-    """Publish appointable company CRO profiles without accepting radar inputs."""
-
-    return generate_corporate_risk_roster(
-        seed=seed,
-        candidate_count=candidate_count,
-    )
-
-
 class AssetSimulationHandler(BaseHTTPRequestHandler):
     server_version = "AssetSimulation/0.1"
 
@@ -363,7 +346,6 @@ class AssetSimulationHandler(BaseHTTPRequestHandler):
                         "oilShortTermForecastModelVersion": OIL_SHORT_TERM_FORECAST_MODEL_VERSION,
                         "oilStrategyResearchModelVersion": OIL_STRATEGY_RESEARCH_MODEL_VERSION,
                         "oilExecutionDeskModelVersion": OIL_EXECUTION_DESK_MODEL_VERSION,
-                        "corporateRiskControlModelVersion": CORPORATE_RISK_CONTROL_MODEL_VERSION,
                         "oilStrategyRiskModelVersion": OIL_STRATEGY_RISK_MODEL_VERSION,
                         "oilTradingStrategyModelVersion": OIL_TRADING_STRATEGY_MODEL_VERSION,
                         "oilFuturesAccountModelVersion": OIL_FUTURES_ACCOUNT_MODEL_VERSION,
@@ -440,18 +422,6 @@ class AssetSimulationHandler(BaseHTTPRequestHandler):
                 self._json(
                     HTTPStatus.OK,
                     build_oil_execution_desk_roster_payload(
-                        seed=seed,
-                        candidate_count=candidate_count,
-                    ),
-                )
-                return
-            if parsed.path == "/api/corporate-risk-roster":
-                query = parse_qs(parsed.query, keep_blank_values=True)
-                seed = int(_single_query(query, "seed", "42"))
-                candidate_count = int(_single_query(query, "count", "5"))
-                self._json(
-                    HTTPStatus.OK,
-                    build_corporate_risk_roster_payload(
                         seed=seed,
                         candidate_count=candidate_count,
                     ),

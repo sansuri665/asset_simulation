@@ -27,10 +27,6 @@ from .oil_execution_desk import (
     OIL_EXECUTION_DESK_MODEL_VERSION,
     generate_oil_execution_desk_roster,
 )
-from .corporate_risk_control import (
-    CORPORATE_RISK_CONTROL_MODEL_VERSION,
-    generate_corporate_risk_roster,
-)
 
 __all__ = [
     "MODEL_VERSION",
@@ -52,6 +48,4 @@ __all__ = [
     "evaluate_oil_calendar_spread_thesis_state",
     "OIL_EXECUTION_DESK_MODEL_VERSION",
     "generate_oil_execution_desk_roster",
-    "CORPORATE_RISK_CONTROL_MODEL_VERSION",
-    "generate_corporate_risk_roster",
 ]

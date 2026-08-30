@@ -10,7 +10,9 @@ from asset_simulation.model.oil_short_term_forecast import (
     generate_oil_short_term_forecast,
 )
 from asset_simulation.model.oil_strategy_research import (
+    STRATEGY_CONSTRUCTION_CAPABILITY_DIMENSIONS,
     STRATEGY_STYLE_DIMENSIONS,
+    build_oil_strategy_construction_adjustments,
     build_default_oil_strategy_research_profile,
     generate_oil_strategy_research_candidate,
     generate_oil_strategy_research_roster,
@@ -18,7 +20,7 @@ from asset_simulation.model.oil_strategy_research import (
     resolve_oil_strategy_runtime_policy,
 )
 from asset_simulation.model.oil_trading_strategy import build_oil_strategy_decision
-from asset_simulation.model.registry import load_registered_assets
+from asset_simulation.model.registry import load_registered_assets, sha256_json
 
 
 FORBIDDEN_PM_QUALITY_FIELDS = {
@@ -68,6 +70,10 @@ class OilStrategyResearchTests(unittest.TestCase):
         )
         for item in first["candidates"]:
             self.assertEqual(set(STRATEGY_STYLE_DIMENSIONS), set(item["style_radar"]))
+            self.assertEqual(
+                set(STRATEGY_CONSTRUCTION_CAPABILITY_DIMENSIONS),
+                set(item["construction_capability_radar"]),
+            )
             self.assertGreater(
                 max(item["style_radar"].values())
                 - min(item["style_radar"].values()),
@@ -76,6 +82,11 @@ class OilStrategyResearchTests(unittest.TestCase):
             self.assertIsNone(item["preference_total_score"])
             self.assertFalse(item["governance"]["player_can_edit_radar"])
             self.assertFalse(item["governance"]["higher_score_is_better"])
+            self.assertFalse(
+                item["governance"][
+                    "aggregate_construction_capability_score_available"
+                ]
+            )
         orientation_scores = [
             float(item["style_radar"]["continuation_reversion"])
             for item in first["candidates"]
@@ -105,6 +116,10 @@ class OilStrategyResearchTests(unittest.TestCase):
         )
         self.assertEqual(1.875, policy["execution"]["expected_holding_turns"])
         self.assertEqual(0.175, policy["execution"]["position_persistence"])
+        self.assertEqual(
+            {dimension: 100.0 for dimension in STRATEGY_CONSTRUCTION_CAPABILITY_DIMENSIONS},
+            profile["construction_capability_radar"],
+        )
 
     def test_generated_profile_cannot_be_modified_after_appointment(self) -> None:
         profile = generate_oil_strategy_research_candidate(seed=7, candidate_index=2)
@@ -113,6 +128,142 @@ class OilStrategyResearchTests(unittest.TestCase):
         modified["style_radar"]["continuation_reversion"] += 1.0
         with self.assertRaises(ValueError):
             resolve_oil_strategy_research_profile(modified)
+        modified = deepcopy(profile)
+        modified["construction_capability_radar"]["transition_planning"] += 1.0
+        with self.assertRaises(ValueError):
+            resolve_oil_strategy_research_profile(modified)
+
+    def test_v021_profile_migrates_to_zero_error_default_without_trusting_tampering(self) -> None:
+        current = build_default_oil_strategy_research_profile()
+        legacy = deepcopy(current)
+        legacy.pop("profile_hash")
+        legacy.pop("construction_capability_radar")
+        legacy.pop("construction_capability_tags")
+        legacy.pop("resolved_construction_policy")
+        for key in (
+            "construction_capability_dimensions_are_higher_is_better",
+            "aggregate_construction_capability_score_available",
+            "construction_capability_can_create_alpha",
+            "construction_capability_can_read_hidden_future",
+        ):
+            legacy["governance"].pop(key)
+        legacy["identity"]["model_version"] = (
+            "asset-simulation-oil-strategy-research-v0.2.1"
+        )
+        legacy["identity"]["config_id"] = (
+            "asset-simulation-oil-strategy-research-base-v0.2.1"
+        )
+        hash_body = deepcopy(legacy)
+        _, config, _ = oil_strategy_research._validate_registered_assets()
+        hash_body["resolved_policy"] = oil_strategy_research._resolved_policy(
+            legacy["style_radar"], config
+        )
+        legacy["profile_hash"] = sha256_json(hash_body)
+
+        migrated = resolve_oil_strategy_research_profile(legacy)
+        self.assertEqual(
+            {dimension: 100.0 for dimension in STRATEGY_CONSTRUCTION_CAPABILITY_DIMENSIONS},
+            migrated["construction_capability_radar"],
+        )
+        tampered = deepcopy(legacy)
+        tampered["style_radar"]["capital_deployment"] += 1.0
+        with self.assertRaises(ValueError):
+            resolve_oil_strategy_research_profile(tampered)
+
+    def test_construction_capability_is_deterministic_bounded_and_not_alpha(self) -> None:
+        high = build_default_oil_strategy_research_profile()
+        perfect = build_oil_strategy_construction_adjustments(
+            high,
+            visible_state_hash="visible-market-state-a",
+            contract_ids=["OIL-3005", "OIL-3009"],
+        )
+        self.assertEqual(
+            perfect,
+            build_oil_strategy_construction_adjustments(
+                high,
+                visible_state_hash="visible-market-state-a",
+                contract_ids=["OIL-3005", "OIL-3009"],
+            ),
+        )
+        self.assertEqual(0.0, perfect["portfolio"]["role_weight_error"])
+        for row in perfect["contracts"].values():
+            self.assertEqual(0.0, row["target_scale_error"])
+            self.assertEqual(0.0, row["transition_gap_error"])
+
+        low = deepcopy(high)
+        low.pop("profile_hash")
+        low["construction_capability_radar"] = {
+            dimension: 0.0
+            for dimension in STRATEGY_CONSTRUCTION_CAPABILITY_DIMENSIONS
+        }
+        imperfect = build_oil_strategy_construction_adjustments(
+            low,
+            visible_state_hash="visible-market-state-a",
+            contract_ids=["OIL-3005", "OIL-3009"],
+        )
+        medium = deepcopy(high)
+        medium.pop("profile_hash")
+        medium["construction_capability_radar"] = {
+            dimension: 50.0
+            for dimension in STRATEGY_CONSTRUCTION_CAPABILITY_DIMENSIONS
+        }
+        middle = build_oil_strategy_construction_adjustments(
+            medium,
+            visible_state_hash="visible-market-state-a",
+            contract_ids=["OIL-3005", "OIL-3009"],
+        )
+        self.assertEqual(
+            imperfect["error_stream_identity_hash"],
+            middle["error_stream_identity_hash"],
+        )
+        self.assertAlmostEqual(
+            imperfect["portfolio"]["role_weight_error"] * 0.5,
+            middle["portfolio"]["role_weight_error"],
+            places=5,
+        )
+        self.assertLessEqual(abs(imperfect["portfolio"]["role_weight_error"]), 0.05)
+        self.assertTrue(
+            any(
+                abs(row["target_scale_error"]) > 0.0
+                or abs(row["transition_gap_error"]) > 0.0
+                for row in imperfect["contracts"].values()
+            )
+        )
+        for row in imperfect["contracts"].values():
+            self.assertLessEqual(abs(row["target_scale_error"]), 0.06)
+            self.assertLessEqual(abs(row["transition_gap_error"]), 0.08)
+        for contract_id, low_row in imperfect["contracts"].items():
+            self.assertAlmostEqual(
+                low_row["target_scale_error"] * 0.5,
+                middle["contracts"][contract_id]["target_scale_error"],
+                places=5,
+            )
+            self.assertAlmostEqual(
+                low_row["transition_gap_error"] * 0.5,
+                middle["contracts"][contract_id]["transition_gap_error"],
+                places=5,
+            )
+        self.assertFalse(imperfect["informationPolicy"]["future_market_used"])
+        self.assertFalse(imperfect["informationPolicy"]["forecast_truth_used"])
+        self.assertFalse(imperfect["informationPolicy"]["can_create_or_reverse_signal"])
+        self.assertFalse(
+            imperfect["informationPolicy"]["aggregate_capability_score_used"]
+        )
+
+    def test_construction_capability_does_not_change_style_policy(self) -> None:
+        high = build_default_oil_strategy_research_profile()
+        low = deepcopy(high)
+        low.pop("profile_hash")
+        low["construction_capability_radar"] = {
+            dimension: 0.0
+            for dimension in STRATEGY_CONSTRUCTION_CAPABILITY_DIMENSIONS
+        }
+        _, high_policy = resolve_oil_strategy_runtime_policy(high)
+        _, low_policy = resolve_oil_strategy_runtime_policy(low)
+        self.assertEqual(high_policy["signal"], low_policy["signal"])
+        self.assertEqual(high_policy["risk"], low_policy["risk"])
+        self.assertEqual(high_policy["execution"], low_policy["execution"])
+        self.assertNotEqual(high_policy["construction"], low_policy["construction"])
 
     def test_style_first_profiles_have_no_hidden_pm_quality_or_ranking(self) -> None:
         roster = generate_oil_strategy_research_roster(seed=42, candidate_count=8)
@@ -155,6 +306,49 @@ class OilStrategyResearchTests(unittest.TestCase):
         )
         self.assertLess(
             _correlation(radars, "near_month_focus", "forecast_horizon"), -0.55
+        )
+
+    def test_construction_capability_is_correlated_but_separate_from_style(self) -> None:
+        profiles = [
+            generate_oil_strategy_research_candidate(
+                seed=seed, candidate_index=candidate_index
+            )
+            for seed in range(32)
+            for candidate_index in range(8)
+        ]
+        capability_radars = [
+            profile["construction_capability_radar"] for profile in profiles
+        ]
+        self.assertGreater(
+            _correlation(
+                capability_radars,
+                "exposure_construction",
+                "transition_planning",
+            ),
+            0.55,
+        )
+        self.assertGreater(
+            _correlation(
+                capability_radars,
+                "transition_planning",
+                "contract_lifecycle_planning",
+            ),
+            0.60,
+        )
+        style_and_capability = [
+            {
+                "style": float(profile["style_radar"]["capital_deployment"]),
+                "capability": float(
+                    profile["construction_capability_radar"][
+                        "exposure_construction"
+                    ]
+                ),
+            }
+            for profile in profiles
+        ]
+        self.assertLess(
+            abs(_correlation(style_and_capability, "style", "capability")),
+            0.20,
         )
 
     def test_style_changes_runtime_policy_without_owning_capital_allocation(self) -> None:
@@ -207,14 +401,21 @@ class OilStrategyResearchTests(unittest.TestCase):
         philosophy = load_registered_assets()["oil_strategy_research_contract"][
             "personnel_philosophy"
         ]
-        self.assertEqual("style_first", philosophy["system_type"])
+        self.assertEqual(
+            "style_first_with_lightweight_construction_capability",
+            philosophy["system_type"],
+        )
         self.assertFalse(philosophy["aggregate_pm_quality_score_available"])
+        self.assertFalse(
+            philosophy["aggregate_construction_capability_score_available"]
+        )
         self.assertFalse(philosophy["style_endpoints_have_universal_ordering"])
         self.assertFalse(philosophy["latent_traits_represent_capability"])
         self.assertFalse(
             philosophy["cross_department_compatibility_score_available"]
         )
         self.assertFalse(philosophy["hidden_future_access"])
+        self.assertFalse(philosophy["construction_capability_represents_alpha"])
         self.assertEqual("investment_decision", philosophy["capital_allocation_owner"])
 
     def test_candidate_count_and_identity_inputs_are_bounded(self) -> None:

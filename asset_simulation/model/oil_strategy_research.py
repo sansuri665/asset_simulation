@@ -1,9 +1,11 @@
 """Appointed-personnel profiles for the oil strategy research department.
 
 The player-facing choice is a person, not eight free-form sliders.  A stable
-Seed and candidate index generate one coherent preference radar, which is then
-resolved into an auditable mandate for the current directional oil strategy.
-The radar describes trade-offs and deliberately has no total score.
+Seed and candidate index generate one coherent preference radar plus a narrow
+strategy-construction capability radar.  Style determines what the PM wants to
+do; construction capability only bounds deterministic implementation error
+between ideal policy and the submitted strategy proposal.  Neither radar
+creates an aggregate investment-quality or alpha score.
 """
 
 from __future__ import annotations
@@ -17,6 +19,9 @@ from .registry import load_registered_assets, sha256_json
 
 
 OIL_STRATEGY_RESEARCH_MODEL_VERSION = (
+    "asset-simulation-oil-strategy-research-v0.3.0"
+)
+LEGACY_OIL_STRATEGY_RESEARCH_MODEL_VERSION = (
     "asset-simulation-oil-strategy-research-v0.2.1"
 )
 OIL_STRATEGY_RESEARCH_CONTRACT_ID = "oil_strategy_research_v2"
@@ -36,6 +41,16 @@ LATENT_TRAITS = (
     "discipline",
     "curve_focus",
     "continuation_bias",
+)
+STRATEGY_CONSTRUCTION_CAPABILITY_DIMENSIONS = (
+    "exposure_construction",
+    "transition_planning",
+    "contract_lifecycle_planning",
+)
+CONSTRUCTION_CAPABILITY_LATENT_TRAITS = (
+    "technical_foundation",
+    "planning_discipline",
+    "operational_experience",
 )
 
 
@@ -61,6 +76,13 @@ def _validate_registered_assets() -> tuple[dict[str, Any], dict[str, Any], dict[
         raise ValueError("registered oil strategy research contract id mismatch")
     if tuple(config["style_dimensions"]) != STRATEGY_STYLE_DIMENSIONS:
         raise ValueError("oil strategy style dimensions are out of contract order")
+    if (
+        tuple(config.get("construction_capability_dimensions", ()))
+        != STRATEGY_CONSTRUCTION_CAPABILITY_DIMENSIONS
+    ):
+        raise ValueError(
+            "oil strategy construction capability dimensions are out of contract order"
+        )
 
     generation = config["candidate_generation"]
     minimum_count = int(generation["minimum_candidate_count"])
@@ -107,6 +129,47 @@ def _validate_registered_assets() -> tuple[dict[str, Any], dict[str, Any], dict[
             )
     if not generation["family_names"] or not generation["given_names"]:
         raise ValueError("oil strategy research personnel name pools must not be empty")
+
+    capability_generation = config["construction_capability_generation"]
+    capability_floor = float(capability_generation["dimension_floor"])
+    capability_center = float(capability_generation["dimension_center"])
+    capability_ceiling = float(capability_generation["dimension_ceiling"])
+    if not 0.0 <= capability_floor < capability_center < capability_ceiling <= 100.0:
+        raise ValueError("oil strategy construction capability bounds are invalid")
+    if (
+        tuple(capability_generation.get("latent_traits", ()))
+        != CONSTRUCTION_CAPABILITY_LATENT_TRAITS
+    ):
+        raise ValueError("oil strategy construction capability latents are invalid")
+    capability_loadings = capability_generation["latent_loadings"]
+    if set(capability_loadings) != set(STRATEGY_CONSTRUCTION_CAPABILITY_DIMENSIONS):
+        raise ValueError(
+            "oil strategy construction capability loadings do not cover the radar"
+        )
+    for dimension in STRATEGY_CONSTRUCTION_CAPABILITY_DIMENSIONS:
+        if set(capability_loadings[dimension]) != set(
+            CONSTRUCTION_CAPABILITY_LATENT_TRAITS
+        ):
+            raise ValueError(
+                f"oil strategy construction capability loadings are invalid for {dimension}"
+            )
+    capability_mapping = config["construction_capability_mapping"]
+    expected_capability_mappings = {
+        "exposure_max_abs_target_error_pct": 100.0,
+        "transition_max_abs_gap_error_pct": 100.0,
+        "lifecycle_max_abs_role_weight_error": 1.0,
+    }
+    if set(capability_mapping) != set(expected_capability_mappings):
+        raise ValueError("oil strategy construction capability mapping is incomplete")
+    for key, maximum in expected_capability_mappings.items():
+        anchors = capability_mapping[key]
+        score_0 = float(anchors["score_0"])
+        score_50 = float(anchors["score_50"])
+        score_100 = float(anchors["score_100"])
+        if not 0.0 <= score_100 <= score_50 <= score_0 <= maximum:
+            raise ValueError(
+                f"oil strategy construction capability mapping is invalid: {key}"
+            )
 
     mapping = config["parameter_mapping"]
     bounded = (
@@ -177,6 +240,18 @@ def _centered_linear(bounds: Mapping[str, Any], score: float) -> float:
     return neutral + (normalized - 0.5) * 2.0 * (high - neutral)
 
 
+def _piecewise_score_anchors(anchors: Mapping[str, Any], score: float) -> float:
+    """Interpolate explicit 0/50/100 capability anchors continuously."""
+
+    normalized = clamp(float(score) / 100.0, 0.0, 1.0)
+    score_0 = float(anchors["score_0"])
+    score_50 = float(anchors["score_50"])
+    score_100 = float(anchors["score_100"])
+    if normalized <= 0.5:
+        return score_0 + normalized * 2.0 * (score_50 - score_0)
+    return score_50 + (normalized - 0.5) * 2.0 * (score_100 - score_50)
+
+
 def _style_tags(radar: Mapping[str, float], config: Mapping[str, Any]) -> list[str]:
     threshold = config["style_tag_thresholds"]
     high = float(threshold["high"])
@@ -206,6 +281,49 @@ def _style_tags(radar: Mapping[str, float], config: Mapping[str, Any]) -> list[s
         if len(tags) == 3:
             break
     return tags or ["均衡配置"]
+
+
+def _construction_capability_tags(radar: Mapping[str, float]) -> list[str]:
+    labels = {
+        "exposure_construction": "仓位构造",
+        "transition_planning": "调仓规划",
+        "contract_lifecycle_planning": "合约周期",
+    }
+    ordered = sorted(
+        STRATEGY_CONSTRUCTION_CAPABILITY_DIMENSIONS,
+        key=lambda key: float(radar[key]),
+        reverse=True,
+    )
+    return [f"{labels[key]}稳健" for key in ordered[:2] if float(radar[key]) >= 65.0]
+
+
+def _resolved_construction_policy(
+    capability_radar: Mapping[str, float], config: Mapping[str, Any]
+) -> dict[str, Any]:
+    mapping = config["construction_capability_mapping"]
+    exposure_score = float(capability_radar["exposure_construction"])
+    transition_score = float(capability_radar["transition_planning"])
+    lifecycle_score = float(
+        capability_radar["contract_lifecycle_planning"]
+    )
+    return {
+        "exposure_construction_score": exposure_score,
+        "transition_planning_score": transition_score,
+        "contract_lifecycle_planning_score": lifecycle_score,
+        "max_abs_target_error_ratio": _piecewise_score_anchors(
+            mapping["exposure_max_abs_target_error_pct"], exposure_score
+        )
+        / 100.0,
+        "max_abs_gap_error_ratio": _piecewise_score_anchors(
+            mapping["transition_max_abs_gap_error_pct"], transition_score
+        )
+        / 100.0,
+        "max_abs_role_weight_error": _piecewise_score_anchors(
+            mapping["lifecycle_max_abs_role_weight_error"], lifecycle_score
+        ),
+        "error_process": "bounded_deterministic_visible_state_only",
+        "alpha_or_future_truth_used": False,
+    }
 
 
 def _resolved_policy(
@@ -310,6 +428,7 @@ def _pack_profile(
     personnel_id: str,
     display_name: str,
     style_radar: Mapping[str, float],
+    construction_capability_radar: Mapping[str, float] | None,
     candidate_index: int | None,
     generation_seed: int | None,
     source: str,
@@ -323,6 +442,31 @@ def _pack_profile(
         value = radar.get(key)
         if value is None or not math.isfinite(value) or not 0.0 <= value <= 100.0:
             raise ValueError(f"oil strategy style {key} must be between 0 and 100")
+    default_capability = config["default_director"][
+        "construction_capability_radar"
+    ]
+    capability_radar = {
+        key: float(value)
+        for key, value in dict(
+            default_capability
+            if construction_capability_radar is None
+            else construction_capability_radar
+        ).items()
+    }
+    unknown_capability = set(capability_radar) - set(
+        STRATEGY_CONSTRUCTION_CAPABILITY_DIMENSIONS
+    )
+    if unknown_capability:
+        raise KeyError(
+            "unknown oil strategy construction capability dimensions: "
+            f"{sorted(unknown_capability)}"
+        )
+    for key in STRATEGY_CONSTRUCTION_CAPABILITY_DIMENSIONS:
+        value = capability_radar.get(key)
+        if value is None or not math.isfinite(value) or not 0.0 <= value <= 100.0:
+            raise ValueError(
+                f"oil strategy construction capability {key} must be between 0 and 100"
+            )
     if not str(personnel_id) or not str(display_name):
         raise ValueError("oil strategy personnel identity must not be empty")
     result = {
@@ -343,12 +487,23 @@ def _pack_profile(
         "style_radar": radar,
         "style_tags": _style_tags(radar, config),
         "preference_total_score": None,
+        "construction_capability_radar": capability_radar,
+        "construction_capability_tags": _construction_capability_tags(
+            capability_radar
+        ),
         "resolved_policy": _resolved_policy(radar, config),
+        "resolved_construction_policy": _resolved_construction_policy(
+            capability_radar, config
+        ),
         "governance": {
             "player_can_edit_radar": False,
             "selection_method": "appoint_generated_personnel",
             "higher_score_is_better": False,
             "research_capability_score_used": False,
+            "construction_capability_dimensions_are_higher_is_better": True,
+            "aggregate_construction_capability_score_available": False,
+            "construction_capability_can_create_alpha": False,
+            "construction_capability_can_read_hidden_future": False,
             "investment_decision_owner": "system_proxy_pending_department",
             "trading_execution_owner": "neutral_execution_engine_pending_trader",
             "hard_risk_owner": "market_and_account_rules",
@@ -375,6 +530,9 @@ def build_default_oil_strategy_research_profile() -> dict[str, Any]:
         personnel_id=str(default["personnel_id"]),
         display_name=str(default["display_name"]),
         style_radar=default["style_radar"],
+        construction_capability_radar=default[
+            "construction_capability_radar"
+        ],
         candidate_index=None,
         generation_seed=None,
         source="default_appointment",
@@ -439,6 +597,44 @@ def generate_oil_strategy_research_candidate(
             value += idiosyncratic_scale * dimension_draw
         radar[dimension] = round(clamp(value, floor, ceiling), 2)
 
+    capability_generation = config["construction_capability_generation"]
+    capability_latents = {
+        key: clamp(
+            normal(
+                seed,
+                f"oil_strategy_research.candidate.{candidate_index}.construction_latent.{key}",
+                candidate_index,
+            ),
+            -1.8,
+            1.8,
+        )
+        for key in CONSTRUCTION_CAPABILITY_LATENT_TRAITS
+    }
+    capability_center = float(capability_generation["dimension_center"])
+    capability_floor = float(capability_generation["dimension_floor"])
+    capability_ceiling = float(capability_generation["dimension_ceiling"])
+    capability_idiosyncratic_scale = float(
+        capability_generation["idiosyncratic_scale"]
+    )
+    capability_radar: dict[str, float] = {}
+    for dimension_index, dimension in enumerate(
+        STRATEGY_CONSTRUCTION_CAPABILITY_DIMENSIONS
+    ):
+        loadings = capability_generation["latent_loadings"][dimension]
+        dimension_draw = normal(
+            seed,
+            f"oil_strategy_research.candidate.{candidate_index}.construction_dimension.{dimension}",
+            dimension_index,
+        )
+        value = capability_center + sum(
+            float(loadings[key]) * capability_latents[key]
+            for key in CONSTRUCTION_CAPABILITY_LATENT_TRAITS
+        )
+        value += capability_idiosyncratic_scale * dimension_draw
+        capability_radar[dimension] = round(
+            clamp(value, capability_floor, capability_ceiling), 2
+        )
+
     family_names = list(generation["family_names"])
     given_names = list(generation["given_names"])
     family_index = _stable_pool_index(
@@ -457,6 +653,7 @@ def generate_oil_strategy_research_candidate(
         personnel_id=f"oil_strategy_director_{seed}_{candidate_index}",
         display_name=f"{family_names[family_index]}{given_names[given_index]}",
         style_radar=radar,
+        construction_capability_radar=capability_radar,
         candidate_index=candidate_index,
         generation_seed=seed,
         source="generated_candidate",
@@ -495,6 +692,7 @@ def generate_oil_strategy_research_roster(
             "player_can_edit_radar": False,
             "method": "appoint_one_generated_personnel",
             "preference_total_score_available": False,
+            "construction_capability_total_score_available": False,
         },
         "candidates": candidates,
     }
@@ -524,14 +722,145 @@ def resolve_oil_strategy_research_profile(
         personnel_id=str(appointment.get("personnel_id", "")),
         display_name=str(appointment.get("display_name", "")),
         style_radar=supplied.get("style_radar", {}),
+        construction_capability_radar=supplied.get(
+            "construction_capability_radar"
+        ),
         candidate_index=appointment.get("candidate_index"),
         generation_seed=appointment.get("generation_seed"),
         source=str(appointment.get("source", "appointed_profile")),
     )
     supplied_hash = supplied.get("profile_hash")
     if supplied_hash is not None and str(supplied_hash) != str(rebuilt["profile_hash"]):
-        raise ValueError("oil strategy research profile was modified after generation")
+        supplied_identity = dict(supplied.get("identity", {}))
+        is_legacy_profile = (
+            "construction_capability_radar" not in supplied
+            and supplied_identity.get("model_version")
+            == LEGACY_OIL_STRATEGY_RESEARCH_MODEL_VERSION
+        )
+        if not is_legacy_profile:
+            raise ValueError(
+                "oil strategy research profile was modified after generation"
+            )
+        _, config, _ = _validate_registered_assets()
+        legacy_result = {
+            "schemaVersion": "asset-simulation-oil-strategy-research-profile-v2",
+            "appointment": rebuilt["appointment"],
+            "signal_engine": rebuilt["signal_engine"],
+            "style_radar": rebuilt["style_radar"],
+            "style_tags": rebuilt["style_tags"],
+            "preference_total_score": None,
+            "resolved_policy": _resolved_policy(rebuilt["style_radar"], config),
+            "governance": {
+                key: rebuilt["governance"][key]
+                for key in (
+                    "player_can_edit_radar",
+                    "selection_method",
+                    "higher_score_is_better",
+                    "research_capability_score_used",
+                    "investment_decision_owner",
+                    "trading_execution_owner",
+                    "hard_risk_owner",
+                )
+            },
+            "identity": supplied_identity,
+        }
+        if str(supplied_hash) != sha256_json(legacy_result):
+            raise ValueError(
+                "oil strategy research profile was modified after generation"
+            )
     return rebuilt
+
+
+def build_oil_strategy_construction_adjustments(
+    profile: Mapping[str, Any] | None,
+    *,
+    visible_state_hash: str,
+    contract_ids: list[str] | tuple[str, ...],
+) -> dict[str, Any]:
+    """Build bounded proposal errors from current visible state only.
+
+    These adjustments model strategy-design craftsmanship, not alpha.  Scores
+    only narrow zero-mean construction error around the PM's own ideal policy.
+    The default compatibility director has zero error on all three axes.
+    """
+
+    canonical = resolve_oil_strategy_research_profile(profile)
+    _, config, _ = _validate_registered_assets()
+    state_hash = str(visible_state_hash)
+    if not state_hash:
+        raise ValueError("oil strategy construction requires a visible state hash")
+    ordered_contracts = sorted(str(value) for value in contract_ids)
+    if len(ordered_contracts) != len(set(ordered_contracts)) or any(
+        not value for value in ordered_contracts
+    ):
+        raise ValueError("oil strategy construction contract ids must be unique")
+    policy = _resolved_construction_policy(
+        canonical["construction_capability_radar"], config
+    )
+    error_stream_identity = {
+        "personnel_id": canonical["appointment"]["personnel_id"],
+        "generation_seed": canonical["appointment"]["generation_seed"],
+        "candidate_index": canonical["appointment"]["candidate_index"],
+    }
+    error_stream_identity_hash = sha256_json(error_stream_identity)
+    personnel_seed = int(error_stream_identity_hash[:16], 16)
+
+    def bounded_unit(dimension: str, contract_id: str, index: int) -> float:
+        draw = normal(
+            personnel_seed,
+            (
+                "oil_strategy_research.construction."
+                f"{state_hash}.{dimension}.{contract_id}"
+            ),
+            index,
+        )
+        return math.tanh(draw)
+
+    lifecycle_unit = bounded_unit("contract_lifecycle_planning", "portfolio", 0)
+    result = {
+        "schemaVersion": "asset-simulation-oil-strategy-construction-adjustment-v1",
+        "strategy_profile_hash": canonical["profile_hash"],
+        "error_stream_identity_hash": error_stream_identity_hash,
+        "visible_state_hash": state_hash,
+        "construction_capability_radar": dict(
+            canonical["construction_capability_radar"]
+        ),
+        "resolved_construction_policy": policy,
+        "portfolio": {
+            "role_weight_error": lifecycle_unit
+            * float(policy["max_abs_role_weight_error"]),
+        },
+        "contracts": {
+            contract_id: {
+                "target_scale_error": bounded_unit(
+                    "exposure_construction", contract_id, index
+                )
+                * float(policy["max_abs_target_error_ratio"]),
+                "transition_gap_error": bounded_unit(
+                    "transition_planning", contract_id, index
+                )
+                * float(policy["max_abs_gap_error_ratio"]),
+            }
+            for index, contract_id in enumerate(ordered_contracts)
+        },
+        "informationPolicy": {
+            "visible_state_only": True,
+            "future_market_used": False,
+            "forecast_truth_used": False,
+            "can_create_or_reverse_signal": False,
+            "aggregate_capability_score_used": False,
+        },
+    }
+    return _round_nested(
+        {
+            "identity": {
+                "model_version": OIL_STRATEGY_RESEARCH_MODEL_VERSION,
+                "write_back": False,
+                "result_hash": sha256_json(result),
+            },
+            **result,
+        }
+    )
 
 
 def resolve_oil_strategy_runtime_policy(
@@ -548,4 +877,11 @@ def resolve_oil_strategy_runtime_policy(
         config,
         turnover_override=turnover_development_override,
     )
-    return canonical, _round_nested(policy)
+    return canonical, _round_nested(
+        {
+            **policy,
+            "construction": _resolved_construction_policy(
+                canonical["construction_capability_radar"], config
+            ),
+        }
+    )

@@ -14,15 +14,17 @@ class OilInvestmentCompetitionTests(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.macro_run = cached_global_run(42, 6)
 
-    def test_seed_draws_one_complete_committee_per_participant(self) -> None:
+    def test_seed_draws_one_complete_three_role_team_per_participant(self) -> None:
         participants = build_competition_participants(42)
         self.assertEqual(participants, build_competition_participants(42))
         self.assertEqual(4, len(participants))
         self.assertEqual(1, sum(item["is_player"] for item in participants))
         self.assertEqual(
-            {"forecast", "strategy", "risk", "execution"},
+            {"forecast", "strategy", "execution"},
             set(participants[0]["appointments"]),
         )
+        self.assertNotIn("risk", participants[0]["profiles"])
+        self.assertIn("riskMandate", participants[0]["strategy_risk_review"])
         self.assertEqual(
             4,
             len({item["roster_hash"] for item in participants}),
@@ -34,6 +36,17 @@ class OilInvestmentCompetitionTests(unittest.TestCase):
                 for item in build_competition_participants(99)
             ],
         )
+        for participant in participants:
+            strategy = participant["appointments"]["strategy"]
+            self.assertIsNone(strategy["capability_total_score"])
+            self.assertEqual(
+                {
+                    "exposure_construction",
+                    "transition_planning",
+                    "contract_lifecycle_planning",
+                },
+                set(strategy["construction_capability_radar"]),
+            )
 
     def test_all_institutions_settle_against_the_same_turn(self) -> None:
         session = OilInvestmentCompetitionSession(self.macro_run)
@@ -66,6 +79,20 @@ class OilInvestmentCompetitionTests(unittest.TestCase):
         )
         self.assertTrue(
             all("account_ledger" in item for item in report["participants"])
+        )
+        self.assertTrue(
+            all(
+                item["strategy_position_risk_tier"]
+                in {"light", "moderate", "heavy", "danger"}
+                for item in report["participants"]
+            )
+        )
+        self.assertTrue(
+            all(
+                item["strategy_position_risk_approved_utilization"]
+                <= item["strategy_position_risk_proposed_utilization"] + 1e-9
+                for item in report["participants"]
+            )
         )
         self.assertTrue(
             all(

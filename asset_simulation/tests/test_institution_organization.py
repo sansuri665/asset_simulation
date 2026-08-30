@@ -68,7 +68,7 @@ class InstitutionOrganizationTests(unittest.TestCase):
         )
         self.assertEqual(
             {
-                "risk_policy_approval",
+                "strategy_mandate_approval",
                 "strategy_capital_authorization",
             },
             set(decision["current_scope"]),
@@ -100,7 +100,6 @@ class InstitutionOrganizationTests(unittest.TestCase):
             {
                 "forecast_research",
                 "investment_strategy",
-                "corporate_risk",
                 "trading_execution",
                 "administration",
             },

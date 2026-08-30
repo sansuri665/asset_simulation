@@ -1,13 +1,13 @@
 {
   "contract_id": "oil_strategy_risk_v1",
-  "schema_version": "asset-simulation-oil-strategy-risk-contract-v1",
-  "role": "Risk-department review of one appointed oil strategy, followed by investment-decision-committee approval of a strategy risk mandate and an independently chosen capital authorization.",
+  "schema_version": "asset-simulation-oil-strategy-risk-contract-v2",
+  "role": "A registered oil directional-strategy risk mandate, approved by Investment Decision and enforced without an appointable risk-personnel institution.",
   "identity_fields": [
     "strategy_id",
     "strategy_personnel_id",
     "strategy_profile_hash",
-    "corporate_risk_personnel_id",
-    "corporate_risk_profile_hash",
+    "risk_mandate_id",
+    "risk_mandate_hash",
     "review_hash",
     "approval_hash"
   ],
@@ -31,19 +31,30 @@
     "strategy_risk_clip_lots": {"unit": "lots"},
     "strategy_drawdown_pct": {"unit": "percent"},
     "strategy_drawdown_scale": {"unit": "ratio_0_to_1"},
-    "strategy_risk_status": {"unit": "enum_normal_watch_restricted_reduce_only"}
+    "strategy_risk_status": {"unit": "enum_normal_watch_restricted_reduce_only"},
+    "position_risk_current_utilization": {"unit": "maximum_ratio_of_gross_margin_visible_volatility_budget"},
+    "position_risk_proposed_utilization": {"unit": "maximum_ratio_of_gross_margin_visible_volatility_budget"},
+    "position_risk_approved_utilization": {"unit": "maximum_ratio_of_gross_margin_visible_volatility_budget"},
+    "position_risk_tier": {"unit": "enum_light_moderate_heavy_danger"},
+    "risk_increasing_gap_completion": {"unit": "ratio_0_to_1"}
   },
   "invariants": [
-    "the risk department proposes strategy capacity, volatility, drawdown, concentration, liquidity and roll limits but does not allocate company capital",
+    "the registered directional strategy owns its position-dependent risk curve and the investment decision committee approves it as part of the strategy mandate",
+    "the current single-strategy runtime has no appointable risk department or CRO profile input",
+    "registered risk tolerances and the PM's visible structural pressures produce a deterministic strategy mandate rather than a personnel opinion",
+    "position utilization is the maximum of gross-position, initial-margin and visible-volatility budget usage",
+    "light, moderate, heavy and danger tiers progressively slow only risk-increasing target gaps; risk-reducing changes pass without the tier penalty",
+    "when current utilization reaches the registered reduce-only trigger the position curve prevents further risk increase",
+    "the registered strategy mandate defines capacity, volatility, drawdown, concentration, liquidity and roll limits but does not allocate company capital",
     "the investment decision committee approves the strategy risk mandate and independently sets capital authorization",
-    "capital authorization can differ from the risk department advisory capital recommendation but cannot exceed available company equity in the current unlevered allocation contract",
+    "capital authorization can differ from the mandate reference capital scale but cannot exceed available company equity in the current unlevered allocation contract",
     "the strategy director's capital deployment preference applies only inside committee-authorized capital",
     "capital deployment changes the PM strategy-intent envelope but is not an input to the risk policy, risk recommendation or committee authorization",
     "PM strategy intent and strategy-risk limits are parallel quantities anchored independently to authorized capital; they are compared by clipping and are never multiplied into a serial haircut chain",
     "strategy risk can preserve or shrink strategy intent but cannot create a direction, enlarge intent or cross through zero",
-    "company risk is applied after strategy risk and market hard limits remain final",
+    "portfolio risk is dormant while only one strategy is active; strategy limits, market hard rules and formal-account constraints remain active",
     "all volatility, liquidity and drawdown inputs are visible at the decision cutoff",
-    "the same strategy profile, risk profile, committee approval and visible state produce the same review, mandate and result",
+    "the same strategy profile, committee approval and visible state produce the same mandate and result regardless of any legacy CRO argument",
     "the layer never writes back to market, forecast, macro, volume or open interest"
   ]
 }

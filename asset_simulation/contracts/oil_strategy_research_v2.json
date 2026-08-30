@@ -1,7 +1,7 @@
 {
   "contract_id": "oil_strategy_research_v2",
   "schema_version": "asset-simulation-oil-strategy-research-contract-v2",
-  "role": "Deterministic appointed-personnel profiles for the oil strategy research department. The eight-axis radar controls continuation-versus-reversion philosophy, deployment of allocated capital, timing, turnover and contract preferences without granting capital-allocation or market-limit authority.",
+  "role": "Deterministic appointed-personnel profiles for the oil strategy research department. Eight style axes define investment preferences; three lightweight construction-capability axes bound proposal error without granting alpha, capital-allocation or market-limit authority.",
   "identity_fields": [
     "seed",
     "candidate_index",
@@ -18,12 +18,20 @@
     "near_month_focus": {"unit": "preference_0_100"},
     "forecast_horizon": {"unit": "preference_0_100"}
   },
+  "construction_capability_fields": {
+    "exposure_construction": {"unit": "capability_0_to_100_higher_narrows_target_error"},
+    "transition_planning": {"unit": "capability_0_to_100_higher_narrows_gap_error"},
+    "contract_lifecycle_planning": {"unit": "capability_0_to_100_higher_narrows_role_weight_error"}
+  },
   "personnel_philosophy": {
-    "system_type": "style_first",
+    "system_type": "style_first_with_lightweight_construction_capability",
     "personnel_role": "PM / Strategy Director",
     "aggregate_pm_quality_score_available": false,
+    "aggregate_construction_capability_score_available": false,
     "style_endpoints_have_universal_ordering": false,
     "latent_traits_represent_capability": false,
+    "construction_capability_represents_alpha": false,
+    "construction_capability_scope": "bounded_fidelity_of_strategy_proposal",
     "historical_track_record_is_observed_not_hidden_skill": true,
     "cross_department_compatibility_score_available": false,
     "decision_inputs": [
@@ -47,20 +55,28 @@
     "expected_holding_turns": {"unit": "half_month_turns"},
     "position_persistence": {"unit": "ratio_0_to_1"},
     "main_role_weight": {"unit": "ratio_0_to_1"},
-    "horizon_weights": {"unit": "weights_sum_to_1"}
+    "horizon_weights": {"unit": "weights_sum_to_1"},
+    "ideal_policy_target_position_lots": {"unit": "lots_before_construction_error"},
+    "construction_submitted_target_position_lots": {"unit": "lots_after_bounded_construction_error_before_thesis_and_external_risk"}
   },
   "invariants": [
     "players appoint one generated personnel profile and never submit free-form radar dimensions through the service API",
     "the eight style dimensions are preferences and behavioral tendencies; they have no total score, skill interpretation, or higher-is-better ordering",
     "PM personnel have no capability_total_score, quality_score, alpha_score, investment_skill, or other hidden aggregate quality level",
-    "latent traits create internally correlated and stable personalities rather than capability or alpha rankings",
+    "the three construction-capability dimensions are continuous higher-is-better process skills but never form an aggregate PM quality score",
+    "style latent traits create internally correlated and stable personalities rather than capability or alpha rankings",
+    "construction-capability latent traits are separate from style latents and only narrow zero-mean bounded proposal error",
     "no style endpoint is universally superior and stable behavior does not imply a stable performance ranking across market regimes",
-    "PM quality emerges only from observable historical track record and player evaluation, never from a system-preassigned hidden skill",
+    "investment quality and alpha emerge only from observable historical track record and player evaluation; construction capability measures proposal fidelity rather than market judgment",
     "cross-department compatibility is never scored; forecast research, strategy, risk, and execution interact only through their business interfaces",
     "continuation and reversion weights sum to one; score 50 reproduces the prior 30 percent path-continuation baseline",
     "capital deployment describes the PM tendency inside capital allocated by the investment-decision owner and never grants or reallocates company capital",
     "capital deployment changes strategy intent but does not change the risk department policy, risk recommendation or committee authorization",
     "research institution capability scores never enter the strategy personnel generator or its mandate",
+    "construction capability cannot read hidden future prices, forecast truth, future liquidity, or realized returns",
+    "construction capability cannot create or reverse a signal, enlarge market hard limits, change committee capital, or alter execution-desk fill quality",
+    "the default compatibility director has zero construction error so the existing neutral runtime remains reproducible",
+    "a valid v0.2.1 appointed profile without construction capability is verified against its legacy hash and migrated to the zero-error compatibility default",
     "contract margin rates, market position limits, market execution capacity, company risk, fees, spreads, and base slippage remain external owners",
     "the same seed and candidate index generate the same personnel, radar, resolved mandate, and profile hash",
     "all resolved weights are normalized and every resolved parameter remains inside the registered mapping bounds",

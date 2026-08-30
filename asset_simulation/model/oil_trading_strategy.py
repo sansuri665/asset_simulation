@@ -20,16 +20,13 @@ from .oil_short_term_forecast import (
     generate_oil_short_term_forecast,
 )
 from .oil_strategy_research import (
+    build_oil_strategy_construction_adjustments,
     resolve_oil_strategy_research_profile,
     resolve_oil_strategy_runtime_policy,
 )
 from .oil_execution_desk import (
     adjust_visible_execution_weights,
     resolve_oil_execution_runtime_policy,
-)
-from .corporate_risk_control import (
-    approve_oil_strategy_targets,
-    resolve_corporate_risk_profile,
 )
 from .oil_strategy_risk import (
     apply_oil_strategy_risk_mandate,
@@ -49,7 +46,7 @@ from .registry import load_registered_assets, sha256_json
 
 
 OIL_TRADING_STRATEGY_MODEL_VERSION = (
-    "asset-simulation-oil-trading-strategy-v1.3.1"
+    "asset-simulation-oil-trading-strategy-v1.6.0"
 )
 STRATEGY_CONTRACT_ID = "oil_trading_strategy_v8"
 ROLE_ORDER = ("main", "next_main")
@@ -149,8 +146,10 @@ def _validate_registered_assets() -> tuple[dict[str, Any], dict[str, Any], dict[
         raise ValueError("oil trading strategy risk owner mismatch")
     if config.get("execution_desk_profile_owner") != "oil_execution_desk_v2":
         raise ValueError("oil trading strategy execution profile owner mismatch")
-    if config.get("corporate_risk_profile_owner") != "corporate_risk_control_v2":
-        raise ValueError("oil trading strategy corporate risk profile owner mismatch")
+    if config.get("portfolio_risk_mode") != "dormant_single_strategy":
+        raise ValueError("oil trading strategy portfolio risk mode mismatch")
+    if config.get("future_portfolio_risk_owner") != "corporate_risk_control_v2":
+        raise ValueError("oil trading strategy future portfolio risk owner mismatch")
     if config.get("investment_decision_owner") != (
         "investment_decision_committee_system_proxy"
     ):
@@ -1183,6 +1182,96 @@ def _apply_position_persistence(
     )
 
 
+def _apply_dormant_single_strategy_portfolio_risk(
+    targets: Mapping[str, Mapping[str, Any]],
+    *,
+    equity_usd: float,
+) -> tuple[dict[str, dict[str, Any]], dict[str, Any]]:
+    """Publish a no-op portfolio layer while only one strategy is active.
+
+    Market limits, the registered strategy mandate and the formal account still
+    constrain orders.  The retained portfolio layer has no personnel, reads no
+    profile and performs no second clipping; it is an explicit future extension
+    point for multi-strategy or multi-asset aggregation.
+    """
+
+    approved: dict[str, dict[str, Any]] = {}
+    for contract_id, raw_item in targets.items():
+        item = dict(raw_item)
+        strategy_target = int(item["target_position_lots"])
+        item.update(
+            {
+                "company_risk_input_target_lots": strategy_target,
+                "company_risk_approved_target_position_lots": strategy_target,
+                "company_risk_clip_lots": 0,
+                "strategy_target_position_lots": strategy_target,
+                "risk_approved_target_position_lots": strategy_target,
+                "risk_clip_lots": 0,
+                "risk_binding_rules": [],
+                "visible_annualized_volatility": float(
+                    item.get("strategy_visible_annualized_volatility", 0.0)
+                ),
+                "estimated_annualized_risk_usd": float(
+                    item.get("strategy_estimated_annualized_risk_usd", 0.0)
+                ),
+                "estimated_initial_margin_usd": float(
+                    item.get("strategy_estimated_initial_margin_usd", 0.0)
+                ),
+            }
+        )
+        approved[str(contract_id)] = item
+
+    gross = sum(abs(int(item["target_position_lots"])) for item in approved.values())
+    margin = sum(float(item["estimated_initial_margin_usd"]) for item in approved.values())
+    volatility = sum(
+        float(item["estimated_annualized_risk_usd"]) for item in approved.values()
+    )
+    state = {
+        "risk_status": "dormant",
+        "drawdown_pct": 0.0,
+        "drawdown_scale": 1.0,
+        "reason": "single_strategy_runtime_has_no_portfolio_aggregation",
+    }
+    result = {
+        "schemaVersion": "asset-simulation-portfolio-risk-pass-through-v1",
+        "status": "dormant_single_strategy",
+        "personnel": None,
+        "state": state,
+        "approval_summary": {
+            "strategy_target_gross_lots": gross,
+            "pre_portfolio_approved_gross_lots": gross,
+            "approved_gross_lots": gross,
+            "clipped_gross_lots": 0,
+            "portfolio_scale": 1.0,
+            "portfolio_binding_rules": [],
+            "approved_initial_margin_usd": margin,
+            "approved_annualized_risk_usd": volatility,
+            "approved_annualized_risk_pct_of_equity": (
+                0.0 if equity_usd <= 0.0 else 100.0 * volatility / equity_usd
+            ),
+        },
+        "governance": {
+            "personnel_institution_enabled": False,
+            "second_clipping_enabled": False,
+            "future_activation_condition": "multiple_strategies_or_assets",
+            "market_and_account_constraints_remain_active": True,
+        },
+        "information_policy": {
+            "future_market_available": False,
+            "visible_history_only": True,
+            "can_expand_strategy_intent": False,
+        },
+    }
+    result["identity"] = {
+        "model_version": "asset-simulation-portfolio-risk-dormant-v1",
+        "personnel_id": None,
+        "profile_hash": None,
+        "write_back": False,
+        "result_hash": sha256_json(result),
+    }
+    return _round_nested(approved), _round_nested(result)
+
+
 def build_oil_strategy_decision(
     market: Mapping[str, Any],
     forecast_vintage: Mapping[str, Any],
@@ -1249,18 +1338,10 @@ def build_oil_strategy_decision(
         strategy_research_profile,
         turnover_development_override=turnover_intensity,
     )
-    resolved_corporate_risk_profile = resolve_corporate_risk_profile(
-        corporate_risk_profile
-    )
-    resolved_strategy_risk_profile = (
-        resolved_corporate_risk_profile
-        if strategy_risk_profile is None
-        else resolve_corporate_risk_profile(strategy_risk_profile)
-    )
-    strategy_risk_review = build_oil_strategy_risk_review(
-        strategy_profile,
-        resolved_strategy_risk_profile,
-    )
+    # Legacy callers may still supply these parameters.  They intentionally do
+    # not affect the single-strategy runtime after the CRO institution retired.
+    _ = (corporate_risk_profile, strategy_risk_profile, risk_state)
+    strategy_risk_review = build_oil_strategy_risk_review(strategy_profile)
     investment_committee_approval = (
         build_investment_committee_strategy_approval(
             strategy_risk_review,
@@ -1315,9 +1396,28 @@ def build_oil_strategy_decision(
         * capital_deployment_pct
         / 100.0
     )
+    forecast_rows = list(forecast_vintage.get("forecasts", ()))
+    construction_adjustments = build_oil_strategy_construction_adjustments(
+        strategy_profile,
+        visible_state_hash=str(market["identity"]["result_hash"]),
+        contract_ids=[str(item["contract_id"]) for item in forecast_rows],
+    )
+    ideal_role_weights = {
+        key: float(value) for key, value in role_weights.items()
+    }
+    role_weight_error = float(
+        construction_adjustments["portfolio"]["role_weight_error"]
+    )
+    submitted_main_weight = clamp(
+        ideal_role_weights["main"] + role_weight_error, 0.0, 1.0
+    )
+    submitted_role_weights = {
+        "main": submitted_main_weight,
+        "next_main": 1.0 - submitted_main_weight,
+    }
 
     targets: dict[str, dict[str, Any]] = {}
-    for forecast in forecast_vintage.get("forecasts", ()):
+    for forecast in forecast_rows:
         role = str(forecast["role"])
         contract_id = str(forecast["contract_id"])
         if role not in ROLE_ORDER or contract_id not in contracts:
@@ -1330,15 +1430,28 @@ def build_oil_strategy_decision(
             turnover_profile,
             visible_contract=market_contract,
         )
-        role_weight = float(role_weights[role])
+        ideal_role_weight = float(ideal_role_weights[role])
+        role_weight = float(submitted_role_weights[role])
+        ideal_market_role_capacity = min(
+            int(limits["single_contract_position_limit_lots"]),
+            math.floor(gross_cap_lots * ideal_role_weight),
+        )
         market_role_capacity = min(
             int(limits["single_contract_position_limit_lots"]),
             math.floor(gross_cap_lots * role_weight),
         )
         price = float(market_contract["price_usd"])
         margin_per_lot = price * contract_size * initial_margin_rate
+        ideal_pm_deployment_capacity = math.floor(
+            capital_deployment_budget
+            * ideal_role_weight
+            / max(1e-9, margin_per_lot)
+        )
         pm_deployment_capacity = math.floor(
             capital_deployment_budget * role_weight / max(1e-9, margin_per_lot)
+        )
+        ideal_policy_capacity = max(
+            0, min(ideal_market_role_capacity, ideal_pm_deployment_capacity)
         )
         strategy_intent_capacity = max(
             0, min(market_role_capacity, pm_deployment_capacity)
@@ -1349,16 +1462,53 @@ def build_oil_strategy_decision(
             else "capital_deployment_budget"
         )
         if not bool(limits["new_trades_allowed"]):
+            ideal_policy_capacity = 0
             strategy_intent_capacity = 0
             binding_capacity = "new_trades_closed"
         pre_persistence_ideal_target = int(
-            round(float(signal_report["signal"]) * strategy_intent_capacity)
+            round(float(signal_report["signal"]) * ideal_policy_capacity)
         )
-        pre_thesis_target = _apply_position_persistence(
+        ideal_policy_target = _apply_position_persistence(
             current_position_lots=int(current_positions.get(contract_id, 0)),
             ideal_target_lots=pre_persistence_ideal_target,
+            risk_capacity_lots=ideal_policy_capacity,
+            position_persistence=float(turnover_profile["position_persistence"]),
+        )
+        contract_adjustments = construction_adjustments["contracts"][contract_id]
+        target_scale_error = float(contract_adjustments["target_scale_error"])
+        transition_gap_error = float(
+            contract_adjustments["transition_gap_error"]
+        )
+        construction_pre_persistence_target = int(
+            clamp(
+                float(
+                    round(
+                        float(signal_report["signal"])
+                        * (1.0 + target_scale_error)
+                        * strategy_intent_capacity
+                    )
+                ),
+                -float(strategy_intent_capacity),
+                float(strategy_intent_capacity),
+            )
+        )
+        construction_persistent_target = _apply_position_persistence(
+            current_position_lots=int(current_positions.get(contract_id, 0)),
+            ideal_target_lots=construction_pre_persistence_target,
             risk_capacity_lots=strategy_intent_capacity,
             position_persistence=float(turnover_profile["position_persistence"]),
+        )
+        current_position = int(current_positions.get(contract_id, 0))
+        submitted_gap = construction_persistent_target - current_position
+        pre_thesis_target = int(
+            clamp(
+                float(
+                    current_position
+                    + round(submitted_gap * (1.0 + transition_gap_error))
+                ),
+                -float(strategy_intent_capacity),
+                float(strategy_intent_capacity),
+            )
         )
         ideal_target, thesis_action = apply_oil_strategy_thesis_invalidation(
             contract_id=contract_id,
@@ -1381,17 +1531,32 @@ def build_oil_strategy_decision(
             "contract_id": contract_id,
             "role": role,
             **signal_report,
+            "ideal_role_weight": ideal_role_weight,
+            "submitted_role_weight": role_weight,
             "role_weight": role_weight,
             "single_contract_position_limit_lots": int(
                 limits["single_contract_position_limit_lots"]
             ),
             "gross_role_capacity_lots": math.floor(gross_cap_lots * role_weight),
             "capital_deployment_capacity_lots": pm_deployment_capacity,
+            "ideal_policy_capacity_lots": ideal_policy_capacity,
+            "ideal_pm_deployment_capacity_lots": ideal_pm_deployment_capacity,
             "pm_deployment_capacity_lots": pm_deployment_capacity,
             "strategy_intent_capacity_lots": strategy_intent_capacity,
             "risk_capacity_lots": strategy_intent_capacity,
             "binding_capacity": binding_capacity,
             "pre_persistence_ideal_target_lots": pre_persistence_ideal_target,
+            "ideal_policy_target_position_lots": ideal_policy_target,
+            "construction_pre_persistence_target_lots": (
+                construction_pre_persistence_target
+            ),
+            "construction_persistent_target_position_lots": (
+                construction_persistent_target
+            ),
+            "construction_submitted_target_position_lots": pre_thesis_target,
+            "construction_target_scale_error": target_scale_error,
+            "construction_transition_gap_error": transition_gap_error,
+            "construction_role_weight_error": role_weight_error,
             "pre_thesis_target_position_lots": pre_thesis_target,
             "thesis_adjusted_target_position_lots": ideal_target,
             "thesis_status": thesis_action["status"],
@@ -1451,6 +1616,8 @@ def build_oil_strategy_decision(
                     else float(contracts[contract_id]["price_usd"])
                 ),
                 "horizon_components": [],
+                "ideal_role_weight": 0.0,
+                "submitted_role_weight": 0.0,
                 "role_weight": 0.0,
                 "single_contract_position_limit_lots": (
                     0
@@ -1463,11 +1630,20 @@ def build_oil_strategy_decision(
                 ),
                 "gross_role_capacity_lots": 0,
                 "capital_deployment_capacity_lots": 0,
+                "ideal_policy_capacity_lots": 0,
+                "ideal_pm_deployment_capacity_lots": 0,
                 "pm_deployment_capacity_lots": 0,
                 "strategy_intent_capacity_lots": 0,
                 "risk_capacity_lots": 0,
                 "binding_capacity": "legacy_exit",
                 "pre_persistence_ideal_target_lots": 0,
+                "ideal_policy_target_position_lots": 0,
+                "construction_pre_persistence_target_lots": 0,
+                "construction_persistent_target_position_lots": 0,
+                "construction_submitted_target_position_lots": 0,
+                "construction_target_scale_error": 0.0,
+                "construction_transition_gap_error": 0.0,
+                "construction_role_weight_error": role_weight_error,
                 "pre_thesis_target_position_lots": 0,
                 "thesis_adjusted_target_position_lots": 0,
                 "thesis_status": str(
@@ -1519,13 +1695,9 @@ def build_oil_strategy_decision(
         committee_approval=investment_committee_approval,
         risk_state=strategy_risk_state,
     )
-    targets, corporate_risk = approve_oil_strategy_targets(
-        market,
+    targets, portfolio_risk = _apply_dormant_single_strategy_portfolio_risk(
         targets,
-        positions=current_positions,
         equity_usd=current_equity,
-        risk_profile=resolved_corporate_risk_profile,
-        risk_state=risk_state,
     )
     for contract_id, item in targets.items():
         strategy_target = int(item["strategy_intent_target_position_lots"])
@@ -1560,10 +1732,17 @@ def build_oil_strategy_decision(
                 "style_radar": strategy_profile["style_radar"],
                 "style_tags": strategy_profile["style_tags"],
                 "preference_total_score": None,
+                "construction_capability_radar": strategy_profile[
+                    "construction_capability_radar"
+                ],
+                "construction_capability_tags": strategy_profile[
+                    "construction_capability_tags"
+                ],
                 "profile_hash": strategy_profile["profile_hash"],
                 "governance": strategy_profile["governance"],
             },
             "resolved_policy": strategy_policy,
+            "construction": construction_adjustments,
             "turnover_profile": turnover_profile,
             "adjustment_speed": float(turnover_profile["adjustment_speed"]),
             "normal_turn_trade_limit_utilization": float(
@@ -1598,7 +1777,7 @@ def build_oil_strategy_decision(
             },
         },
         "strategyRisk": strategy_risk,
-        "corporateRisk": corporate_risk,
+        "portfolioRisk": portfolio_risk,
         "institution": {
             "institution_id": str(
                 forecast_vintage["institution"]["institution_id"]
@@ -1630,10 +1809,10 @@ def build_oil_strategy_decision(
             "strategy_risk_clipped_gross_lots": strategy_risk[
                 "approvalSummary"
             ]["clipped_gross_lots"],
-            "strategy_target_gross_lots": corporate_risk["approval_summary"][
+            "strategy_target_gross_lots": portfolio_risk["approval_summary"][
                 "strategy_target_gross_lots"
             ],
-            "company_risk_clipped_gross_lots": corporate_risk[
+            "portfolio_risk_clipped_gross_lots": portfolio_risk[
                 "approval_summary"
             ]["clipped_gross_lots"],
             "capital_authorization_pct_of_company_equity": float(
@@ -1641,7 +1820,7 @@ def build_oil_strategy_decision(
                     "authorized_pct_of_company_equity"
                 ]
             ),
-            "risk_recommended_capital_pct_of_company_equity": float(
+            "strategy_mandate_reference_capital_pct_of_company_equity": float(
                 investment_committee_approval["capitalAuthorization"][
                     "recommended_pct_of_company_equity"
                 ]
@@ -1681,6 +1860,9 @@ def build_oil_strategy_decision(
             "hidden_future_available": False,
             "future_market_payload_available": False,
             "configured_capability_score_used": False,
+            "strategy_construction_capability_total_score_used": False,
+            "strategy_construction_uses_future_market": False,
+            "strategy_construction_can_create_alpha": False,
             "strategy_radar_player_editable": False,
             "strategy_profile_selection_method": "appoint_generated_personnel",
             "future_volume_used_for_execution_weights": False,
@@ -1695,8 +1877,9 @@ def build_oil_strategy_decision(
             "thesis_invalidation_uses_configured_ability_score": False,
             "thesis_invalidation_can_expand_pre_thesis_target": False,
             "investment_committee_owns_capital_authorization": True,
-            "corporate_risk_reads_future_weeks": False,
-            "corporate_risk_can_expand_strategy_intent": False,
+            "portfolio_risk_mode": "dormant_single_strategy",
+            "portfolio_risk_personnel_enabled": False,
+            "portfolio_risk_second_clipping_enabled": False,
         },
     }
     identity = {
@@ -1724,10 +1907,12 @@ def build_oil_strategy_decision(
         ],
         "execution_personnel_id": execution_profile["appointment"]["personnel_id"],
         "execution_profile_hash": execution_profile["profile_hash"],
-        "corporate_risk_personnel_id": corporate_risk["profile"][
-            "appointment"
-        ]["personnel_id"],
-        "corporate_risk_profile_hash": corporate_risk["profile"]["profile_hash"],
+        "strategy_risk_mandate_id": strategy_risk_review["riskMandate"][
+            "mandate_id"
+        ],
+        "strategy_risk_mandate_hash": strategy_risk_review["riskMandate"][
+            "mandate_hash"
+        ],
         "write_back": False,
         "result_hash": sha256_json(result),
     }
@@ -3283,13 +3468,32 @@ def settle_oil_strategy_turn(
             "approval_summary": decision["strategyRisk"]["approvalSummary"],
             "review_hash": decision["strategyRisk"]["identity"]["review_hash"],
             "approval_hash": decision["strategyRisk"]["identity"]["approval_hash"],
+            "position_risk": {
+                "effective_tier": decision["strategyRisk"]["positionRisk"][
+                    "effective_tier"
+                ],
+                "current_utilization": decision["strategyRisk"][
+                    "positionRisk"
+                ]["current"]["maximum_utilization"],
+                "proposed_utilization": decision["strategyRisk"][
+                    "positionRisk"
+                ]["proposed"]["maximum_utilization"],
+                "approved_utilization": decision["strategyRisk"][
+                    "positionRisk"
+                ]["approved"]["maximum_utilization"],
+                "risk_increasing_gap_completion": decision["strategyRisk"][
+                    "positionRisk"
+                ]["risk_increasing_gap_completion"],
+                "current_reduce_only": decision["strategyRisk"][
+                    "positionRisk"
+                ]["current_reduce_only"],
+            },
         },
-        "corporateRisk": {
-            "risk_status": decision["corporateRisk"]["state"]["risk_status"],
-            "drawdown_pct": decision["corporateRisk"]["state"]["drawdown_pct"],
-            "drawdown_scale": decision["corporateRisk"]["state"]["drawdown_scale"],
-            "approval_summary": decision["corporateRisk"]["approval_summary"],
-            "profile_hash": decision["corporateRisk"]["profile"]["profile_hash"],
+        "portfolioRisk": {
+            "status": decision["portfolioRisk"]["status"],
+            "state": decision["portfolioRisk"]["state"],
+            "approval_summary": decision["portfolioRisk"]["approval_summary"],
+            "personnel": None,
         },
         "contracts": reports,
         "accountAfter": {
@@ -3472,12 +3676,12 @@ def settle_oil_strategy_turn(
         "execution_profile_hash": decision.get("executionDesk", {})
         .get("profile", {})
         .get("profile_hash"),
-        "corporate_risk_personnel_id": decision["corporateRisk"]["profile"][
-            "appointment"
-        ]["personnel_id"],
-        "corporate_risk_profile_hash": decision["corporateRisk"]["profile"][
-            "profile_hash"
-        ],
+        "strategy_risk_mandate_id": decision["strategyRisk"]["review"][
+            "riskMandate"
+        ]["mandate_id"],
+        "strategy_risk_mandate_hash": decision["strategyRisk"]["review"][
+            "riskMandate"
+        ]["mandate_hash"],
         "write_back": False,
         "result_hash": sha256_json(result),
     }
@@ -3529,14 +3733,7 @@ def simulate_oil_trading_strategy(
     resolved_execution_profile, resolved_execution_policy = (
         resolve_oil_execution_runtime_policy(execution_desk_profile)
     )
-    resolved_corporate_risk_profile = resolve_corporate_risk_profile(
-        corporate_risk_profile
-    )
-    resolved_strategy_risk_profile = (
-        resolved_corporate_risk_profile
-        if strategy_risk_profile is None
-        else resolve_corporate_risk_profile(strategy_risk_profile)
-    )
+    _ = (corporate_risk_profile, strategy_risk_profile)
     positions: dict[str, int] = {}
     initial_equity = initial_proprietary_capital_usd(assets)
     equity = initial_equity
@@ -3588,13 +3785,14 @@ def simulate_oil_trading_strategy(
         config["execution_friction"]["fees"]["rebate_lookback_turns"]
     )
     gross_turnover_history: list[int] = []
-    corporate_risk_state: dict[str, Any] | None = None
     strategy_risk_state: dict[str, Any] | None = None
     thesis_state: dict[str, Any] | None = None
     thesis_status_counts = {key: 0 for key in ("active", "watch", "invalidated")}
-    corporate_risk_status_counts = {key: 0 for key in ("normal", "watch", "restricted", "reduce_only")}
     strategy_risk_status_counts = {key: 0 for key in ("normal", "watch", "restricted", "reduce_only")}
-    total_company_risk_clipped_gross_lots = 0
+    strategy_position_risk_tier_counts = {
+        key: 0 for key in ("light", "moderate", "heavy", "danger")
+    }
+    strategy_position_risk_reduce_only_turns = 0
     total_strategy_risk_clipped_gross_lots = 0
 
     for turn_serial in range(start_serial, end_serial):
@@ -3615,9 +3813,6 @@ def simulate_oil_trading_strategy(
             equity_usd=equity,
             strategy_research_profile=resolved_strategy_profile,
             execution_desk_profile=resolved_execution_profile,
-            corporate_risk_profile=resolved_corporate_risk_profile,
-            strategy_risk_profile=resolved_strategy_risk_profile,
-            risk_state=corporate_risk_state,
             strategy_risk_state=strategy_risk_state,
             thesis_state=thesis_state,
             capital_authorization_pct_of_company_equity=(
@@ -3643,7 +3838,6 @@ def simulate_oil_trading_strategy(
             positions=positions,
             equity_usd=equity,
         )
-        corporate_risk_state = dict(decision["corporateRisk"]["state"])
         strategy_risk_state = dict(decision["strategyRisk"]["state"])
         thesis_state = dict(settlement["thesisInvalidation"]["state"])
         for thesis_contract in thesis_state.get("contracts", {}).values():
@@ -3651,14 +3845,15 @@ def simulate_oil_trading_strategy(
         strategy_risk_status_counts[
             str(strategy_risk_state["risk_status"])
         ] += 1
+        position_risk = decision["strategyRisk"]["positionRisk"]
+        strategy_position_risk_tier_counts[
+            str(position_risk["effective_tier"])
+        ] += 1
+        strategy_position_risk_reduce_only_turns += int(
+            bool(position_risk["current_reduce_only"])
+        )
         total_strategy_risk_clipped_gross_lots += int(
             decision["strategyRisk"]["approvalSummary"]["clipped_gross_lots"]
-        )
-        corporate_risk_status_counts[
-            str(corporate_risk_state["risk_status"])
-        ] += 1
-        total_company_risk_clipped_gross_lots += int(
-            decision["corporateRisk"]["approval_summary"]["clipped_gross_lots"]
         )
         positions = {
             str(key): int(value)
@@ -3888,9 +4083,10 @@ def simulate_oil_trading_strategy(
             "profile": resolved_execution_profile,
             "resolved_policy": resolved_execution_policy,
         },
-        "corporateRisk": {
-            "profile": resolved_corporate_risk_profile,
-            "ending_state": corporate_risk_state,
+        "portfolioRisk": {
+            "status": "dormant_single_strategy",
+            "personnel": None,
+            "second_clipping_enabled": False,
         },
         "strategyRisk": {
             "review": turns[0]["decision"]["strategyRisk"]["review"],
@@ -3981,14 +4177,18 @@ def simulate_oil_trading_strategy(
             "total_traded_notional_usd": total_traded_notional,
             "maximum_margin_to_equity_pct": maximum_margin_to_equity,
             "position_limit_excess_turns": limit_excess_turns,
-            "corporate_risk_status_counts": corporate_risk_status_counts,
+            "portfolio_risk_status": "dormant_single_strategy",
             "strategy_risk_status_counts": strategy_risk_status_counts,
+            "strategy_position_risk_tier_counts": (
+                strategy_position_risk_tier_counts
+            ),
+            "strategy_position_risk_reduce_only_turns": (
+                strategy_position_risk_reduce_only_turns
+            ),
             "strategy_risk_clipped_gross_lots": (
                 total_strategy_risk_clipped_gross_lots
             ),
-            "company_risk_clipped_gross_lots": (
-                total_company_risk_clipped_gross_lots
-            ),
+            "portfolio_risk_clipped_gross_lots": 0,
             "ending_positions": positions,
             "fees_usd": total_net_fee,
             "friction_bps": (
@@ -4034,12 +4234,12 @@ def simulate_oil_trading_strategy(
             "personnel_id"
         ],
         "execution_profile_hash": resolved_execution_profile["profile_hash"],
-        "corporate_risk_personnel_id": resolved_corporate_risk_profile[
-            "appointment"
-        ]["personnel_id"],
-        "corporate_risk_profile_hash": resolved_corporate_risk_profile[
-            "profile_hash"
-        ],
+        "strategy_risk_mandate_id": turns[0]["decision"]["strategyRisk"][
+            "review"
+        ]["riskMandate"]["mandate_id"],
+        "strategy_risk_mandate_hash": turns[0]["decision"]["strategyRisk"][
+            "review"
+        ]["riskMandate"]["mandate_hash"],
         "turnover_intensity": resolved_strategy_policy["execution"][
             "turnover_intensity"
         ],

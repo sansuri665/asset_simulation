@@ -1,7 +1,7 @@
 # Asset Simulation 文档索引
 
 > 状态：当前权威索引  
-> 适用基线：全球 v0.8.1、服务／Viewer v5.41  
+> 适用基线：全球 v0.8.1、服务／Viewer v5.42
 > 最近核对：2026-08-25  
 > 路径基准：仓库根下的 `asset_simulation/` Python 包
 
@@ -31,7 +31,7 @@
 | [`current/COMMODITY_LAYER.md`](current/COMMODITY_LAYER.md) | 商品 overlay、原油现货、01／05／09期货和流动性 | `model/commodity_overlay.py`、`model/oil_futures_overlay.py` |
 | [`current/OIL_SHORT_TERM_FORECAST.md`](current/OIL_SHORT_TERM_FORECAST.md) | 双合约预测、能力、修订和评分 | `model/oil_short_term_forecast.py` |
 | [`current/OIL_TRADING_STRATEGY.md`](current/OIL_TRADING_STRATEGY.md) | 策略研究、目标仓位、换手、成本与结算 | `model/oil_strategy_research.py`、`model/oil_trading_strategy.py` |
-| [`current/CORPORATE_RISK_CONTROL.md`](current/CORPORATE_RISK_CONTROL.md) | 公司 CRO、审批、回撤状态与报告 | `model/corporate_risk_control.py` |
+| [`current/CORPORATE_RISK_CONTROL.md`](current/CORPORATE_RISK_CONTROL.md) | 注册策略风险、投委会审批与休眠组合层 | `model/oil_strategy_risk.py` |
 | [`current/OIL_INVESTMENT_COMPETITION.md`](current/OIL_INVESTMENT_COMPETITION.md) | 玩家与3家 AI 的随机任命、账户、排名和回合报告 | `model/oil_investment_competition.py` |
 | [`current/INSTITUTION_ORGANIZATION.md`](current/INSTITUTION_ORGANIZATION.md) | 1000万美元自营资本、Investment Decision 治理层和五部门组织壳 | `model/institution_organization.py`、`config/institution_organization_v0.1.json` |
 | [`current/OIL_FORMAL_ACCOUNT_AND_CALIBRATION.md`](current/OIL_FORMAL_ACCOUNT_AND_CALIBRATION.md) | 现金／保证金、追保强平、收益分布、现实锚点和校准门禁 | `model/oil_futures_account.py`、`audit_oil_formal_account_calibration.py` |

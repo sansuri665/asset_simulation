@@ -21,6 +21,7 @@ from asset_simulation.model.oil_trading_strategy import (
     simulate_oil_trading_strategy,
 )
 from asset_simulation.model.oil_strategy_research import (
+    STRATEGY_CONSTRUCTION_CAPABILITY_DIMENSIONS,
     build_default_oil_strategy_research_profile,
     generate_oil_strategy_research_roster,
     resolve_oil_strategy_runtime_policy,
@@ -69,6 +70,14 @@ class OilTradingStrategyTests(unittest.TestCase):
                 abs(item["target_position_lots"]), item["risk_capacity_lots"]
             )
             self.assertTrue(item["horizon_components"])
+            self.assertEqual(
+                item["ideal_policy_target_position_lots"],
+                item["construction_submitted_target_position_lots"],
+            )
+            self.assertEqual(item["ideal_role_weight"], item["submitted_role_weight"])
+            self.assertEqual(0.0, item["construction_target_scale_error"])
+            self.assertEqual(0.0, item["construction_transition_gap_error"])
+            self.assertEqual(0.0, item["construction_role_weight_error"])
             for setup in item["weekly_turnover_setups"]:
                 self.assertGreaterEqual(
                     setup["required_edge_after_cost_pct"],
@@ -115,6 +124,96 @@ class OilTradingStrategyTests(unittest.TestCase):
         self.assertFalse(
             first["informationPolicy"][
                 "strategy_risk_uses_pm_deployment_as_policy_multiplier"
+            ]
+        )
+
+    def test_construction_capability_changes_submission_not_ideal_signal_or_limits(self) -> None:
+        market = oil_futures_payload(
+            self.global_run,
+            as_of_year=2030,
+            as_of_month=1,
+            as_of_half=1,
+        )
+        vintage = generate_oil_short_term_forecast(
+            self.global_run,
+            as_of_year=2030,
+            as_of_month=1,
+            as_of_half=1,
+        )
+        high = build_default_oil_strategy_research_profile()
+        low = deepcopy(high)
+        low.pop("profile_hash")
+        low["construction_capability_radar"] = {
+            dimension: 0.0
+            for dimension in STRATEGY_CONSTRUCTION_CAPABILITY_DIMENSIONS
+        }
+        high_decision = build_oil_strategy_decision(
+            market,
+            vintage,
+            positions={},
+            strategy_research_profile=high,
+        )
+        low_decision = build_oil_strategy_decision(
+            market,
+            vintage,
+            positions={},
+            strategy_research_profile=low,
+        )
+        self.assertEqual(
+            high_decision["informationPolicy"]["forecast_vintage_id"],
+            low_decision["informationPolicy"]["forecast_vintage_id"],
+        )
+        self.assertEqual(
+            high_decision["riskBudget"][
+                "capital_authorization_pct_of_company_equity"
+            ],
+            low_decision["riskBudget"][
+                "capital_authorization_pct_of_company_equity"
+            ],
+        )
+        high_targets = {
+            item["contract_id"]: item for item in high_decision["targets"]
+        }
+        low_targets = {
+            item["contract_id"]: item for item in low_decision["targets"]
+        }
+        self.assertEqual(set(high_targets), set(low_targets))
+        submitted_difference_found = False
+        for contract_id, high_target in high_targets.items():
+            low_target = low_targets[contract_id]
+            for field in (
+                "signal",
+                "reversion_signal",
+                "continuation_signal",
+                "ideal_policy_target_position_lots",
+                "single_contract_position_limit_lots",
+            ):
+                self.assertEqual(high_target[field], low_target[field])
+            self.assertLessEqual(
+                abs(low_target["construction_submitted_target_position_lots"]),
+                low_target["strategy_intent_capacity_lots"],
+            )
+            if high_target["construction_submitted_target_position_lots"]:
+                self.assertGreaterEqual(
+                    high_target["construction_submitted_target_position_lots"]
+                    * low_target["construction_submitted_target_position_lots"],
+                    0,
+                )
+            submitted_difference_found = submitted_difference_found or (
+                high_target["construction_submitted_target_position_lots"]
+                != low_target["construction_submitted_target_position_lots"]
+                or high_target["submitted_role_weight"]
+                != low_target["submitted_role_weight"]
+            )
+        self.assertTrue(submitted_difference_found)
+        self.assertFalse(
+            low_decision["informationPolicy"][
+                "strategy_construction_uses_future_market"
+            ]
+        )
+        self.assertFalse(
+            low_decision["informationPolicy"][
+                "strategy_construction_can_create_alpha"
             ]
         )
 

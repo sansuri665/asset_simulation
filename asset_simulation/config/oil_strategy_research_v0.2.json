@@ -1,7 +1,7 @@
 {
   "schema_version": "asset-simulation-oil-strategy-research-config-v2",
-  "config_id": "asset-simulation-oil-strategy-research-base-v0.2.1",
-  "model_version": "asset-simulation-oil-strategy-research-v0.2.1",
+  "config_id": "asset-simulation-oil-strategy-research-base-v0.3.0",
+  "model_version": "asset-simulation-oil-strategy-research-v0.3.0",
   "signal_engine_id": "forecast_continuation_reversion_directional_edge_sized_turnover_v7",
   "appointment_role": "oil_strategy_research_director",
   "default_director": {
@@ -16,6 +16,11 @@
       "holding_patience": 50,
       "near_month_focus": 50,
       "forecast_horizon": 50
+    },
+    "construction_capability_radar": {
+      "exposure_construction": 100,
+      "transition_planning": 100,
+      "contract_lifecycle_planning": 100
     }
   },
   "style_dimensions": [
@@ -27,6 +32,11 @@
     "holding_patience",
     "near_month_focus",
     "forecast_horizon"
+  ],
+  "construction_capability_dimensions": [
+    "exposure_construction",
+    "transition_planning",
+    "contract_lifecycle_planning"
   ],
   "candidate_generation": {
     "default_candidate_count": 5,
@@ -59,6 +69,51 @@
     },
     "family_names": ["林", "沈", "周", "顾", "许", "唐", "陆", "程", "宋", "江", "闻", "邵"],
     "given_names": ["远策", "谨行", "知衡", "景川", "明序", "砚舟", "惟安", "承岳", "清和", "致远", "恒之", "思齐"]
+  },
+  "construction_capability_generation": {
+    "dimension_center": 58,
+    "dimension_floor": 30,
+    "dimension_ceiling": 86,
+    "idiosyncratic_scale": 3.0,
+    "latent_traits": [
+      "technical_foundation",
+      "planning_discipline",
+      "operational_experience"
+    ],
+    "latent_loadings": {
+      "exposure_construction": {
+        "technical_foundation": 11,
+        "planning_discipline": 5,
+        "operational_experience": 3
+      },
+      "transition_planning": {
+        "technical_foundation": 4,
+        "planning_discipline": 11,
+        "operational_experience": 5
+      },
+      "contract_lifecycle_planning": {
+        "technical_foundation": 3,
+        "planning_discipline": 5,
+        "operational_experience": 11
+      }
+    }
+  },
+  "construction_capability_mapping": {
+    "exposure_max_abs_target_error_pct": {
+      "score_0": 6.0,
+      "score_50": 3.0,
+      "score_100": 0.0
+    },
+    "transition_max_abs_gap_error_pct": {
+      "score_0": 8.0,
+      "score_50": 4.0,
+      "score_100": 0.0
+    },
+    "lifecycle_max_abs_role_weight_error": {
+      "score_0": 0.05,
+      "score_50": 0.025,
+      "score_100": 0.0
+    }
   },
   "parameter_mapping": {
     "continuation_weight": {"minimum": 0.05, "neutral": 0.30, "maximum": 0.90, "curve": "centered_linear"},

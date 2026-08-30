@@ -1,7 +1,7 @@
 {
   "schema_version": "asset-simulation-oil-trading-strategy-config-v6",
-  "config_id": "asset-simulation-oil-continuation-reversion-v1.3.1",
-  "model_version": "asset-simulation-oil-trading-strategy-v1.3.1",
+  "config_id": "asset-simulation-oil-continuation-reversion-v1.6.0",
+  "model_version": "asset-simulation-oil-trading-strategy-v1.6.0",
   "strategy_id": "forecast_continuation_reversion_directional_edge_sized_turnover_v7",
   "display_name": "任命制单合约延续／回归策略",
   "initial_reference_equity_usd": 10000000.0,
@@ -9,7 +9,8 @@
   "strategy_research_profile_owner": "oil_strategy_research_v2",
   "strategy_risk_owner": "oil_strategy_risk_v1",
   "execution_desk_profile_owner": "oil_execution_desk_v2",
-  "corporate_risk_profile_owner": "corporate_risk_control_v2",
+  "portfolio_risk_mode": "dormant_single_strategy",
+  "future_portfolio_risk_owner": "corporate_risk_control_v2",
   "investment_decision_owner": "investment_decision_committee_system_proxy",
   "signal": {
     "minimum_uncertainty_log": 0.008,

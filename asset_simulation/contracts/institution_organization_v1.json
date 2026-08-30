@@ -1,7 +1,7 @@
 {
   "contract_id": "institution_organization_v1",
-  "schema_version": "asset-simulation-institution-organization-contract-v1",
-  "role": "Minimal institution-organization baseline for the current proprietary trading game: one governance layer and five named departments.",
+  "schema_version": "asset-simulation-institution-organization-contract-v2",
+  "role": "Minimal institution-organization baseline for the current proprietary trading game: one governance layer, three investment operating departments and an administration shell.",
   "capital_fields": {
     "initial_proprietary_capital_usd": {
       "unit": "usd"
@@ -11,7 +11,7 @@
     "investment_decision": {
       "type": "governance_layer",
       "current_responsibilities": [
-        "risk_policy_approval",
+        "strategy_mandate_approval",
         "strategy_capital_authorization"
       ]
     }
@@ -19,7 +19,6 @@
   "department_ids": [
     "forecast_research",
     "investment_strategy",
-    "corporate_risk",
     "trading_execution",
     "administration"
   ],
@@ -27,14 +26,17 @@
     "the current institution is a proprietary trading firm with 10 million USD starting proprietary capital",
     "institution_organization_v1 is the authoritative runtime owner of opening proprietary capital",
     "global oil market-capacity binding is not expected at the initial 10 million USD scale and remains a diagnostic rather than a realism gate",
-    "external AUM, management-company economics, management fees, payroll and operating-company cash are not modeled in v0.1",
-    "Investment Decision is a governance layer, not a sixth operating department",
-    "the current Investment Decision layer owns strategy capital authorization and risk-policy approval",
+    "external AUM, management-company economics, management fees, payroll and operating-company cash are not modeled in v0.2",
+    "Investment Decision is a governance layer, not an operating department",
+    "the current Investment Decision layer owns strategy capital authorization and registered strategy-mandate approval",
     "the current single-strategy system proxy authorizes 100 percent of proprietary capital by default",
-    "capital authorization remains distinct from CRO risk limits, PM deployment preference and actual margin usage",
-    "Investment Decision has no committee-member roster, voting model or personnel capability score in v0.1",
-    "Administration is a named fifth department shell only",
-    "Administration has no runtime logic, personnel capability model, payroll, recruiting, operating-cost or cash-flow model in v0.1",
+    "capital authorization remains distinct from strategy risk limits, PM deployment preference and actual margin usage",
+    "the current single-strategy institution has no appointable corporate risk department or CRO seat",
+    "strategy-level position, drawdown, concentration, liquidity and roll rules remain enforceable without risk personnel",
+    "corporate portfolio risk code is retained dormant for a future multi-strategy or multi-asset portfolio",
+    "Investment Decision has no committee-member roster, voting model or personnel capability score in v0.2",
+    "Administration is the fourth named department and remains a shell only",
+    "Administration has no runtime logic, personnel capability model, payroll, recruiting, operating-cost or cash-flow model in v0.2",
     "future multi-strategy allocation and administration mechanics must be added through new versioned contracts rather than inferred from this shell"
   ]
 }

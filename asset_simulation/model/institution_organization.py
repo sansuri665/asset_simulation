@@ -9,13 +9,12 @@ from .registry import load_registered_assets
 
 
 INSTITUTION_ORGANIZATION_MODEL_VERSION = (
-    "asset-simulation-institution-organization-v0.1.0"
+    "asset-simulation-institution-organization-v0.2.0"
 )
 INSTITUTION_ORGANIZATION_CONTRACT_ID = "institution_organization_v1"
 EXPECTED_DEPARTMENT_IDS = (
     "forecast_research",
     "investment_strategy",
-    "corporate_risk",
     "trading_execution",
     "administration",
 )

@@ -651,7 +651,6 @@ function renderGameChart(scrollToEnd = false) {
 const APPOINTMENT_LABELS = {
   forecast: "预测",
   strategy: "策略研究",
-  risk: "公司风控",
   execution: "交易执行",
 };
 
@@ -753,7 +752,7 @@ function renderTurnReport() {
   const participants = [...(report.participants || [])].sort((left, right) => Number(left.rank) - Number(right.rank));
   $("turnReportRows").innerHTML = participants.map((row) => {
     const pnlClass = Number(row.turn_pnl_usd) > 0 ? "market-up" : Number(row.turn_pnl_usd) < 0 ? "market-down" : "market-flat";
-    const riskText = `${riskStatusLabel(row.risk_status)}${Number(row.risk_clipped_gross_lots) ? ` · 裁剪${whole(row.risk_clipped_gross_lots)}手` : ""}`;
+    const riskText = `${riskStatusLabel(row.strategy_risk_status)}${Number(row.strategy_risk_clipped_gross_lots) ? ` · 裁剪${whole(row.strategy_risk_clipped_gross_lots)}手` : ""}`;
     const marginText = row.margin_to_equity_pct == null ? "—" : `${fmt(row.margin_to_equity_pct, 1)}%`;
     const accountEvent = row.margin_call_triggered
       ? ` · 追保 ${moneyWhole(row.margin_call_amount_usd)}`

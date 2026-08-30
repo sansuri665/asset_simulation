@@ -2,7 +2,7 @@
 
 > 状态：当前实现事实  
 > 权威范围：全球宏观之上的只读商品 overlay、一级种类与二级合约  
-> 代码基线：全球 v0.8.1、商品 overlay `asset-simulation-commodity-overlay-v0.1.2`、原油期货 overlay `asset-simulation-oil-futures-overlay-v0.8.0`、服务 v5.41  
+> 代码基线：全球 v0.8.1、商品 overlay `asset-simulation-commodity-overlay-v0.1.2`、原油期货 overlay `asset-simulation-oil-futures-overlay-v0.8.0`、服务 v5.42
 > 最近核对：2026-08-25
 
 ## 产品位置
@@ -79,7 +79,7 @@ v0.6 发布标准合约规格：1000桶／手，报价为美元／桶，最小�
 
 v0.7 发布统一的“全球巨型机构”参与者限额。常态单合约净持仓上限取当前合约持仓量3%与75,000手的较低者；四个挂牌合约绝对头寸合计不得超过150,000手；每半月回合成交上限为最近4周周均折算两周后的0.8%。距到期不超过1.5／1.0个月时再收紧至15,000／8,000手，到期月不允许新交易、仅结算。后台策略和四机构竞技已经执行这些边界；游戏界面仍没有玩家委托或正式持仓操作。所有成交仍不会反向改变价格、公开成交量或市场持仓量。
 
-交易链采用“理想目标 → 公司风控审批 → 正式账户保证金授权 → 限仓／容量裁剪 → 两个周窗口执行 → 盯市／追保强平 → 回合报告”，不模拟逐笔委托，也不拆分开仓／平仓额度。玩家和3家 AI 已通过 `/api/oil-investment-competition` 接入独立正式账户和多实体排名；持久存档、委托输入、动态组合保证金和机构间撮合仍未实现。当前事实见 [`OIL_INVESTMENT_COMPETITION.md`](OIL_INVESTMENT_COMPETITION.md) 与 [`OIL_FORMAL_ACCOUNT_AND_CALIBRATION.md`](OIL_FORMAL_ACCOUNT_AND_CALIBRATION.md)，长期扩展见 [`OIL_FUTURES_TURN_EXECUTION.md`](../design/OIL_FUTURES_TURN_EXECUTION.md)。
+交易链采用“理想目标 → 投委会批准的策略风险 mandate → 正式账户保证金授权 → 限仓／容量裁剪 → 两个周窗口执行 → 盯市／追保强平 → 回合报告”，不模拟逐笔委托，也不拆分开仓／平仓额度。玩家和3家 AI 已通过 `/api/oil-investment-competition` 接入独立正式账户和多实体排名；持久存档、委托输入、动态组合保证金和机构间撮合仍未实现。当前事实见 [`OIL_INVESTMENT_COMPETITION.md`](OIL_INVESTMENT_COMPETITION.md) 与 [`OIL_FORMAL_ACCOUNT_AND_CALIBRATION.md`](OIL_FORMAL_ACCOUNT_AND_CALIBRATION.md)，长期扩展见 [`OIL_FUTURES_TURN_EXECUTION.md`](../design/OIL_FUTURES_TURN_EXECUTION.md)。
 
 当前另有独立的短期研究信息层，只联合预测当前主力和下一主力命名合约的剩余周线，不预测不可交易的连续主连。它不向 `/api/oil-futures` 混入预测字段；游戏行情页已撤下预测 K，竞技会话在后台把预测交给策略。详见 [`OIL_SHORT_TERM_FORECAST.md`](OIL_SHORT_TERM_FORECAST.md)。
 

@@ -1,10 +1,18 @@
 {
   "schema_version": "asset-simulation-oil-strategy-risk-config-v1",
-  "config_id": "asset-simulation-oil-strategy-risk-base-v0.1.1",
-  "model_version": "asset-simulation-oil-strategy-risk-v0.1.0",
+  "config_id": "asset-simulation-oil-strategy-risk-base-v0.3.0",
+  "model_version": "asset-simulation-oil-strategy-risk-v0.3.0",
   "strategy_owner": "oil_strategy_research_v2",
-  "company_risk_owner": "corporate_risk_control_v2",
+  "mandate_owner": "oil_directional_strategy_design",
   "decision_owner": "investment_decision_committee",
+  "registered_risk_tolerance_scores": {
+    "capital_tolerance": 50.0,
+    "volatility_tolerance": 50.0,
+    "drawdown_tolerance": 50.0,
+    "concentration_tolerance": 50.0,
+    "liquidity_tolerance": 50.0,
+    "roll_risk_tolerance": 50.0
+  },
   "strategy_pressure_weights": {
     "capacity": {
       "responsiveness": 0.57,
@@ -99,6 +107,30 @@
     "reduce_only_scale": 0.35,
     "maximum_scale_recovery_per_turn": 0.10
   },
+  "position_dependent_mandate": {
+    "owner": "oil_directional_strategy_design",
+    "approval_owner": "investment_decision_committee",
+    "utilization_basis": "maximum_of_gross_margin_and_visible_volatility_budget_usage",
+    "reduce_only_trigger": 0.98,
+    "tiers": {
+      "light": {
+        "upper_utilization": 0.40,
+        "risk_increasing_gap_completion": 1.00
+      },
+      "moderate": {
+        "upper_utilization": 0.70,
+        "risk_increasing_gap_completion": 0.95
+      },
+      "heavy": {
+        "upper_utilization": 0.90,
+        "risk_increasing_gap_completion": 0.80
+      },
+      "danger": {
+        "upper_utilization": 1.00,
+        "risk_increasing_gap_completion": 0.50
+      }
+    }
+  },
   "visible_volatility": {
     "lookback_weeks": 8,
     "annualization_weeks": 52,
@@ -107,7 +139,7 @@
   },
   "committee_proxy": {
     "default_capital_authorization_pct_of_company_equity": 100.0,
-    "risk_policy_approval_method": "accept_risk_department_recommendation",
+    "risk_policy_approval_method": "approve_registered_strategy_mandate",
     "capital_authorization_method": "single_strategy_full_allocation_proxy"
   }
 }

@@ -10,7 +10,6 @@ from asset_simulation.model.oil_futures_overlay import (
 )
 from asset_simulation.server import (
     SERVICE_ID,
-    build_corporate_risk_roster_payload,
     build_oil_execution_desk_roster_payload,
     build_oil_investment_competition_payload,
     build_oil_short_term_profile_payload,
@@ -327,23 +326,12 @@ class ServiceAndViewerTests(unittest.TestCase):
             )
         )
 
-    def test_corporate_risk_roster_api_exposes_preferences_without_total(self) -> None:
-        first = build_corporate_risk_roster_payload(seed=42, candidate_count=5)
-        self.assertEqual(
-            first,
-            build_corporate_risk_roster_payload(seed=42, candidate_count=5),
-        )
-        self.assertTrue(first["selectionPolicy"]["scores_are_continuous"])
-        self.assertFalse(
-            first["selectionPolicy"]["risk_appetite_total_score_available"]
-        )
-        self.assertTrue(
-            all(
-                item["appointment"]["role"] == "corporate_chief_risk_officer"
-                and item["risk_appetite_total_score"] is None
-                for item in first["candidates"]
-            )
-        )
+    def test_retired_cro_roster_is_not_exposed_by_the_service(self) -> None:
+        from asset_simulation import server
+
+        source = server.Path(server.__file__).read_text(encoding="utf-8")
+        self.assertNotIn("/api/corporate-risk-roster", source)
+        self.assertFalse(hasattr(server, "build_corporate_risk_roster_payload"))
 
     def test_static_viewer_contract(self) -> None:
         from asset_simulation import server
@@ -464,7 +452,9 @@ class ServiceAndViewerTests(unittest.TestCase):
         self.assertIn('axis === "right"', script)
         self.assertIn('class="chart-hit"', script)
         self.assertIn('addEventListener("pointermove"', script)
-        self.assertEqual("asset-simulation-macro-ui-v5.41", SERVICE_ID)
+        self.assertEqual("asset-simulation-macro-ui-v5.42", SERVICE_ID)
+        self.assertNotIn("公司风控", game_html + game_script)
+        self.assertIn("策略约束", game_html + game_script)
         self.assertNotIn("/api/world", script)
         self.assertIn("/api/global", script)
         self.assertIn("2030年01月上半月", game_html)
