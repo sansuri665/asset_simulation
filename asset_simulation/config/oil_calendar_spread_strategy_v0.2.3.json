@@ -1,0 +1,23 @@
+{
+  "schema_version": "asset-simulation-oil-calendar-spread-strategy-config-v23-patch",
+  "config_id": "asset-simulation-oil-calendar-spread-strategy-base-v0.2.3",
+  "model_version": "asset-simulation-oil-calendar-spread-strategy-v0.2.3",
+  "strategy_id": "oil.short.relative_value.calendar_spread.v1",
+  "base_model_version": "asset-simulation-oil-calendar-spread-strategy-v0.2.2",
+  "construction_semantics_fix": {
+    "zero_error_construction_is_identity": true,
+    "zero_error_submitted_target_equals_ideal_policy_target": true,
+    "thesis_owns_exit_before_direction_reversal": true,
+    "construction_does_not_own_thesis_reversal": true,
+    "nonzero_construction_error_safety_guard_retained": true,
+    "construction_cannot_create_direction_absent_ideal_direction": true,
+    "construction_cannot_flip_against_ideal_direction": true
+  },
+  "compatibility_gate": {
+    "neutral_dedicated_style_score": 50.0,
+    "score_100_construction_error": 0.0,
+    "requires_reference_final_target_reproduction": true,
+    "applies_with_nonzero_existing_spread_positions": true,
+    "applies_on_direction_reversal_states": true
+  }
+}
