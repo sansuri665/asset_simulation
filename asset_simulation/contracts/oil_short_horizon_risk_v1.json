@@ -3,6 +3,11 @@
   "schema_version": "asset-simulation-oil-short-horizon-risk-contract-v1",
   "role": "Oil / Short-Horizon risk coverage for actual committee position mandates across directional and calendar-spread strategies.",
   "coverage_scope": {"asset": "oil", "horizon": "short_horizon"},
+  "risk_horizon": {
+    "review_horizon_weeks": 2,
+    "directional_basis": "visible annualized volatility rescaled by square-root of time",
+    "calendar_spread_basis": "visible weekly spread-change volatility rescaled to the two-week review window"
+  },
   "style_fields": {
     "tail_risk_focus": {"unit": "continuous_preference_0_to_100"},
     "intervention_earliness": {"unit": "continuous_preference_0_to_100"},
@@ -25,6 +30,7 @@
     "risk_personnel_profile"
   ],
   "review_outputs": [
+    "risk_horizon",
     "hard_facts",
     "soft_risk_estimates",
     "strategy_relative_materiality",
@@ -40,6 +46,8 @@
     "lightweight capability may only perturb soft estimates using deterministic information available at the decision cutoff and may not access future truth",
     "risk style expresses review philosophy and may choose to operate inside approved company risk appetite but may never loosen a company limit beyond the approved policy",
     "risk approval may preserve or reduce committee expected positions but may never create direction, enlarge absolute exposure, or cross through zero",
-    "the same oil short-horizon risk group may review both directional and calendar-spread strategies"
+    "the same oil short-horizon risk group may review both directional and calendar-spread strategies",
+    "soft stress loss is measured over the two-week review horizon rather than comparing an annualized one-sigma proxy directly with a short-horizon loss limit",
+    "tail-risk and model-uncertainty multipliers are applied exactly once to a calendar-spread stress estimate"
   ]
 }
