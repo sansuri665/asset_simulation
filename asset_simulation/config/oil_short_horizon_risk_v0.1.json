@@ -1,7 +1,7 @@
 {
   "schema_version": "asset-simulation-oil-short-horizon-risk-config-v1",
-  "config_id": "asset-simulation-oil-short-horizon-risk-base-v0.1.0",
-  "model_version": "asset-simulation-oil-short-horizon-risk-v0.1.0",
+  "config_id": "asset-simulation-oil-short-horizon-risk-base-v0.1.1",
+  "model_version": "asset-simulation-oil-short-horizon-risk-v0.1.1",
   "coverage_scope": {"asset": "oil", "horizon": "short_horizon"},
   "supported_strategy_types": ["directional", "calendar_spread"],
   "appointment_role": "oil_short_horizon_risk_lead",
@@ -82,6 +82,12 @@
     "risk_measurement_abs_error": {"score_35": 0.12, "score_70": 0.03},
     "stress_analysis_abs_error": {"score_35": 0.15, "score_70": 0.04},
     "monitoring_abs_error": {"score_35": 0.10, "score_70": 0.03}
+  },
+  "risk_horizon": {
+    "review_horizon_weeks": 2,
+    "annualization_weeks": 52,
+    "directional_scaling": "sqrt_time_from_visible_annualized_volatility",
+    "calendar_spread_scaling": "sqrt_time_from_weekly_spread_change_volatility"
   },
   "visible_volatility": {
     "lookback_weeks": 8,
