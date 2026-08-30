@@ -1,7 +1,7 @@
 {
   "schema_version": "asset-simulation-oil-calendar-spread-strategy-config-v2",
-  "config_id": "asset-simulation-oil-calendar-spread-strategy-base-v0.2.0",
-  "model_version": "asset-simulation-oil-calendar-spread-strategy-v0.2.0",
+  "config_id": "asset-simulation-oil-calendar-spread-strategy-base-v0.2.1",
+  "model_version": "asset-simulation-oil-calendar-spread-strategy-v0.2.1",
   "strategy_id": "oil.short.relative_value.calendar_spread.v1",
   "legacy_reference_strategy_id": "short_horizon_oil_calendar_spread_v1",
   "display_name": "Short-Horizon Oil Calendar Spread",
@@ -13,10 +13,12 @@
     "strategy_type": "relative_value_calendar_spread",
     "pnl_object": "main_minus_adjacent_next_dollar_spread"
   },
+  "strategy_research_style_owner": "oil_calendar_spread_research_v1",
+  "construction_capability_owner": "oil_strategy_research_v2",
   "reference_engine": {
     "owner": "oil_calendar_spread_strategy_v1",
     "model_version": "asset-simulation-oil-calendar-spread-strategy-v0.1.2",
-    "role": "signal_pair_identity_risk_capacity_and_execution_primitives"
+    "role": "pair_identity_forecast_and_curve_components_risk_capacity_and_execution_primitives"
   },
   "contract_roles": ["main", "next_main"],
   "strategy_book": {
@@ -43,8 +45,8 @@
   },
   "signal": {
     "horizon_weeks": [2, 4],
-    "forecast_component_weight": 0.7,
-    "visible_curve_component_weight": 0.3,
+    "neutral_forecast_component_weight": 0.7,
+    "neutral_visible_curve_component_weight": 0.3,
     "historical_lookback_weeks": 12,
     "momentum_lookback_weeks": 4,
     "minimum_mean_reversion_history_weeks": 6,
@@ -55,7 +57,8 @@
     "mean_reversion_full_strength_z": 2.0,
     "spread_normalization": "dollar_main_minus_next_divided_by_current_average_leg_price_for_scale_only",
     "trade_objective": "forecast_and_trade_change_in_dollar_main_minus_next_spread",
-    "direction_invariant": "sign(normalized_change)==sign(dollar_spread_change)"
+    "direction_invariant": "sign(normalized_change)==sign(dollar_spread_change)",
+    "component_mix_owner": "oil_calendar_spread_research_v1"
   },
   "sizing": {
     "contract_size_bbl": 1000,
