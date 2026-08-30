@@ -15,9 +15,11 @@ on:
       - 'asset_simulation/contracts/oil_calendar_spread_research_v1.json'
       - 'asset_simulation/contracts/oil_strategy_book_v1.json'
       - 'asset_simulation/audit_oil_calendar_spread_style_economics.py'
+      - 'asset_simulation/audit_oil_calendar_spread_style_economic_acceptance.py'
       - 'asset_simulation/tests/test_oil_calendar_spread_strategy_v2.py'
       - 'asset_simulation/tests/test_oil_calendar_spread_research.py'
       - 'asset_simulation/tests/test_oil_calendar_spread_style_economics.py'
+      - 'asset_simulation/tests/test_oil_calendar_spread_style_economic_acceptance.py'
       - 'asset_simulation/tests/test_oil_strategy_book.py'
       - '.github/workflows/calendar-spread-v02-candidate.yml'
   workflow_dispatch:
@@ -55,12 +57,15 @@ jobs:
           python -m py_compile asset_simulation/model/oil_calendar_spread_research.py
           python -m py_compile asset_simulation/model/oil_calendar_spread_strategy_v2.py
           python -m py_compile asset_simulation/audit_oil_calendar_spread_style_economics.py
+          python -m py_compile asset_simulation/audit_oil_calendar_spread_style_economic_acceptance.py
       - name: Strategy-book tests
         run: python -m unittest asset_simulation.tests.test_oil_strategy_book -v
       - name: Calendar-spread PM style tests
         run: python -m unittest asset_simulation.tests.test_oil_calendar_spread_research -v
       - name: Calendar-spread PM economic semantics tests
         run: python -m unittest asset_simulation.tests.test_oil_calendar_spread_style_economics -v
+      - name: Calendar-spread PM economic acceptance guard tests
+        run: python -m unittest asset_simulation.tests.test_oil_calendar_spread_style_economic_acceptance -v
       - name: Calendar-spread v2 tests
         run: python -m unittest asset_simulation.tests.test_oil_calendar_spread_strategy_v2 -v
       - name: Hardened v0.1.2 reference tests
@@ -77,7 +82,7 @@ jobs:
       - name: Controlled dedicated-style development/validation audit
         run: |
           mkdir -p artifacts
-          python -m asset_simulation.audit_oil_calendar_spread_style_economics \
+          python -m asset_simulation.audit_oil_calendar_spread_style_economic_acceptance \
             --development-seeds 0,42 \
             --validation-seeds 99,197 \
             --years 1 \
