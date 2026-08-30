@@ -5,6 +5,13 @@ from .oil_trading_strategy import (
     OIL_TRADING_STRATEGY_MODEL_VERSION,
     simulate_oil_trading_strategy,
 )
+from .oil_trading_strategy_risk_runtime import (
+    LEGACY_RISK_RUNTIME,
+    OIL_TRADING_STRATEGY_RISK_RUNTIME_MODEL_VERSION,
+    V2_CANDIDATE_RISK_RUNTIME,
+    apply_v2_candidate_risk_to_directional_decision,
+    simulate_oil_trading_strategy_with_risk_runtime,
+)
 from .oil_futures_account import (
     OIL_FUTURES_ACCOUNT_MODEL_VERSION,
     apply_oil_futures_account_constraints,
@@ -50,6 +57,11 @@ __all__ = [
     "run_global_macro",
     "OIL_TRADING_STRATEGY_MODEL_VERSION",
     "simulate_oil_trading_strategy",
+    "OIL_TRADING_STRATEGY_RISK_RUNTIME_MODEL_VERSION",
+    "LEGACY_RISK_RUNTIME",
+    "V2_CANDIDATE_RISK_RUNTIME",
+    "apply_v2_candidate_risk_to_directional_decision",
+    "simulate_oil_trading_strategy_with_risk_runtime",
     "OIL_FUTURES_ACCOUNT_MODEL_VERSION",
     "apply_oil_futures_account_constraints",
     "create_oil_futures_account",

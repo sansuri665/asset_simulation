@@ -14,6 +14,7 @@ HEAVY_MODULES = {
     "test_oil_short_horizon_risk_boundary_counterfactual",
     "test_oil_short_horizon_risk_v2_economic_acceptance",
     "test_oil_short_horizon_risk_v2_broad_shadow",
+    "test_oil_trading_strategy_risk_runtime_equivalence",
 }
 
 

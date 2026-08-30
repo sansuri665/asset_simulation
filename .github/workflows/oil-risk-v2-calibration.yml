@@ -6,12 +6,14 @@ on:
       - main
     paths:
       - 'asset_simulation/model/oil_short_horizon_risk*.py'
+      - 'asset_simulation/model/oil_trading_strategy_risk_runtime.py'
       - 'asset_simulation/model/investment_decision.py'
       - 'asset_simulation/config/oil_short_horizon_risk*.json'
       - 'asset_simulation/config/investment_decision*.json'
       - 'asset_simulation/contracts/oil_short_horizon_risk*.json'
       - 'asset_simulation/contracts/investment_decision*.json'
       - 'asset_simulation/tests/test_oil_short_horizon_risk*.py'
+      - 'asset_simulation/tests/test_oil_trading_strategy_risk_runtime*.py'
       - 'asset_simulation/tests/run_fast_suite.py'
       - '.github/workflows/oil-risk-v2-calibration.yml'
       - '.github/workflows/directional-v15-integrated.yml'
@@ -41,6 +43,10 @@ jobs:
         run: |
           python -m unittest -v \
             asset_simulation.tests.test_oil_short_horizon_risk_v2_broad_shadow
+      - name: Integrated runtime equivalence
+        run: |
+          python -m unittest -v \
+            asset_simulation.tests.test_oil_trading_strategy_risk_runtime_equivalence
 
   historical-risk-research:
     if: github.event_name == 'workflow_dispatch'
