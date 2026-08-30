@@ -1,8 +1,8 @@
 {
   "contract_id": "oil_calendar_spread_strategy_v2",
   "schema_version": "asset-simulation-oil-calendar-spread-strategy-contract-v2",
-  "role": "Short-horizon crude-oil calendar-spread strategy candidate with explicit commodity/time-scale/strategy-type identity, strategy-owned position books and bounded PM construction error before thesis and execution planning.",
-  "model_version": "asset-simulation-oil-calendar-spread-strategy-v0.2.0",
+  "role": "Short-horizon crude-oil calendar-spread strategy candidate with explicit commodity/time-scale/strategy-type identity, strategy-owned position books, a strategy-type-specific PM style projection and bounded PM construction error before thesis and execution planning.",
+  "model_version": "asset-simulation-oil-calendar-spread-strategy-v0.2.1",
   "strategy_taxonomy": {
     "asset_class": "commodity",
     "commodity": "crude_oil",
@@ -10,11 +10,19 @@
     "time_scale": "short_horizon",
     "strategy_type": "relative_value_calendar_spread"
   },
+  "strategy_research_style_owner": "oil_calendar_spread_research_v1",
+  "construction_capability_owner": "oil_strategy_research_v2",
   "strategy_book_fields": {
     "book_id": {"unit": "strategy_book_id"},
     "strategy_id": {"unit": "strategy_identity"},
     "positions": {"unit": "signed_integer_lots_by_named_contract"},
     "book_identity_hash": {"unit": "sha256"}
+  },
+  "style_fields": {
+    "dedicated_style_radar": {"unit": "eight_strategy_specific_scores_0_to_100"},
+    "dedicated_style_profile_hash": {"unit": "sha256"},
+    "forecast_component_weight": {"unit": "ratio_0_to_1"},
+    "visible_curve_component_weight": {"unit": "ratio_0_to_1"}
   },
   "construction_fields": {
     "ideal_policy_target_spread_units": {"unit": "paired_1_to_minus_1_lots"},
@@ -42,7 +50,8 @@
     "model_version",
     "strategy_id",
     "strategy_book_identity_hash",
-    "strategy_profile_hash",
+    "source_strategy_profile_hash",
+    "dedicated_style_profile_hash",
     "reference_decision_hash",
     "construction_adjustment_hash",
     "upstream_global_identity_hash",
@@ -52,14 +61,19 @@
   "invariants": [
     "the strategy identity is explicitly commodity crude_oil, time_scale short_horizon and strategy_type relative_value_calendar_spread",
     "the decision consumes strategy-owned positions from oil_strategy_book_v1 and never aggregate formal-account positions",
-    "the reference v0.1.2 engine remains the source of pair identity, signal, visible risk capacity, thesis primitives and paired execution hard limits during the v0.2 candidate stage",
-    "PM construction capability is applied after the ideal spread-unit target is formed and before persistence, thesis and final paired execution planning",
+    "one appointed strategy-research person is projected into an oil-calendar-spread-specific style radar; the projection never creates a second personnel appointment",
+    "the dedicated style radar has no aggregate preference, quality, alpha or capability score",
+    "curve_continuation_reversion, dislocation_selectivity, capital_deployment, adjustment_tempo, rebalance_activity, holding_patience and forecast_horizon adapt into the established PM parameter mapping before the hardened spread primitives run",
+    "forecast_vs_visible_curve only reweights already computed forecast-spread and visible-curve components and cannot manufacture component direction or read hidden future data",
+    "the default compatibility appointment remains neutral on all dedicated style dimensions and preserves the v0.1.2 70/30 component mixture and target path",
+    "the reference v0.1.2 engine remains the source of pair identity, forecast and curve components, visible risk capacity, thesis primitives and paired execution hard limits during the v0.2 candidate stage",
+    "PM construction capability remains separately owned by oil_strategy_research_v2 and is applied after the dedicated ideal spread-unit target is formed",
     "construction errors use only the current visible-state hash and the appointed strategy profile; hidden future market or forecast truth is unavailable",
     "spread target-scale and transition-gap errors are derived symmetrically from both real legs so construction cannot create a synthetic leg preference",
     "construction cannot create a new signal direction or cross through zero into the opposite spread direction",
     "the exact one-to-one target invariant is preserved after construction: target_main_lots plus target_next_main_lots equals zero",
     "curve lifecycle construction error is diagnostic only in v0.2 until a multi-turn roll scheduler has an explicit owner",
-    "score-100 compatibility construction capability reproduces the v0.1.2 target path for identical visible inputs",
+    "score-100 compatibility construction capability plus neutral dedicated style reproduces the v0.1.2 target path for identical visible inputs",
     "current residual leg imbalance is computed only from this strategy book and cannot include another strategy's directional holdings",
     "paired execution remediation still receives each leg's published turn capacity before new pair risk",
     "the strategy does not write back to market prices, public liquidity, forecast or macro state",
