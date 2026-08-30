@@ -1,0 +1,52 @@
+{
+  "contract_id": "oil_calendar_spread_strategy_v22",
+  "schema_version": "asset-simulation-oil-calendar-spread-strategy-contract-v22",
+  "model_version": "asset-simulation-oil-calendar-spread-strategy-v0.2.2",
+  "role": "Short-horizon crude-oil calendar-spread candidate with strategy-owned books, dedicated PM styles and a metadata-only market-history coordinate adapter that restores the market owner's already-visible named-contract weekly history.",
+  "strategy_taxonomy": {
+    "asset_class": "commodity",
+    "commodity": "crude_oil",
+    "instrument": "futures",
+    "time_scale": "short_horizon",
+    "strategy_type": "relative_value_calendar_spread"
+  },
+  "market_history_adapter_fields": {
+    "model_version": {"unit": "version_id"},
+    "weekly_child_count": {"unit": "count"},
+    "weekly_year_coordinates_inherited": {"unit": "count"},
+    "weekly_month_coordinates_inherited": {"unit": "count"},
+    "market_identity_preserved": {"unit": "boolean"},
+    "market_cutoff_preserved": {"unit": "boolean"},
+    "prices_modified": {"unit": "boolean"},
+    "liquidity_modified": {"unit": "boolean"},
+    "market_write_back": {"unit": "boolean"}
+  },
+  "identity_fields": [
+    "model_version",
+    "strategy_id",
+    "base_decision_identity_hash",
+    "base_decision_result_hash",
+    "market_history_adapter_model_version",
+    "market_history_adapter_result_hash",
+    "strategy_book_identity_hash",
+    "strategy_profile_hash",
+    "upstream_global_identity_hash",
+    "forecast_vintage_id",
+    "result_hash"
+  ],
+  "invariants": [
+    "the strategy identity remains crude_oil -> short_horizon -> relative_value_calendar_spread",
+    "the market-history adapter changes only missing weekly coordinate metadata by inheriting parent monthly year and month",
+    "the adapter never changes market prices, volume, open interest, participant limits, market identity, cutoff or write-back state",
+    "explicit weekly year or month values that conflict with the parent month are rejected rather than overwritten",
+    "the adapted view remains strategy-local and is never written back to oil_futures_overlay",
+    "the restored weekly history is the market owner's already-visible named-contract history and introduces no future data",
+    "calendar-spread signal history continues to use aligned weeks shared by the current main and immediately adjacent next-main contracts",
+    "the dedicated PM style layer remains oil_calendar_spread_research_v1 and construction capability remains oil_strategy_research_v2",
+    "strategy positions remain strategy-owned named-contract lots from oil_strategy_book_v1; aggregate account positions are not accepted as strategy state",
+    "target_main_lots plus target_next_main_lots always equals zero",
+    "construction cannot create or reverse a signal direction",
+    "paired execution hard limits, thesis maturity rules and PnL identities remain inherited from the existing calendar-spread primitives",
+    "the candidate remains outside OilInvestmentCompetitionSession until execution, settlement, portfolio-risk and economic-calibration gates are complete"
+  ]
+}
