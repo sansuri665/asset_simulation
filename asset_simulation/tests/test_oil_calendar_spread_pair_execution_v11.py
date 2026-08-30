@@ -11,8 +11,9 @@ from asset_simulation.model.oil_calendar_spread_pair_execution_v11 import (
 from asset_simulation.model.oil_calendar_spread_strategy_v2 import (
     OIL_CALENDAR_SPREAD_STRATEGY_V2_ID,
 )
-from asset_simulation.model.oil_calendar_spread_strategy_v22 import (
-    build_oil_calendar_spread_strategy_v22_decision,
+from asset_simulation.model.oil_calendar_spread_strategy_v23 import (
+    OIL_CALENDAR_SPREAD_STRATEGY_V23_MODEL_VERSION,
+    build_oil_calendar_spread_strategy_v23_decision,
 )
 from asset_simulation.model.oil_execution_desk import (
     CAPABILITY_DIMENSIONS,
@@ -61,7 +62,7 @@ class OilCalendarSpreadPairExecutionV11Tests(unittest.TestCase):
         )
 
     def _decision(self, book: dict[str, object]) -> dict[str, object]:
-        return build_oil_calendar_spread_strategy_v22_decision(
+        return build_oil_calendar_spread_strategy_v23_decision(
             self.start_market,
             self.forecast,
             authorized_strategy_capital_usd=10_000_000.0,
@@ -85,6 +86,12 @@ class OilCalendarSpreadPairExecutionV11Tests(unittest.TestCase):
         self.assertEqual(
             OIL_CALENDAR_SPREAD_PAIR_EXECUTION_V11_MODEL_VERSION,
             assets["oil_calendar_spread_pair_execution_v11_config"]["model_version"],
+        )
+        self.assertEqual(
+            OIL_CALENDAR_SPREAD_STRATEGY_V23_MODEL_VERSION,
+            assets["oil_calendar_spread_pair_execution_v11_config"][
+                "strategy_decision_model_version"
+            ],
         )
         book = self._book()
         decision = self._decision(book)
@@ -163,8 +170,6 @@ class OilCalendarSpreadPairExecutionV11Tests(unittest.TestCase):
             [row["pair_units"] for row in baseline["weeklyWindows"]],
             [row["pair_units"] for row in altered["weeklyWindows"]],
         )
-        # Realized volume is still allowed to change market impact/cost once the
-        # window exists; it simply cannot rewrite the schedule retroactively.
         self.assertNotEqual(
             baseline["costs"]["slippage_cost_usd"],
             altered["costs"]["slippage_cost_usd"],
@@ -172,7 +177,10 @@ class OilCalendarSpreadPairExecutionV11Tests(unittest.TestCase):
 
     def test_pair_execution_price_excludes_residual_remediation_fills(self) -> None:
         main_id = str(self.start_market["curve"]["main_contract_id"])
-        ids = [str(item["contract_id"]) for item in self.start_market["curve"]["contracts"]]
+        ids = [
+            str(item["contract_id"])
+            for item in self.start_market["curve"]["contracts"]
+        ]
         next_id = ids[ids.index(main_id) + 1]
         book = self._book({main_id: 50, next_id: -40})
         decision = self._decision(book)
@@ -182,7 +190,9 @@ class OilCalendarSpreadPairExecutionV11Tests(unittest.TestCase):
             decision,
             strategy_book=book,
         )
-        self.assertEqual("new_pair_only", report["pairExecution"]["execution_price_bucket"])
+        self.assertEqual(
+            "new_pair_only", report["pairExecution"]["execution_price_bucket"]
+        )
         if report["completion"]["executed_pair_units"]:
             expected_neutral = (
                 report["legs"]["main"]["newPair"][
@@ -202,18 +212,19 @@ class OilCalendarSpreadPairExecutionV11Tests(unittest.TestCase):
             )
             self.assertAlmostEqual(
                 expected_neutral,
-                report["pairExecution"]["neutral_pair_execution_spread_usd_per_bbl"],
+                report["pairExecution"][
+                    "neutral_pair_execution_spread_usd_per_bbl"
+                ],
                 places=7,
             )
             self.assertAlmostEqual(
                 expected_all_in,
-                report["pairExecution"]["all_in_pair_execution_spread_usd_per_bbl"],
+                report["pairExecution"][
+                    "all_in_pair_execution_spread_usd_per_bbl"
+                ],
                 places=7,
             )
-        self.assertEqual(
-            -10,
-            report["remediation"]["executed_main_delta_lots"],
-        )
+        self.assertEqual(-10, report["remediation"]["executed_main_delta_lots"])
 
     def test_execution_capability_changes_completion_and_tca_not_mandate(self) -> None:
         book = self._book()
