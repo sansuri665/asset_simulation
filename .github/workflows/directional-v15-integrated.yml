@@ -26,8 +26,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.13'
-      - name: Full Python unit suite
-        run: python -m unittest discover -s asset_simulation/tests -v
+      - name: Fast Python unit suite
+        run: python -m asset_simulation.tests.run_fast_suite
 
   economic-smoke:
     runs-on: ubuntu-latest

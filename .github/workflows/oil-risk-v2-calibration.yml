@@ -1,0 +1,61 @@
+name: Oil Risk v0.2 Calibration
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'asset_simulation/model/oil_short_horizon_risk*.py'
+      - 'asset_simulation/model/investment_decision.py'
+      - 'asset_simulation/config/oil_short_horizon_risk*.json'
+      - 'asset_simulation/config/investment_decision*.json'
+      - 'asset_simulation/contracts/oil_short_horizon_risk*.json'
+      - 'asset_simulation/contracts/investment_decision*.json'
+      - 'asset_simulation/tests/test_oil_short_horizon_risk*.py'
+      - 'asset_simulation/tests/run_fast_suite.py'
+      - '.github/workflows/oil-risk-v2-calibration.yml'
+      - '.github/workflows/directional-v15-integrated.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: oil-risk-v02-calibration-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  risk-v2-acceptance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Path-dependent economic acceptance
+        run: |
+          python -m unittest -v \
+            asset_simulation.tests.test_oil_short_horizon_risk_v2_economic_acceptance
+      - name: Three-year personnel shadow acceptance
+        run: |
+          python -m unittest -v \
+            asset_simulation.tests.test_oil_short_horizon_risk_v2_broad_shadow
+
+  historical-risk-research:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Reproduce pre-v0.2 research path
+        run: |
+          python -m unittest -v \
+            asset_simulation.tests.test_oil_short_horizon_risk_shadow_audit \
+            asset_simulation.tests.test_oil_short_horizon_risk_broad_shadow_audit \
+            asset_simulation.tests.test_oil_short_horizon_risk_economic_counterfactual \
+            asset_simulation.tests.test_oil_short_horizon_risk_appetite_frontier \
+            asset_simulation.tests.test_oil_short_horizon_risk_boundary_counterfactual
