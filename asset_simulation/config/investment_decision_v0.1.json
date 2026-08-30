@@ -1,0 +1,33 @@
+{
+  "schema_version": "asset-simulation-investment-decision-config-v1",
+  "config_id": "asset-simulation-investment-decision-base-v0.1.0",
+  "model_version": "asset-simulation-investment-decision-v0.1.0",
+  "governance_owner": "investment_decision_committee",
+  "supported_strategy_scopes": [
+    {"asset": "oil", "horizon": "short_horizon", "strategy_type": "directional"},
+    {"asset": "oil", "horizon": "short_horizon", "strategy_type": "calendar_spread"}
+  ],
+  "default_company_risk_appetite": {
+    "strategy_stress_loss_tolerance": 50.0,
+    "company_materiality_tolerance": 50.0,
+    "margin_tolerance": 50.0,
+    "concentration_tolerance": 50.0,
+    "liquidity_tolerance": 50.0,
+    "roll_tolerance": 50.0
+  },
+  "risk_appetite_dimensions": [
+    "strategy_stress_loss_tolerance",
+    "company_materiality_tolerance",
+    "margin_tolerance",
+    "concentration_tolerance",
+    "liquidity_tolerance",
+    "roll_tolerance"
+  ],
+  "single_strategy_default_capital_authorization_pct": 100.0,
+  "position_mandate_policy": {
+    "default_method": "accept_pm_proposal",
+    "may_create_position_from_zero_pm_intent": false,
+    "may_reverse_pm_direction": false,
+    "may_expand_absolute_pm_intent": false
+  }
+}

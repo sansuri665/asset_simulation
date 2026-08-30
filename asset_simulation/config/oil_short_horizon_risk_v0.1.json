@@ -1,0 +1,96 @@
+{
+  "schema_version": "asset-simulation-oil-short-horizon-risk-config-v1",
+  "config_id": "asset-simulation-oil-short-horizon-risk-base-v0.1.0",
+  "model_version": "asset-simulation-oil-short-horizon-risk-v0.1.0",
+  "coverage_scope": {"asset": "oil", "horizon": "short_horizon"},
+  "supported_strategy_types": ["directional", "calendar_spread"],
+  "appointment_role": "oil_short_horizon_risk_lead",
+  "default_officer": {
+    "personnel_id": "default_oil_short_horizon_risk_lead",
+    "display_name": "沈知界",
+    "style_radar": {
+      "tail_risk_focus": 50.0,
+      "intervention_earliness": 50.0,
+      "liquidity_priority": 50.0,
+      "concentration_aversion": 50.0,
+      "model_skepticism": 50.0
+    },
+    "capability_radar": {
+      "risk_measurement": 52.0,
+      "stress_analysis": 52.0,
+      "monitoring_discipline": 52.0
+    }
+  },
+  "style_dimensions": [
+    "tail_risk_focus",
+    "intervention_earliness",
+    "liquidity_priority",
+    "concentration_aversion",
+    "model_skepticism"
+  ],
+  "capability_dimensions": [
+    "risk_measurement",
+    "stress_analysis",
+    "monitoring_discipline"
+  ],
+  "candidate_generation": {
+    "default_candidate_count": 5,
+    "minimum_candidate_count": 1,
+    "maximum_candidate_count": 8,
+    "style_center": 50.0,
+    "style_floor": 10.0,
+    "style_ceiling": 90.0,
+    "capability_center": 52.0,
+    "capability_floor": 35.0,
+    "capability_ceiling": 70.0,
+    "style_idiosyncratic_scale": 5.0,
+    "capability_idiosyncratic_scale": 2.5,
+    "style_latent_traits": ["tail_caution", "early_control", "liquidity_discipline", "model_doubt"],
+    "capability_latent_traits": ["measurement_skill", "scenario_skill", "control_discipline"],
+    "style_latent_loadings": {
+      "tail_risk_focus": {"tail_caution": 20, "early_control": 4, "liquidity_discipline": 2, "model_doubt": 7},
+      "intervention_earliness": {"tail_caution": 7, "early_control": 20, "liquidity_discipline": 4, "model_doubt": 3},
+      "liquidity_priority": {"tail_caution": 5, "early_control": 5, "liquidity_discipline": 20, "model_doubt": 2},
+      "concentration_aversion": {"tail_caution": 12, "early_control": 8, "liquidity_discipline": 3, "model_doubt": 4},
+      "model_skepticism": {"tail_caution": 5, "early_control": 2, "liquidity_discipline": 2, "model_doubt": 21}
+    },
+    "capability_latent_loadings": {
+      "risk_measurement": {"measurement_skill": 11, "scenario_skill": 3, "control_discipline": 2},
+      "stress_analysis": {"measurement_skill": 3, "scenario_skill": 11, "control_discipline": 2},
+      "monitoring_discipline": {"measurement_skill": 2, "scenario_skill": 2, "control_discipline": 11}
+    },
+    "family_names": ["沈", "顾", "林", "周", "陆", "程", "许", "闻", "唐", "江", "邵", "宋"],
+    "given_names": ["知界", "守衡", "慎远", "明界", "谨川", "持正", "安序", "衡之", "守一", "定川", "维稳", "慎行"]
+  },
+  "risk_appetite_parameter_mapping": {
+    "max_strategy_stress_loss_pct_of_allocated_capital": {"score_0": 6.0, "score_50": 12.0, "score_100": 22.0},
+    "max_company_stress_loss_pct_of_equity_per_strategy": {"score_0": 0.5, "score_50": 3.0, "score_100": 8.0},
+    "max_margin_pct_of_allocated_capital": {"score_0": 35.0, "score_50": 75.0, "score_100": 100.0},
+    "max_company_margin_pct_of_equity_per_strategy": {"score_0": 1.0, "score_50": 12.0, "score_100": 30.0},
+    "max_single_contract_share_of_market_gross": {"score_0": 0.40, "score_50": 0.80, "score_100": 1.0},
+    "max_liquidation_half_turns": {"score_0": 0.5, "score_50": 2.0, "score_100": 4.0},
+    "roll_buffer_half_turns": {"score_0": 6.0, "score_50": 2.0, "score_100": 0.0}
+  },
+  "style_parameter_mapping": {
+    "tail_stress_multiplier": {"score_0": 0.95, "score_50": 1.10, "score_100": 1.35},
+    "intervention_limit_multiplier": {"score_0": 1.0, "score_50": 0.90, "score_100": 0.72},
+    "liquidity_limit_multiplier": {"score_0": 1.0, "score_50": 0.88, "score_100": 0.65},
+    "concentration_limit_multiplier": {"score_0": 1.0, "score_50": 0.90, "score_100": 0.72},
+    "model_uncertainty_multiplier": {"score_0": 1.0, "score_50": 1.08, "score_100": 1.25}
+  },
+  "capability_error_mapping": {
+    "risk_measurement_abs_error": {"score_35": 0.12, "score_70": 0.03},
+    "stress_analysis_abs_error": {"score_35": 0.15, "score_70": 0.04},
+    "monitoring_abs_error": {"score_35": 0.10, "score_70": 0.03}
+  },
+  "visible_volatility": {
+    "lookback_weeks": 8,
+    "annualization_weeks": 52,
+    "minimum_annualized_volatility": 0.12,
+    "maximum_annualized_volatility": 1.25
+  },
+  "calendar_spread": {
+    "minimum_stressed_spread_move_usd_per_bbl": 0.5,
+    "spread_change_lookback_weeks": 8
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "contract_id": "investment_decision_v1",
+  "schema_version": "asset-simulation-investment-decision-contract-v1",
+  "role": "Governance owner for strategy admission, capital mandates, company risk appetite approval, and position mandates that preserve or reduce PM intent without creating alpha.",
+  "objects": {
+    "strategy_charter": ["asset", "horizon", "strategy_type", "strategy_id", "status"],
+    "capital_mandate": ["company_equity_usd", "authorized_pct_of_company_equity", "authorized_capital_usd"],
+    "company_risk_appetite": ["risk_appetite_radar", "policy_hash"],
+    "position_mandate": ["pm_proposed_targets", "committee_expected_targets"]
+  },
+  "invariants": [
+    "Investment Decision is a governance layer, not an operating department",
+    "the committee may approve or reject a strategy charter and allocate company capital",
+    "the committee owns company risk appetite approval; changing the appointed CRO does not by itself change company risk appetite",
+    "a committee position mandate may preserve or reduce PM proposed absolute positions but may never create a nonzero position from zero PM intent",
+    "a committee position mandate may never reverse PM direction or expand absolute PM intent",
+    "the committee does not override market hard limits and does not inspect hidden future market data",
+    "risk departments do not recommend strategy capital authorization in v2"
+  ]
+}

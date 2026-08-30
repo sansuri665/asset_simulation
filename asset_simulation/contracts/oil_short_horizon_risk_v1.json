@@ -1,0 +1,45 @@
+{
+  "contract_id": "oil_short_horizon_risk_v1",
+  "schema_version": "asset-simulation-oil-short-horizon-risk-contract-v1",
+  "role": "Oil / Short-Horizon risk coverage for actual committee position mandates across directional and calendar-spread strategies.",
+  "coverage_scope": {"asset": "oil", "horizon": "short_horizon"},
+  "style_fields": {
+    "tail_risk_focus": {"unit": "continuous_preference_0_to_100"},
+    "intervention_earliness": {"unit": "continuous_preference_0_to_100"},
+    "liquidity_priority": {"unit": "continuous_preference_0_to_100"},
+    "concentration_aversion": {"unit": "continuous_preference_0_to_100"},
+    "model_skepticism": {"unit": "continuous_preference_0_to_100"}
+  },
+  "capability_fields": {
+    "risk_measurement": {"unit": "bounded_professional_capability"},
+    "stress_analysis": {"unit": "bounded_professional_capability"},
+    "monitoring_discipline": {"unit": "bounded_professional_capability"}
+  },
+  "review_inputs": [
+    "market",
+    "company_equity_usd",
+    "allocated_strategy_capital_usd",
+    "current_positions",
+    "committee_position_mandate",
+    "company_risk_appetite",
+    "risk_personnel_profile"
+  ],
+  "review_outputs": [
+    "hard_facts",
+    "soft_risk_estimates",
+    "strategy_relative_materiality",
+    "company_materiality",
+    "binding_rules",
+    "risk_approved_targets"
+  ],
+  "invariants": [
+    "risk personnel are scoped by oil and short horizon; directional and calendar spread are coverage objects rather than separate personnel identities",
+    "the review requires an actual committee position mandate and allocated capital as inputs",
+    "the risk department never outputs a recommended strategy capital authorization",
+    "hard market facts are independent of risk-personnel capability",
+    "lightweight capability may only perturb soft estimates using deterministic information available at the decision cutoff and may not access future truth",
+    "risk style expresses review philosophy and may choose to operate inside approved company risk appetite but may never loosen a company limit beyond the approved policy",
+    "risk approval may preserve or reduce committee expected positions but may never create direction, enlarge absolute exposure, or cross through zero",
+    "the same oil short-horizon risk group may review both directional and calendar-spread strategies"
+  ]
+}
