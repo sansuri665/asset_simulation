@@ -34,6 +34,15 @@ OIL_CALENDAR_SPREAD_STRATEGY_CONFIG_PATH = (
 OIL_CALENDAR_SPREAD_STRATEGY_CONTRACT_PATH = (
     PACKAGE_ROOT / "contracts" / "oil_calendar_spread_strategy_v1.json"
 )
+OIL_CALENDAR_SPREAD_STRATEGY_V2_CONFIG_PATH = (
+    PACKAGE_ROOT / "config" / "oil_calendar_spread_strategy_v0.2.json"
+)
+OIL_CALENDAR_SPREAD_STRATEGY_V2_CONTRACT_PATH = (
+    PACKAGE_ROOT / "contracts" / "oil_calendar_spread_strategy_v2.json"
+)
+OIL_STRATEGY_BOOK_CONTRACT_PATH = (
+    PACKAGE_ROOT / "contracts" / "oil_strategy_book_v1.json"
+)
 OIL_EXECUTION_DESK_CONFIG_PATH = (
     PACKAGE_ROOT / "config" / "oil_execution_desk_v0.2.json"
 )
@@ -118,6 +127,13 @@ def load_registered_assets() -> dict[str, Any]:
     oil_calendar_spread_strategy_contract = load_json(
         OIL_CALENDAR_SPREAD_STRATEGY_CONTRACT_PATH
     )
+    oil_calendar_spread_strategy_v2_config = load_json(
+        OIL_CALENDAR_SPREAD_STRATEGY_V2_CONFIG_PATH
+    )
+    oil_calendar_spread_strategy_v2_contract = load_json(
+        OIL_CALENDAR_SPREAD_STRATEGY_V2_CONTRACT_PATH
+    )
+    oil_strategy_book_contract = load_json(OIL_STRATEGY_BOOK_CONTRACT_PATH)
     oil_execution_desk_config = load_json(OIL_EXECUTION_DESK_CONFIG_PATH)
     oil_execution_desk_contract = load_json(OIL_EXECUTION_DESK_CONTRACT_PATH)
     corporate_risk_control_config = load_json(CORPORATE_RISK_CONTROL_CONFIG_PATH)
@@ -175,6 +191,20 @@ def load_registered_assets() -> dict[str, Any]:
         "oil_calendar_spread_strategy_contract_hash": sha256_json(
             oil_calendar_spread_strategy_contract
         ),
+        "oil_calendar_spread_strategy_v2_config": (
+            oil_calendar_spread_strategy_v2_config
+        ),
+        "oil_calendar_spread_strategy_v2_config_hash": sha256_json(
+            oil_calendar_spread_strategy_v2_config
+        ),
+        "oil_calendar_spread_strategy_v2_contract": (
+            oil_calendar_spread_strategy_v2_contract
+        ),
+        "oil_calendar_spread_strategy_v2_contract_hash": sha256_json(
+            oil_calendar_spread_strategy_v2_contract
+        ),
+        "oil_strategy_book_contract": oil_strategy_book_contract,
+        "oil_strategy_book_contract_hash": sha256_json(oil_strategy_book_contract),
         "oil_execution_desk_config": oil_execution_desk_config,
         "oil_execution_desk_config_hash": sha256_json(oil_execution_desk_config),
         "oil_execution_desk_contract": oil_execution_desk_contract,
