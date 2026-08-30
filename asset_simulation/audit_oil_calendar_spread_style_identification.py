@@ -3,7 +3,9 @@
 This diagnostic answers whether real deterministic market/forecast paths supply
 sufficient observations to identify the three conditional dedicated style axes:
 forecast-vs-visible-curve, curve continuation-vs-reversion, and holding patience.
-It does not tune thresholds and is not itself an acceptance gate.
+It also reports component availability/magnitude so a lack of conflicts can be
+distinguished from a degenerate visible-curve signal. It does not tune thresholds
+and is not itself an acceptance gate.
 """
 
 from __future__ import annotations
@@ -11,7 +13,6 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
-import statistics
 from typing import Any, Sequence
 
 from .audit_oil_formal_account_calibration import _build_visible_path, _round_nested
@@ -23,11 +24,16 @@ from .model.registry import sha256_json
 
 
 IDENTIFICATION_VERSION = (
-    "asset-simulation-oil-calendar-spread-style-identification-v0.1.0"
+    "asset-simulation-oil-calendar-spread-style-identification-v0.1.1"
 )
 DEFAULT_DEVELOPMENT_SEEDS = tuple(range(16))
 DEFAULT_VALIDATION_SEEDS = tuple(range(100, 116))
 THRESHOLDS = (0.02, 0.05, 0.10, 0.15)
+
+
+def _mean(values: Sequence[float]) -> float:
+    sample = [float(value) for value in values]
+    return 0.0 if not sample else sum(sample) / len(sample)
 
 
 def _percentile(values: Sequence[float], p: float) -> float:
@@ -72,6 +78,8 @@ def _scan_partition(seeds: Sequence[int], years: int) -> dict[str, Any]:
                     "visible_curve_signal": visible_signal,
                     "momentum_signal": momentum_signal,
                     "reversion_signal": reversion_signal,
+                    "mean_reversion_available": bool(signal["mean_reversion_available"]),
+                    "historical_observation_count": int(signal["historical_observation_count"]),
                     "forecast_visible_opposite": forecast_signal * visible_signal < 0.0,
                     "momentum_reversion_opposite": momentum_signal * reversion_signal < 0.0,
                     "forecast_visible_min_strength": min(abs(forecast_signal), abs(visible_signal)),
@@ -109,12 +117,33 @@ def _scan_partition(seeds: Sequence[int], years: int) -> dict[str, Any]:
         }
         for threshold in THRESHOLDS
     }
+    component_diagnostics = {
+        "mean_abs_forecast_signal": _mean([abs(row["forecast_signal"]) for row in rows]),
+        "mean_abs_visible_curve_signal": _mean([abs(row["visible_curve_signal"]) for row in rows]),
+        "mean_abs_momentum_signal": _mean([abs(row["momentum_signal"]) for row in rows]),
+        "mean_abs_mean_reversion_signal": _mean([abs(row["reversion_signal"]) for row in rows]),
+        "nonzero_forecast_signal_count": sum(abs(row["forecast_signal"]) > 1e-12 for row in rows),
+        "nonzero_visible_curve_signal_count": sum(abs(row["visible_curve_signal"]) > 1e-12 for row in rows),
+        "nonzero_momentum_signal_count": sum(abs(row["momentum_signal"]) > 1e-12 for row in rows),
+        "nonzero_mean_reversion_signal_count": sum(abs(row["reversion_signal"]) > 1e-12 for row in rows),
+        "mean_reversion_available_count": sum(row["mean_reversion_available"] for row in rows),
+        "mean_historical_observation_count": _mean(
+            [row["historical_observation_count"] for row in rows]
+        ),
+        "minimum_historical_observation_count": min(
+            (row["historical_observation_count"] for row in rows), default=0
+        ),
+        "maximum_historical_observation_count": max(
+            (row["historical_observation_count"] for row in rows), default=0
+        ),
+    }
     return {
         "seed_count": len(tuple(seeds)),
         "turn_observations": total,
         "forecast_visible_opposite_any_strength": len(forecast_strengths),
         "momentum_reversion_opposite_any_strength": len(curve_strengths),
         "same_direction_shrink_count": sum(row["same_direction_shrink"] for row in rows),
+        "component_diagnostics": component_diagnostics,
         "threshold_counts": threshold_counts,
         "forecast_visible_min_strength_when_opposite": {
             "median": _percentile(forecast_strengths, 0.50),
@@ -152,6 +181,7 @@ def build_oil_calendar_spread_style_identification_scan(
         "interpretation": {
             "natural_frequency_only": True,
             "thresholds_are_diagnostic_not_tuned": True,
+            "component_availability_is_reported": True,
             "no_gate_is_relaxed_by_this_scan": True,
         },
     }
