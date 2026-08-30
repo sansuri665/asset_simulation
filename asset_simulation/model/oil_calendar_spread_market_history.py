@@ -36,7 +36,7 @@ def normalize_oil_calendar_spread_market_history(
     """Return a deep-copied market with parent year/month inherited by weeks.
 
     Existing explicit weekly coordinates are validated, never overwritten when
-    contradictory.  The transformation is metadata-only and does not write back
+    contradictory. The transformation is metadata-only and does not write back
     to the market owner.
     """
 
@@ -49,8 +49,10 @@ def normalize_oil_calendar_spread_market_history(
     if not isinstance(contracts, list):
         raise ValueError("calendar-spread history adapter requires curve contracts")
 
-    inherited_week_count = 0
-    explicit_week_count = 0
+    inherited_year_count = 0
+    inherited_month_count = 0
+    explicit_week_serial_count = 0
+    week_count = 0
     month_count = 0
     contract_count = 0
     for contract in contracts:
@@ -77,13 +79,14 @@ def normalize_oil_calendar_spread_market_history(
                 week_number = _int_coordinate(week.get("week"), "weekly week number")
                 if not 1 <= week_number <= 5:
                     raise ValueError("weekly week number must be between 1 and 5")
+                week_count += 1
                 if "year" in week:
                     explicit_year = _int_coordinate(week["year"], "weekly explicit year")
                     if explicit_year != parent_year:
                         raise ValueError("weekly year conflicts with parent month year")
                 else:
                     week["year"] = parent_year
-                    inherited_week_count += 1
+                    inherited_year_count += 1
                 if "month" in week:
                     explicit_month = _int_coordinate(
                         week["month"], "weekly explicit month"
@@ -92,17 +95,10 @@ def normalize_oil_calendar_spread_market_history(
                         raise ValueError("weekly month conflicts with parent month number")
                 else:
                     week["month"] = parent_month
-                if "week_serial" in week or (
-                    "year" in original.get("curve", {}).get("contracts", [])[0]
-                    if False
-                    else False
-                ):
-                    # Explicit week_serial remains authoritative in the downstream
-                    # reader.  The injected calendar coordinates are harmless and
-                    # make the payload self-describing for audits.
-                    explicit_week_count += 1
+                    inherited_month_count += 1
+                if "week_serial" in week:
+                    explicit_week_serial_count += 1
 
-    # Prove the adapter did not touch decision-relevant ownership identities.
     original_identity = dict(original.get("identity", {}))
     normalized_identity = dict(normalized.get("identity", {}))
     if original_identity != normalized_identity:
@@ -115,8 +111,10 @@ def normalize_oil_calendar_spread_market_history(
         "model_version": OIL_CALENDAR_SPREAD_MARKET_HISTORY_ADAPTER_VERSION,
         "contract_count": contract_count,
         "month_count": month_count,
-        "weekly_children_with_inherited_parent_coordinates": inherited_week_count,
-        "weekly_children_with_explicit_week_serial": explicit_week_count,
+        "weekly_child_count": week_count,
+        "weekly_year_coordinates_inherited": inherited_year_count,
+        "weekly_month_coordinates_inherited": inherited_month_count,
+        "weekly_children_with_explicit_week_serial": explicit_week_serial_count,
         "market_identity_preserved": True,
         "market_cutoff_preserved": True,
         "prices_modified": False,
