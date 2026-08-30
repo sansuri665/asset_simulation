@@ -150,7 +150,12 @@ def build_oil_calendar_spread_strategy_v22_decision(
         "strategy_book_identity_hash": str(
             base_identity["strategy_book_identity_hash"]
         ),
-        "strategy_profile_hash": str(base_identity["strategy_profile_hash"]),
+        "source_strategy_profile_hash": str(
+            base_identity["source_strategy_profile_hash"]
+        ),
+        "dedicated_style_profile_hash": str(
+            base_identity["dedicated_style_profile_hash"]
+        ),
         "upstream_global_identity_hash": str(
             base_identity["upstream_global_identity_hash"]
         ),
