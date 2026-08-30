@@ -1,6 +1,6 @@
 # 原油双策略 50:50 Pre-Trade Limit Stress
 
-> 状态：development-only 机制压力测试  
+> 状态：development-only 机制压力测试；真实限额 20/20 PASS  
 > Allocator：`asset-simulation-oil-multi-strategy-pretrade-allocator-v0.1.0`  
 > Allocation policy：`system_proxy_fixed_equal_split_v1`  
 > 目的：在不改变市场 owner 限额的前提下，人为放大双策略请求，验证共享持仓／成交容量冲突的确定性仲裁
@@ -104,7 +104,7 @@ allocated units / entitlement
 
 50:50 时等价于尽量一手一手交替推进。
 
-如果总共只剩 100 手共享 Main capacity：
+如果总共只剩 100 手共享容量：
 
 ```text
 Directional demand = 400
@@ -188,59 +188,101 @@ market turnover saved= 1200 lots
 
 ## 8. 压力场景
 
-CI stress audit 使用真实 `oil_futures_overlay_v8` 发布限额，并对 Seeds `0,42,99,197` 的 `2030-01-H1` 构造五类 oversized request：
+CI stress audit 使用真实 `oil_futures_overlay_v8` 发布限额，并对 Seeds `0,42,99,197` 的 `2030-01-H1` 构造五类 oversized request。
 
 ### A. Shared position-limit collision
 
-把 Formal Account Main 仓位放到 position limit 附近，只留下少量 headroom；两个策略都请求该 headroom 的 4 倍以上。
+把 Formal Account Main 仓位放到 position limit 附近，只留下 1000 手 headroom；两个策略都请求 4000 手等价容量。
 
-验收：
+实际四个 Seed 均得到：
 
-- Main 最终恰好不超过 position limit；
-- 50:50 下两个策略占用共享 headroom 差异不超过 1 手；
-- Spread 仍严格 1:-1。
+```text
+Directional 500
+Spread      500
+```
 
-### B. Shared turn-capacity collision
+Main 最终恰好停在真实 position limit，四个 Seed 全部 PASS。
 
-账户从低仓位开始，两策略同方向大额争抢 Main 外部成交容量。
+### B. Shared Next-Main turn-capacity collision
 
-验收：
+为了真正撞到**市场发布的成交限额**，Directional 与 Calendar Spread 共同在 Next Main 上发出同方向外部需求：
 
-- external Main order 不越 `turn_trade_limit_lots`；
-- 共享容量按 50:50 近似均分；
-- 调用顺序不进入结果。
+```text
+Directional SELL Next
+Spread +1 unit = BUY Main / SELL Next
+```
+
+Spread 的 Main 腿在真实样本中有更宽的容量，因此 Next Main 的真实 turn/position capacity 成为共享瓶颈。
+
+结果：
+
+| Seed | 共享 Next 容量 | Directional | Spread | 差异 |
+|---:|---:|---:|---:|---:|
+| 0 | 22,162 | 11,081 | 11,081 | 0 |
+| 42 | 20,525 | 10,262 | 10,263 | 1 |
+| 99 | 13,971 | 6,985 | 6,986 | 1 |
+| 197 | 17,040 | 8,520 | 8,520 | 0 |
+
+每个策略的原始请求都是该共享容量的 **4 倍**。最终 external Next turnover 精确停在共享 hard capacity，50:50 的整数误差最多 1 手。
 
 ### C. Spread second-leg bottleneck
 
-人为把 Formal Account 的 Next 仓位推近 Next position limit，使 Spread 第二腿先耗尽容量。
+人为把 Formal Account 的 Next 仓位推近 Next position limit，只留 500 手 headroom，同时 Directional 与 Spread 各请求 2000 手等价容量。
 
-验收：
+四个 Seed 均得到：
 
-- Spread allocation = Next 剩余 headroom；
-- Main 腿不超过相同 spread units；
-- Directional 可以继续使用 Spread 释放的 Main entitlement。
+```text
+Spread      500 units
+Directional 2000 lots
+```
+
+Spread 因 Next 腿先卡住而退出竞争，未使用 entitlement 自动释放给 Directional；Spread 仍保持严格 1:-1。
 
 ### D. Opposing Main flow
 
-Directional 买 Main，Spread 做反向 spread、卖 Main。
+Directional 买 Main 1000 手，Spread 做反向 spread、卖 Main 1000 手。
 
-验收：
+四个 Seed 均得到：
 
-- Main 内部净额正确；
-- external Main order 可以显著小于 strategy gross flow，甚至为 0；
-- Strategy ownership 不被删除。
+```text
+Main strategy gross flow = 2000
+internal Main cross       = 1000
+external Main order       = 0
+market turnover saved     = 2000
+external Next order       = +1000
+```
+
+Strategy ownership 保留，但 Main 不浪费外部成交容量。
 
 ### E. Mandatory risk reduction priority
 
-Directional 已有风险减仓要求，同时 Spread 在 Main 上提出反向普通订单。
+Directional 有 300 手 mandatory Main 减仓，同时 Spread 提出 1200 units 普通反向请求。
 
-验收：
+四个 Seed 中 mandatory reduction 都完整保留；其中 300 手可以与 Spread 的相反 Main 流量形成 internal cross，所有 Formal Account hard limits 继续成立。
 
-- mandatory reduction 完整进入 allocation；
-- opposing ordinary flow 可以内部抵消其外部 footprint；
-- 所有 Formal Account hard limits 仍为真。
+## 9. 冻结结果
 
-## 9. 当前明确没有做的事情
+```text
+Seeds: 0, 42, 99, 197
+Scenarios / Seed: 5
+Total scenarios: 20
+Passed: 20
+Failed: 0
+```
+
+分项：
+
+```text
+position collision   PASS
+turn collision       PASS
+pair bottleneck      PASS
+internal netting     PASS
+mandatory priority   PASS
+```
+
+这证明的是**共享市场容量仲裁机制可工作**，不是证明 50:50 是经济最优配置。
+
+## 10. 当前明确没有做的事情
 
 本 allocator 不负责：
 
@@ -258,11 +300,13 @@ Directional 已有风险减仓要求，同时 Spread 在 Main 上提出反向普
 
 > **当双策略同时把市场容量挤爆时，50:50 共享限额机制是否在数学和 owner 边界上能稳定工作？**
 
-它不能回答 50:50 是否是经济上最优的长期资本配置。
+答案在当前 20 个冻结压力场景中是肯定的。
 
-## 10. 与后续 Gate B 的关系
+它仍不能回答 50:50 是否是经济上最优的长期资本配置。
 
-如果压力测试通过，Gate B 的 settlement ledger 就可以直接消费：
+## 11. 与后续 Gate B 的关系
+
+Gate B 的 settlement ledger 可以以这层输出为前置接口：
 
 ```text
 strategy allocated deltas
