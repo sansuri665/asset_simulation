@@ -62,6 +62,8 @@
     "an invalidated thesis can reduce risk but cannot enlarge same-direction exposure",
     "a material signal reversal exits an existing prior-direction position before opening the reverse direction",
     "the published forecast-location signal remains the base direction and the continuation preference is an l2-normalized overlay rather than a replacement",
+    "the investment committee authorizes a capital ceiling while the PM independently chooses intended deployment inside that ceiling",
+    "strategy intent and strategy-risk limits are computed as parallel quantities and compared by clipping; authorization, PM deployment and risk allowance are not multiplied into a serial haircut",
     "strategy risk runs after thesis adjustment and before company risk",
     "direction carry plus contract selection equals named-contract carry pnl",
     "roll and directional rebalance attribution partition net-adjustment pnl and cost without changing account pnl",

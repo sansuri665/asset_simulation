@@ -38,6 +38,8 @@
     "the investment decision committee approves the strategy risk mandate and independently sets capital authorization",
     "capital authorization can differ from the risk department advisory capital recommendation but cannot exceed available company equity in the current unlevered allocation contract",
     "the strategy director's capital deployment preference applies only inside committee-authorized capital",
+    "capital deployment changes the PM strategy-intent envelope but is not an input to the risk policy, risk recommendation or committee authorization",
+    "PM strategy intent and strategy-risk limits are parallel quantities anchored independently to authorized capital; they are compared by clipping and are never multiplied into a serial haircut chain",
     "strategy risk can preserve or shrink strategy intent but cannot create a direction, enlarge intent or cross through zero",
     "company risk is applied after strategy risk and market hard limits remain final",
     "all volatility, liquidity and drawdown inputs are visible at the decision cutoff",

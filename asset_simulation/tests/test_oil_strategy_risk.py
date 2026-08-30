@@ -12,7 +12,9 @@ from asset_simulation.model.oil_short_term_forecast import (
     generate_oil_short_term_forecast,
 )
 from asset_simulation.model.oil_strategy_research import (
+    STRATEGY_STYLE_DIMENSIONS,
     generate_oil_strategy_research_roster,
+    resolve_oil_strategy_research_profile,
 )
 from asset_simulation.model.oil_strategy_risk import (
     build_investment_committee_strategy_approval,
@@ -40,6 +42,21 @@ class OilStrategyRiskTests(unittest.TestCase):
             seed=42, candidate_count=5
         )["candidates"]
         cls.cro = build_default_corporate_risk_profile()
+
+    @staticmethod
+    def _deployment_profile(score: float) -> dict:
+        radar = {key: 50.0 for key in STRATEGY_STYLE_DIMENSIONS}
+        radar["capital_deployment"] = float(score)
+        return resolve_oil_strategy_research_profile(
+            {
+                "appointment": {
+                    "personnel_id": f"deployment_{score:g}",
+                    "display_name": f"Deployment {score:g}",
+                    "source": "test_controlled_profile",
+                },
+                "style_radar": radar,
+            }
+        )
 
     def test_same_risk_department_reviews_distinct_strategies_differently(self) -> None:
         reviews = [
@@ -93,6 +110,57 @@ class OilStrategyRiskTests(unittest.TestCase):
             build_investment_committee_strategy_approval(
                 modified, company_equity_usd=3_000_000_000.0
             )
+
+    def test_pm_deployment_changes_intent_not_risk_policy_or_authorization(self) -> None:
+        low_profile = self._deployment_profile(0.0)
+        high_profile = self._deployment_profile(100.0)
+        low_review = build_oil_strategy_risk_review(low_profile, self.cro)
+        high_review = build_oil_strategy_risk_review(high_profile, self.cro)
+
+        self.assertEqual(low_review["strategyRiskPressures"], high_review["strategyRiskPressures"])
+        self.assertEqual(low_review["reviewAllowanceScores"], high_review["reviewAllowanceScores"])
+        self.assertEqual(low_review["proposedPolicy"], high_review["proposedPolicy"])
+        self.assertFalse(
+            low_review["governance"]["pm_capital_deployment_is_review_policy_input"]
+        )
+
+        low = build_oil_strategy_decision(
+            self.market,
+            self.forecast,
+            strategy_research_profile=low_profile,
+            capital_authorization_pct_of_company_equity=60.0,
+        )
+        high = build_oil_strategy_decision(
+            self.market,
+            self.forecast,
+            strategy_research_profile=high_profile,
+            capital_authorization_pct_of_company_equity=60.0,
+        )
+        self.assertEqual(
+            low["investmentDecision"]["capitalAuthorization"],
+            high["investmentDecision"]["capitalAuthorization"],
+        )
+        self.assertEqual(
+            low["strategyRisk"]["approvedPolicy"],
+            high["strategyRisk"]["approvedPolicy"],
+        )
+        self.assertEqual(
+            low["strategyRisk"]["strategyLimits"],
+            high["strategyRisk"]["strategyLimits"],
+        )
+        self.assertLess(
+            low["riskBudget"]["strategy_intent_gross_lots"],
+            high["riskBudget"]["strategy_intent_gross_lots"],
+        )
+        self.assertEqual(
+            "parallel_strategy_intent_and_independent_risk_limits",
+            low["riskBudget"]["sizing_architecture"]["method"],
+        )
+        self.assertFalse(
+            low["riskBudget"]["sizing_architecture"][
+                "pm_deployment_multiplied_by_risk_allowance"
+            ]
+        )
 
     def test_capital_authorization_scales_intent_without_changing_market_capacity(self) -> None:
         full = build_oil_strategy_decision(

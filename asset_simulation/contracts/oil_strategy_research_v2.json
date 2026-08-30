@@ -59,6 +59,7 @@
     "cross-department compatibility is never scored; forecast research, strategy, risk, and execution interact only through their business interfaces",
     "continuation and reversion weights sum to one; score 50 reproduces the prior 30 percent path-continuation baseline",
     "capital deployment describes the PM tendency inside capital allocated by the investment-decision owner and never grants or reallocates company capital",
+    "capital deployment changes strategy intent but does not change the risk department policy, risk recommendation or committee authorization",
     "research institution capability scores never enter the strategy personnel generator or its mandate",
     "contract margin rates, market position limits, market execution capacity, company risk, fees, spreads, and base slippage remain external owners",
     "the same seed and candidate index generate the same personnel, radar, resolved mandate, and profile hash",

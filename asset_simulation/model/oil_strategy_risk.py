@@ -36,6 +36,13 @@ def _assets() -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
         raise ValueError("registered oil strategy risk config version mismatch")
     if contract["contract_id"] != OIL_STRATEGY_RISK_CONTRACT_ID:
         raise ValueError("registered oil strategy risk contract id mismatch")
+    if any(
+        "capital_deployment" in dict(weights)
+        for weights in config["strategy_pressure_weights"].values()
+    ):
+        raise ValueError(
+            "PM capital deployment must not alter the independent strategy risk policy"
+        )
     return assets, config, contract
 
 
@@ -85,7 +92,7 @@ def _review_rationales(
 ) -> list[str]:
     result: list[str] = []
     if pressures["capacity"] >= 60.0:
-        result.append("资金部署与调仓需求较高，容量建议保留额外缓冲")
+        result.append("快速响应或低选择性提高容量需求，建议保留额外缓冲")
     if pressures["volatility"] >= 60.0:
         result.append("信号反应或低选择性提高路径波动暴露")
     if pressures["liquidity"] >= 60.0:
@@ -222,6 +229,8 @@ def build_oil_strategy_risk_review(
             "capital_allocation_owner": "investment_decision_committee",
             "strategy_director_can_self_approve": False,
             "proposal_is_capital_allocation": False,
+            "pm_capital_deployment_is_review_policy_input": False,
+            "strategy_amount_is_review_policy_input": False,
             "market_hard_rules_unchanged": True,
         },
     }
@@ -641,6 +650,7 @@ def apply_oil_strategy_risk_mandate(
                 for item in approved.values()
             ),
             "portfolio_scale": portfolio_scale,
+            "portfolio_scale_semantics": "independent_limit_clip_not_policy_multiplier",
             "portfolio_binding_rules": portfolio_binding,
             "approved_initial_margin_usd": margin_after,
             "approved_annualized_risk_usd": volatility_after,
@@ -654,6 +664,8 @@ def apply_oil_strategy_risk_mandate(
             "future_market_available": False,
             "visible_history_only": True,
             "can_expand_strategy_intent": False,
+            "pm_deployment_pct_used_as_risk_multiplier": False,
+            "risk_limits_compare_against_strategy_intent": True,
             "can_override_company_or_market_rules": False,
         },
     }

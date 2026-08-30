@@ -1,0 +1,100 @@
+name: Directional Oil v1.5 Integrated
+
+on:
+  push:
+    branches:
+      - main
+      - 'review/directional-v1.5-*'
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: directional-v15-integrated-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  unit-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Full Python unit suite
+        run: python -m unittest discover -s asset_simulation/tests -v
+
+  economic-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Directional economic smoke
+        run: |
+          python -m asset_simulation.audit_oil_directional_economic_calibration \
+            --seeds 0 \
+            --years 1 \
+            --summary-only \
+            --output artifacts/directional-economic-smoke.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: directional-v15-integrated-smoke
+          path: artifacts/directional-economic-smoke.json
+
+  full-calibration:
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Formal account calibration
+        run: |
+          mkdir -p artifacts
+          python -m asset_simulation.audit_oil_formal_account_calibration \
+            --seeds 42,2026,7777,9001,314159,271828 \
+            --years 5 \
+            --output artifacts/formal-account-5y.json
+      - name: Directional development and validation calibration
+        run: |
+          python -m asset_simulation.audit_oil_directional_economic_calibration \
+            --seeds 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15 \
+            --years 3 \
+            --output artifacts/directional-economic-calibration.json
+      - name: Regime audit
+        run: python -m asset_simulation.audit_oil_direction_regimes > artifacts/directional-regimes.json
+      - name: Integrated semantic acceptance
+        run: |
+          python -m asset_simulation.audit_oil_directional_economic_acceptance \
+            --calibration artifacts/directional-economic-calibration.json \
+            --regime artifacts/directional-regimes.json \
+            --output artifacts/directional-economic-acceptance.json
+      - name: Enforce formal-account gates
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          report = json.loads(Path('artifacts/formal-account-5y.json').read_text())
+          print('hard_gate_pass=', report.get('hard_gate_pass'))
+          print('realism_gate_pass=', report.get('realism_gate_pass'))
+          if not report.get('hard_gate_pass'):
+              raise SystemExit('formal-account hard gate failed')
+          if not report.get('realism_gate_pass'):
+              raise SystemExit('formal-account realism gate failed')
+          PY
+      - name: Upload calibration reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: directional-v15-integrated-reports
+          path: artifacts/*.json

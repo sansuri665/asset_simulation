@@ -49,7 +49,7 @@ from .registry import load_registered_assets, sha256_json
 
 
 OIL_TRADING_STRATEGY_MODEL_VERSION = (
-    "asset-simulation-oil-trading-strategy-v1.3.0"
+    "asset-simulation-oil-trading-strategy-v1.3.1"
 )
 STRATEGY_CONTRACT_ID = "oil_trading_strategy_v8"
 ROLE_ORDER = ("main", "next_main")
@@ -120,6 +120,10 @@ def _validate_registered_assets() -> tuple[dict[str, Any], dict[str, Any], dict[
     ):
         raise ValueError("oil trading strategy signal normalization is invalid")
     thesis = config["thesis_invalidation"]
+    if "minimum_direction_forecast_z" not in thesis:
+        raise ValueError(
+            "oil trading strategy minimum_direction_forecast_z is required"
+        )
     scales = {
         key: float(value)
         for key, value in thesis["status_target_scale"].items()
@@ -134,6 +138,7 @@ def _validate_registered_assets() -> tuple[dict[str, Any], dict[str, Any], dict[
         or float(thesis["material_band_breach_z"])
         > float(thesis["severe_band_breach_z"])
         or float(thesis["minimum_direction_move_log"]) <= 0.0
+        or not 0.0 < float(thesis["minimum_direction_forecast_z"]) <= 5.0
         or not 0.0 <= float(thesis["direction_reversal_signal_threshold"]) <= 1.0
         or bool(thesis["ability_score_used"])
     ):
@@ -1332,27 +1337,27 @@ def build_oil_strategy_decision(
         )
         price = float(market_contract["price_usd"])
         margin_per_lot = price * contract_size * initial_margin_rate
-        capital_deployment_capacity = math.floor(
+        pm_deployment_capacity = math.floor(
             capital_deployment_budget * role_weight / max(1e-9, margin_per_lot)
         )
-        risk_capacity = max(
-            0, min(market_role_capacity, capital_deployment_capacity)
+        strategy_intent_capacity = max(
+            0, min(market_role_capacity, pm_deployment_capacity)
         )
         binding_capacity = (
             "market_position_limit"
-            if market_role_capacity <= capital_deployment_capacity
+            if market_role_capacity <= pm_deployment_capacity
             else "capital_deployment_budget"
         )
         if not bool(limits["new_trades_allowed"]):
-            risk_capacity = 0
+            strategy_intent_capacity = 0
             binding_capacity = "new_trades_closed"
         pre_persistence_ideal_target = int(
-            round(float(signal_report["signal"]) * risk_capacity)
+            round(float(signal_report["signal"]) * strategy_intent_capacity)
         )
         pre_thesis_target = _apply_position_persistence(
             current_position_lots=int(current_positions.get(contract_id, 0)),
             ideal_target_lots=pre_persistence_ideal_target,
-            risk_capacity_lots=risk_capacity,
+            risk_capacity_lots=strategy_intent_capacity,
             position_persistence=float(turnover_profile["position_persistence"]),
         )
         ideal_target, thesis_action = apply_oil_strategy_thesis_invalidation(
@@ -1381,8 +1386,10 @@ def build_oil_strategy_decision(
                 limits["single_contract_position_limit_lots"]
             ),
             "gross_role_capacity_lots": math.floor(gross_cap_lots * role_weight),
-            "capital_deployment_capacity_lots": capital_deployment_capacity,
-            "risk_capacity_lots": risk_capacity,
+            "capital_deployment_capacity_lots": pm_deployment_capacity,
+            "pm_deployment_capacity_lots": pm_deployment_capacity,
+            "strategy_intent_capacity_lots": strategy_intent_capacity,
+            "risk_capacity_lots": strategy_intent_capacity,
             "binding_capacity": binding_capacity,
             "pre_persistence_ideal_target_lots": pre_persistence_ideal_target,
             "pre_thesis_target_position_lots": pre_thesis_target,
@@ -1456,6 +1463,8 @@ def build_oil_strategy_decision(
                 ),
                 "gross_role_capacity_lots": 0,
                 "capital_deployment_capacity_lots": 0,
+                "pm_deployment_capacity_lots": 0,
+                "strategy_intent_capacity_lots": 0,
                 "risk_capacity_lots": 0,
                 "binding_capacity": "legacy_exit",
                 "pre_persistence_ideal_target_lots": 0,
@@ -1639,7 +1648,15 @@ def build_oil_strategy_decision(
             ),
             "allocated_strategy_capital_usd": allocated_strategy_capital,
             "capital_deployment_budget_usd": capital_deployment_budget,
+            "pm_intended_deployment_envelope_usd": capital_deployment_budget,
             "capital_deployment_pct_of_allocated_equity": capital_deployment_pct,
+            "sizing_architecture": {
+                "method": "parallel_strategy_intent_and_independent_risk_limits",
+                "committee_authorization_is_capital_ceiling": True,
+                "pm_deployment_builds_strategy_intent": True,
+                "pm_deployment_multiplied_by_risk_allowance": False,
+                "strategy_risk_enforces_limits_by_clipping": True,
+            },
             "binding_capacity_by_contract": {
                 key: targets[key]["binding_capacity"] for key in sorted(targets)
             },
@@ -1672,6 +1689,8 @@ def build_oil_strategy_decision(
             "execution_desk_reads_future_weeks": False,
             "strategy_risk_reads_future_weeks": False,
             "strategy_risk_can_expand_strategy_intent": False,
+            "strategy_risk_uses_pm_deployment_as_policy_multiplier": False,
+            "strategy_intent_and_risk_limits_are_parallel": True,
             "thesis_invalidation_reads_future_weeks": False,
             "thesis_invalidation_uses_configured_ability_score": False,
             "thesis_invalidation_can_expand_pre_thesis_target": False,

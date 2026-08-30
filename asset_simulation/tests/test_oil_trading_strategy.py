@@ -104,6 +104,19 @@ class OilTradingStrategyTests(unittest.TestCase):
                 "capital_deployment_pct_of_allocated_equity"
             ],
         )
+        self.assertEqual(
+            first["riskBudget"]["capital_deployment_budget_usd"],
+            first["riskBudget"]["pm_intended_deployment_envelope_usd"],
+        )
+        self.assertEqual(
+            "parallel_strategy_intent_and_independent_risk_limits",
+            first["riskBudget"]["sizing_architecture"]["method"],
+        )
+        self.assertFalse(
+            first["informationPolicy"][
+                "strategy_risk_uses_pm_deployment_as_policy_multiplier"
+            ]
+        )
 
     def test_forecast_band_location_and_path_direction_drive_the_signal(self) -> None:
         signal_config = load_registered_assets()["oil_trading_strategy_config"][

@@ -76,9 +76,17 @@ class CorporateRiskControlTests(unittest.TestCase):
             resolve_corporate_risk_profile(modified)
 
     def test_neutral_preserves_current_targets_and_strict_policy_only_clips(self) -> None:
-        neutral = build_oil_strategy_decision(self.market, self.forecast)
+        neutral_strategy_risk = build_default_corporate_risk_profile()
+        neutral = build_oil_strategy_decision(
+            self.market,
+            self.forecast,
+            strategy_risk_profile=neutral_strategy_risk,
+        )
         strict = build_oil_strategy_decision(
-            self.market, self.forecast, corporate_risk_profile=_profile(0.0, "strict")
+            self.market,
+            self.forecast,
+            strategy_risk_profile=neutral_strategy_risk,
+            corporate_risk_profile=_profile(0.0, "strict"),
         )
         self.assertTrue(
             all(
