@@ -8,6 +8,7 @@ on:
       - 'asset_simulation/model/oil_calendar_spread_strategy_v2.py'
       - 'asset_simulation/model/oil_calendar_spread_strategy_v22.py'
       - 'asset_simulation/model/oil_calendar_spread_pair_execution.py'
+      - 'asset_simulation/model/oil_calendar_spread_pair_execution_v11.py'
       - 'asset_simulation/model/oil_calendar_spread_market_history.py'
       - 'asset_simulation/model/oil_calendar_spread_research.py'
       - 'asset_simulation/model/oil_strategy_book.py'
@@ -15,10 +16,12 @@ on:
       - 'asset_simulation/config/oil_calendar_spread_strategy_v0.2.json'
       - 'asset_simulation/config/oil_calendar_spread_strategy_v0.2.2.json'
       - 'asset_simulation/config/oil_calendar_spread_pair_execution_v0.1.json'
+      - 'asset_simulation/config/oil_calendar_spread_pair_execution_v0.1.1.json'
       - 'asset_simulation/config/oil_calendar_spread_research_v0.1.json'
       - 'asset_simulation/contracts/oil_calendar_spread_strategy_v2.json'
       - 'asset_simulation/contracts/oil_calendar_spread_strategy_v22.json'
       - 'asset_simulation/contracts/oil_calendar_spread_pair_execution_v1.json'
+      - 'asset_simulation/contracts/oil_calendar_spread_pair_execution_v11.json'
       - 'asset_simulation/contracts/oil_calendar_spread_research_v1.json'
       - 'asset_simulation/contracts/oil_strategy_book_v1.json'
       - 'asset_simulation/audit_oil_calendar_spread_style_economics.py'
@@ -28,6 +31,7 @@ on:
       - 'asset_simulation/tests/test_oil_calendar_spread_strategy_v2.py'
       - 'asset_simulation/tests/test_oil_calendar_spread_strategy_v22.py'
       - 'asset_simulation/tests/test_oil_calendar_spread_pair_execution.py'
+      - 'asset_simulation/tests/test_oil_calendar_spread_pair_execution_v11.py'
       - 'asset_simulation/tests/test_oil_calendar_spread_market_history.py'
       - 'asset_simulation/tests/test_oil_calendar_spread_research.py'
       - 'asset_simulation/tests/test_oil_calendar_spread_style_economics.py'
@@ -72,6 +76,7 @@ jobs:
           python -m py_compile asset_simulation/model/oil_calendar_spread_strategy_v2.py
           python -m py_compile asset_simulation/model/oil_calendar_spread_strategy_v22.py
           python -m py_compile asset_simulation/model/oil_calendar_spread_pair_execution.py
+          python -m py_compile asset_simulation/model/oil_calendar_spread_pair_execution_v11.py
           python -m py_compile asset_simulation/audit_oil_calendar_spread_style_economics.py
           python -m py_compile asset_simulation/audit_oil_calendar_spread_style_economic_acceptance.py
           python -m py_compile asset_simulation/audit_oil_calendar_spread_style_identification.py
@@ -92,8 +97,10 @@ jobs:
         run: python -m unittest asset_simulation.tests.test_oil_calendar_spread_strategy_v2 -v
       - name: Calendar-spread v0.2.2 tests
         run: python -m unittest asset_simulation.tests.test_oil_calendar_spread_strategy_v22 -v
-      - name: Calendar-spread real-leg pair execution tests
+      - name: Calendar-spread pair execution v0.1.0 prototype tests
         run: python -m unittest asset_simulation.tests.test_oil_calendar_spread_pair_execution -v
+      - name: Calendar-spread current no-lookahead pair execution tests
+        run: python -m unittest asset_simulation.tests.test_oil_calendar_spread_pair_execution_v11 -v
       - name: Historical v0.1.2 reference invariant tests
         run: python -m unittest asset_simulation.tests.test_oil_calendar_spread_strategy -v
 
