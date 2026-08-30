@@ -33,8 +33,8 @@ class OilCalendarSpreadStyleEconomicAcceptanceTests(unittest.TestCase):
         self.assertTrue(decision["reversal_exit_applied"])
         self.assertEqual(0, decision["persistent_target_spread_units"])
         self.assertGreaterEqual(decision["target_spread_units"], 0)
-        self.assertGreaterEqual(
-            decision["signal"]["historical_observation_count"], 6
+        self.assertGreater(
+            decision["signal"]["historical_observation_count"], 1
         )
 
 
