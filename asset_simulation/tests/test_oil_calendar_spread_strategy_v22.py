@@ -12,6 +12,7 @@ from asset_simulation.model.oil_calendar_spread_strategy_v22 import (
     build_oil_calendar_spread_strategy_v22_decision,
 )
 from asset_simulation.model.oil_strategy_book import build_oil_strategy_book
+from asset_simulation.model.registry import load_registered_assets
 from asset_simulation.tests.test_oil_calendar_spread_strategy import _forecast, _market
 
 
@@ -26,14 +27,45 @@ class OilCalendarSpreadStrategyV22Tests(unittest.TestCase):
 
     @staticmethod
     def _market_owner_shape() -> dict[str, object]:
+        """Reshape the legacy fixture to the real parent-month/child-week contract."""
+
         market = _market()
         for contract in market["curve"]["contracts"]:
-            for month in contract.get("monthly", []):
-                for week in month.get("weekly", []):
+            monthly = contract.get("monthly", [])
+            if not monthly:
+                continue
+            source_weeks = [deepcopy(week) for week in monthly[0].get("weekly", [])]
+            rebuilt_months = []
+            for block_index in range(0, len(source_weeks), 4):
+                block = source_weeks[block_index : block_index + 4]
+                parent_month = 10 + block_index // 4
+                normalized_block = []
+                for week_index, week in enumerate(block, start=1):
                     week.pop("week_serial", None)
                     week.pop("year", None)
                     week.pop("month", None)
+                    week["week"] = week_index
+                    normalized_block.append(week)
+                rebuilt_months.append(
+                    {
+                        "year": 2029,
+                        "month": parent_month,
+                        "weekly": normalized_block,
+                    }
+                )
+            contract["monthly"] = rebuilt_months
         return market
+
+    def test_registered_v022_assets_are_explicit(self) -> None:
+        assets = load_registered_assets()
+        self.assertEqual(
+            OIL_CALENDAR_SPREAD_STRATEGY_V22_MODEL_VERSION,
+            assets["oil_calendar_spread_strategy_v22_config"]["model_version"],
+        )
+        self.assertEqual(
+            "oil_calendar_spread_strategy_v22",
+            assets["oil_calendar_spread_strategy_v22_contract"]["contract_id"],
+        )
 
     def test_v022_restores_visible_history_that_v021_dropped(self) -> None:
         market = self._market_owner_shape()
@@ -51,7 +83,7 @@ class OilCalendarSpreadStrategyV22Tests(unittest.TestCase):
             strategy_book=self._book(),
         )
         self.assertEqual(1, old["signal"]["historical_observation_count"])
-        self.assertGreaterEqual(fixed["signal"]["historical_observation_count"], 6)
+        self.assertGreaterEqual(fixed["signal"]["historical_observation_count"], 12)
         self.assertTrue(fixed["signal"]["mean_reversion_available"])
         self.assertEqual(
             OIL_CALENDAR_SPREAD_STRATEGY_V22_MODEL_VERSION,
