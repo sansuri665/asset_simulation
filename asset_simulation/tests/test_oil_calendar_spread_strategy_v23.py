@@ -27,6 +27,37 @@ class OilCalendarSpreadStrategyV23Tests(unittest.TestCase):
             positions=positions or {},
         )
 
+    @staticmethod
+    def _market_owner_shape() -> dict[str, object]:
+        """Use the same parent-month/child-week shape published by the market owner."""
+
+        market = _market()
+        for contract in market["curve"]["contracts"]:
+            monthly = contract.get("monthly", [])
+            if not monthly:
+                continue
+            source_weeks = [deepcopy(week) for week in monthly[0].get("weekly", [])]
+            rebuilt_months = []
+            for block_index in range(0, len(source_weeks), 4):
+                block = source_weeks[block_index : block_index + 4]
+                parent_month = 10 + block_index // 4
+                normalized_block = []
+                for week_index, week in enumerate(block, start=1):
+                    week.pop("week_serial", None)
+                    week.pop("year", None)
+                    week.pop("month", None)
+                    week["week"] = week_index
+                    normalized_block.append(week)
+                rebuilt_months.append(
+                    {
+                        "year": 2029,
+                        "month": parent_month,
+                        "weekly": normalized_block,
+                    }
+                )
+            contract["monthly"] = rebuilt_months
+        return market
+
     def test_registered_v023_is_deterministic(self) -> None:
         assets = load_registered_assets()
         self.assertEqual(
@@ -34,14 +65,15 @@ class OilCalendarSpreadStrategyV23Tests(unittest.TestCase):
             assets["oil_calendar_spread_strategy_v23_config"]["model_version"],
         )
         book = self._book()
+        market = self._market_owner_shape()
         first = build_oil_calendar_spread_strategy_v23_decision(
-            _market(),
+            market,
             _forecast(),
             authorized_strategy_capital_usd=10_000_000.0,
             strategy_book=book,
         )
         second = build_oil_calendar_spread_strategy_v23_decision(
-            _market(),
+            market,
             _forecast(),
             authorized_strategy_capital_usd=10_000_000.0,
             strategy_book=book,
@@ -54,7 +86,7 @@ class OilCalendarSpreadStrategyV23Tests(unittest.TestCase):
 
     def test_zero_error_construction_is_identity_with_nonzero_book(self) -> None:
         decision = build_oil_calendar_spread_strategy_v23_decision(
-            _market(),
+            self._market_owner_shape(),
             _forecast(future_main=(85.0, 90.0), future_next=(65.0, 62.0)),
             authorized_strategy_capital_usd=10_000_000.0,
             strategy_book=self._book({"OIL-3005": 40, "OIL-3009": -40}),
@@ -72,7 +104,7 @@ class OilCalendarSpreadStrategyV23Tests(unittest.TestCase):
 
     def test_zero_error_reversal_remains_visible_until_thesis_exits_first(self) -> None:
         decision = build_oil_calendar_spread_strategy_v23_decision(
-            _market(),
+            self._market_owner_shape(),
             _forecast(future_main=(65.0, 64.0), future_next=(75.0, 76.0)),
             authorized_strategy_capital_usd=10_000_000.0,
             strategy_book=self._book({"OIL-3005": 100, "OIL-3009": -100}),
@@ -105,7 +137,7 @@ class OilCalendarSpreadStrategyV23Tests(unittest.TestCase):
             "contract_lifecycle_planning": 0.0,
         }
         decision = build_oil_calendar_spread_strategy_v23_decision(
-            _market(),
+            self._market_owner_shape(),
             _forecast(future_main=(65.0, 64.0), future_next=(75.0, 76.0)),
             authorized_strategy_capital_usd=10_000_000.0,
             strategy_book=self._book({"OIL-3005": 100, "OIL-3009": -100}),
