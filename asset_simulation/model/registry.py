@@ -58,6 +58,12 @@ OIL_CALENDAR_SPREAD_PAIR_EXECUTION_CONFIG_PATH = (
 OIL_CALENDAR_SPREAD_PAIR_EXECUTION_CONTRACT_PATH = (
     PACKAGE_ROOT / "contracts" / "oil_calendar_spread_pair_execution_v1.json"
 )
+OIL_CALENDAR_SPREAD_PAIR_EXECUTION_V11_CONFIG_PATH = (
+    PACKAGE_ROOT / "config" / "oil_calendar_spread_pair_execution_v0.1.1.json"
+)
+OIL_CALENDAR_SPREAD_PAIR_EXECUTION_V11_CONTRACT_PATH = (
+    PACKAGE_ROOT / "contracts" / "oil_calendar_spread_pair_execution_v11.json"
+)
 OIL_STRATEGY_BOOK_CONTRACT_PATH = (
     PACKAGE_ROOT / "contracts" / "oil_strategy_book_v1.json"
 )
@@ -169,6 +175,12 @@ def load_registered_assets() -> dict[str, Any]:
     oil_calendar_spread_pair_execution_contract = load_json(
         OIL_CALENDAR_SPREAD_PAIR_EXECUTION_CONTRACT_PATH
     )
+    oil_calendar_spread_pair_execution_v11_config = load_json(
+        OIL_CALENDAR_SPREAD_PAIR_EXECUTION_V11_CONFIG_PATH
+    )
+    oil_calendar_spread_pair_execution_v11_contract = load_json(
+        OIL_CALENDAR_SPREAD_PAIR_EXECUTION_V11_CONTRACT_PATH
+    )
     oil_strategy_book_contract = load_json(OIL_STRATEGY_BOOK_CONTRACT_PATH)
     oil_execution_desk_config = load_json(OIL_EXECUTION_DESK_CONFIG_PATH)
     oil_execution_desk_contract = load_json(OIL_EXECUTION_DESK_CONTRACT_PATH)
@@ -254,6 +266,14 @@ def load_registered_assets() -> dict[str, Any]:
         "oil_calendar_spread_pair_execution_contract": oil_calendar_spread_pair_execution_contract,
         "oil_calendar_spread_pair_execution_contract_hash": sha256_json(
             oil_calendar_spread_pair_execution_contract
+        ),
+        "oil_calendar_spread_pair_execution_v11_config": oil_calendar_spread_pair_execution_v11_config,
+        "oil_calendar_spread_pair_execution_v11_config_hash": sha256_json(
+            oil_calendar_spread_pair_execution_v11_config
+        ),
+        "oil_calendar_spread_pair_execution_v11_contract": oil_calendar_spread_pair_execution_v11_contract,
+        "oil_calendar_spread_pair_execution_v11_contract_hash": sha256_json(
+            oil_calendar_spread_pair_execution_v11_contract
         ),
         "oil_strategy_book_contract": oil_strategy_book_contract,
         "oil_strategy_book_contract_hash": sha256_json(oil_strategy_book_contract),
