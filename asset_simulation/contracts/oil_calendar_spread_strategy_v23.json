@@ -1,0 +1,37 @@
+{
+  "contract_id": "oil_calendar_spread_strategy_v23",
+  "schema_version": "asset-simulation-oil-calendar-spread-strategy-contract-v23",
+  "model_version": "asset-simulation-oil-calendar-spread-strategy-v0.2.3",
+  "role": "History-aware strategy-book calendar-spread candidate that preserves v0.2.2 PM/risk semantics while restoring the correct construction/thesis owner boundary for nonzero and reversal position states.",
+  "identity_fields": [
+    "model_version",
+    "strategy_id",
+    "config_id",
+    "config_hash",
+    "base_config_hash",
+    "field_contract_id",
+    "field_contract_hash",
+    "strategy_book_identity_hash",
+    "source_strategy_profile_hash",
+    "dedicated_style_profile_hash",
+    "reference_decision_hash",
+    "construction_adjustment_hash",
+    "market_history_adapter_result_hash",
+    "upstream_global_identity_hash",
+    "forecast_vintage_id",
+    "result_hash"
+  ],
+  "invariants": [
+    "strategy taxonomy and eight dedicated PM style dimensions remain those of v0.2.2",
+    "visible named-contract history remains normalized only by the metadata-only v0.2.2 market-history adapter",
+    "Strategy Book remains the only strategy-position input",
+    "score-100 zero-error construction is an identity mapping from ideal policy target to submitted target",
+    "construction does not own exit-before-reversal policy; thesis owns direction-reversal discipline",
+    "when construction error is nonzero, safety guards may prevent an error-driven overshoot or opposite-direction creation",
+    "construction error cannot create a position direction when ideal target is zero or flip against the ideal target direction",
+    "neutral dedicated style plus zero construction error reproduces the hardened reference final target even when existing spread position is nonzero or reversing",
+    "final target remains exactly one-to-one real named-contract lots",
+    "strategy risk capacity, thesis maturity policy and paired execution mandate remain inherited from the registered v0.2.2 base semantics",
+    "the candidate does not enter competition or mutate Formal Account"
+  ]
+}
