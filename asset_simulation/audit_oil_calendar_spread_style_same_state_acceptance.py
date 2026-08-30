@@ -1,20 +1,21 @@
 """Broad same-state acceptance for dedicated calendar-spread PM styles.
 
-A neutral dedicated PM path owns the research-book state.  At every real market
-cutoff, score-10 and score-90 variants of one axis are then evaluated from that
-*same* state, market and forecast vintage.  This avoids path divergence being
-mistaken for a style effect and provides enough natural conditional events for
-forecast-vs-curve, curve continuation-vs-reversion and holding patience.
+A neutral dedicated PM path owns the research-book state. At every real market
+cutoff, score-10 and score-90 variants of one axis are compared against the same
+visible signal primitives and the same current spread position. This prevents
+path divergence from masquerading as a style effect.
 
-The audit remains research-only: target state is propagated without a fill
-model, pair identity changes reset the research book because a spread lifecycle
-scheduler does not yet exist, and idealized markout is not an acceptance input.
+Only capital deployment re-runs strategy capacity because it genuinely changes
+the deployable capital budget. The other seven axes are evaluated directly from
+one neutral reference decision. Pair identity changes reset the research book
+because a formal spread lifecycle scheduler does not yet exist.
 """
 
 from __future__ import annotations
 
 import argparse
 import json
+import math
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
@@ -26,13 +27,18 @@ from .audit_oil_calendar_spread_style_economics import (
     CONFLICT_SIGNAL_FLOOR,
     _controlled_radar,
     _pair_ids,
+    _runtime_bundle,
 )
 from .model.oil_calendar_spread_research import CALENDAR_SPREAD_STYLE_DIMENSIONS
+from .model.oil_calendar_spread_strategy import (
+    _apply_spread_position_persistence,
+    _responsive_target,
+)
 from .model.registry import load_registered_assets, sha256_json
 
 
 ACCEPTANCE_VERSION = (
-    "asset-simulation-oil-calendar-spread-style-same-state-acceptance-v0.1.0"
+    "asset-simulation-oil-calendar-spread-style-same-state-acceptance-v0.2.0"
 )
 DEFAULT_DEVELOPMENT_SEEDS = tuple(range(16))
 DEFAULT_VALIDATION_SEEDS = tuple(range(100, 116))
@@ -47,11 +53,17 @@ def _mean(values: Sequence[float]) -> float:
 
 
 def _alignment(candidate: float, preferred: float, alternative: float) -> float:
-    """Positive means candidate is closer to preferred than alternative."""
-
     return abs(float(candidate) - float(alternative)) - abs(
         float(candidate) - float(preferred)
     )
+
+
+def _final_signal(raw_signal: float, deadband: float) -> float:
+    raw = float(raw_signal)
+    band = float(deadband)
+    if abs(raw) <= band:
+        return 0.0
+    return math.copysign((abs(raw) - band) / max(1e-9, 1.0 - band), raw)
 
 
 def _retention(current: int, ideal: int, persistent: int) -> float:
@@ -61,139 +73,138 @@ def _retention(current: int, ideal: int, persistent: int) -> float:
     return (abs(int(persistent)) - abs(int(ideal))) / denominator
 
 
-def _compare_axis_turn(
-    market: Mapping[str, Any],
-    forecast: Mapping[str, Any],
-    *,
-    current_spread_units: int,
-    axis: str,
-    authorized_strategy_capital_usd: float,
-) -> dict[str, Any]:
-    low = _controlled_decision_with_reversal_guard(
-        market,
-        forecast,
-        current_spread_units=current_spread_units,
-        dedicated_radar=_controlled_radar(axis, LOW_SCORE),
-        authorized_strategy_capital_usd=authorized_strategy_capital_usd,
-    )
-    high = _controlled_decision_with_reversal_guard(
-        market,
-        forecast,
-        current_spread_units=current_spread_units,
-        dedicated_radar=_controlled_radar(axis, HIGH_SCORE),
-        authorized_strategy_capital_usd=authorized_strategy_capital_usd,
-    )
-    low_signal = dict(low["signal"])
-    high_signal = dict(high["signal"])
-    neutral_like = low_signal if axis not in {
-        "forecast_vs_visible_curve",
-        "curve_continuation_reversion",
-        "forecast_horizon",
-        "dislocation_selectivity",
-    } else None
+def _policy(axis: str, score: float) -> dict[str, Any]:
+    _, _, policy = _runtime_bundle(_controlled_radar(axis, score))
+    return policy
 
-    result: dict[str, Any] = {
-        "axis": axis,
-        "low_score": LOW_SCORE,
-        "high_score": HIGH_SCORE,
-        "low_active": abs(float(low_signal["signal"])) > 1e-12,
-        "high_active": abs(float(high_signal["signal"])) > 1e-12,
-        "low_abs_signal": abs(float(low_signal["signal"])),
-        "high_abs_signal": abs(float(high_signal["signal"])),
-        "low_capacity": int(low["capacity"]["risk_capacity_units"]),
-        "high_capacity": int(high["capacity"]["risk_capacity_units"]),
-        "low_target": int(low["target_spread_units"]),
-        "high_target": int(high["target_spread_units"]),
-        "low_persistent": int(low["persistent_target_spread_units"]),
-        "high_persistent": int(high["persistent_target_spread_units"]),
-        "low_ideal": int(low["ideal_target_spread_units"]),
-        "high_ideal": int(high["ideal_target_spread_units"]),
-        "low_forecast_weight": float(low_signal["forecast_component_weight"]),
-        "high_forecast_weight": float(high_signal["forecast_component_weight"]),
-        "low_four_week_weight": float(low_signal["horizon_weights"][1]),
-        "high_four_week_weight": float(high_signal["horizon_weights"][1]),
-        "low_deadband": float(low_signal["signal_deadband_abs"]),
-        "high_deadband": float(high_signal["signal_deadband_abs"]),
-        "low_adjustment_speed": float(low["policy"]["execution"]["adjustment_speed"]),
-        "high_adjustment_speed": float(high["policy"]["execution"]["adjustment_speed"]),
-        "low_turnover_multiplier": float(
-            low["policy"]["execution"]["gross_turnover_multiplier"]
-        ),
-        "high_turnover_multiplier": float(
-            high["policy"]["execution"]["gross_turnover_multiplier"]
-        ),
-        "low_turnover_budget": int(
-            low["paired_execution_mandate"]["advisory_pair_turnover_budget_units"]
-        ),
-        "high_turnover_budget": int(
-            high["paired_execution_mandate"]["advisory_pair_turnover_budget_units"]
-        ),
-        "low_position_persistence": float(
-            low["policy"]["execution"]["position_persistence"]
-        ),
-        "high_position_persistence": float(
-            high["policy"]["execution"]["position_persistence"]
-        ),
-    }
+
+def _compare_from_neutral(
+    neutral: Mapping[str, Any],
+    *,
+    axis: str,
+    current_spread_units: int,
+    low_policy: Mapping[str, Any],
+    high_policy: Mapping[str, Any],
+) -> dict[str, Any]:
+    signal = dict(neutral["signal"])
+    current = int(current_spread_units)
+    capacity = int(neutral["capacity"]["risk_capacity_units"])
+    neutral_ideal = int(neutral["ideal_target_spread_units"])
+    neutral_persistent = int(neutral["persistent_target_spread_units"])
+    result: dict[str, Any] = {"axis": axis, "conditional_event": True}
 
     if axis == "forecast_vs_visible_curve":
-        forecast_signal = float(low_signal["forecast_signal"])
-        visible_signal = float(low_signal["visible_curve_signal"])
+        forecast = float(signal["forecast_signal"])
+        visible = float(signal["visible_curve_signal"])
         event = (
-            abs(forecast_signal) >= CONFLICT_SIGNAL_FLOOR
-            and abs(visible_signal) >= CONFLICT_SIGNAL_FLOOR
-            and forecast_signal * visible_signal < 0.0
+            abs(forecast) >= CONFLICT_SIGNAL_FLOOR
+            and abs(visible) >= CONFLICT_SIGNAL_FLOOR
+            and forecast * visible < 0.0
         )
+        low_weight = float(low_policy["signal"]["forecast_component_weight"])
+        high_weight = float(high_policy["signal"]["forecast_component_weight"])
+        low_raw = low_weight * forecast + (1.0 - low_weight) * visible
+        high_raw = high_weight * forecast + (1.0 - high_weight) * visible
         result.update(
             {
                 "conditional_event": event,
-                "low_preferred_alignment": _alignment(
-                    float(low_signal["raw_signal"]), forecast_signal, visible_signal
-                ),
-                "high_preferred_alignment": _alignment(
-                    float(high_signal["raw_signal"]), forecast_signal, visible_signal
-                ),
+                "low_value": _alignment(low_raw, forecast, visible),
+                "high_value": _alignment(high_raw, forecast, visible),
             }
         )
     elif axis == "curve_continuation_reversion":
-        momentum = float(low_signal["curve_momentum_signal"])
-        reversion = float(low_signal["curve_mean_reversion_signal"])
+        momentum = float(signal["curve_momentum_signal"])
+        reversion = float(signal["curve_mean_reversion_signal"])
         event = (
             abs(momentum) >= CONFLICT_SIGNAL_FLOOR
             and abs(reversion) >= CONFLICT_SIGNAL_FLOOR
             and momentum * reversion < 0.0
         )
+        low_cont = float(low_policy["signal"]["continuation_weight"])
+        high_cont = float(high_policy["signal"]["continuation_weight"])
+        low_visible = low_cont * momentum + (1.0 - low_cont) * reversion
+        high_visible = high_cont * momentum + (1.0 - high_cont) * reversion
         result.update(
             {
                 "conditional_event": event,
-                "low_preferred_alignment": _alignment(
-                    float(low_signal["visible_curve_signal"]), momentum, reversion
+                "low_value": _alignment(low_visible, momentum, reversion),
+                "high_value": _alignment(high_visible, momentum, reversion),
+            }
+        )
+    elif axis == "dislocation_selectivity":
+        raw = float(signal["raw_signal"])
+        low_final = _final_signal(raw, float(low_policy["signal"]["signal_deadband_abs"]))
+        high_final = _final_signal(raw, float(high_policy["signal"]["signal_deadband_abs"]))
+        result.update(
+            {
+                "low_value": 1.0 if abs(low_final) > 1e-12 else 0.0,
+                "high_value": 1.0 if abs(high_final) > 1e-12 else 0.0,
+            }
+        )
+    elif axis == "adjustment_tempo":
+        low_target = _responsive_target(
+            current_units=current,
+            target_units=neutral_persistent,
+            adjustment_speed=float(low_policy["execution"]["adjustment_speed"]),
+            capacity_units=capacity,
+        )
+        high_target = _responsive_target(
+            current_units=current,
+            target_units=neutral_persistent,
+            adjustment_speed=float(high_policy["execution"]["adjustment_speed"]),
+            capacity_units=capacity,
+        )
+        gap = abs(neutral_persistent - current)
+        result.update(
+            {
+                "low_value": 0.0 if gap == 0 else abs(low_target - current) / gap,
+                "high_value": 0.0 if gap == 0 else abs(high_target - current) / gap,
+            }
+        )
+    elif axis == "rebalance_activity":
+        reference = max(abs(current), abs(int(neutral["target_spread_units"])), 1)
+        result.update(
+            {
+                "low_value": math.floor(
+                    reference
+                    * float(low_policy["execution"]["gross_turnover_multiplier"])
                 ),
-                "high_preferred_alignment": _alignment(
-                    float(high_signal["visible_curve_signal"]), momentum, reversion
+                "high_value": math.floor(
+                    reference
+                    * float(high_policy["execution"]["gross_turnover_multiplier"])
                 ),
             }
         )
     elif axis == "holding_patience":
-        # Holding patience does not change signal/capacity, so ideal should match.
-        if int(low["ideal_target_spread_units"]) != int(high["ideal_target_spread_units"]):
-            raise ValueError("holding-patience comparison changed ideal target")
-        current = int(current_spread_units)
-        ideal = int(low["ideal_target_spread_units"])
-        event = current * ideal > 0 and abs(ideal) < abs(current)
+        event = current * neutral_ideal > 0 and abs(neutral_ideal) < abs(current)
+        low_persistent = _apply_spread_position_persistence(
+            current_spread_units=current,
+            proposed_target_units=neutral_ideal,
+            capacity_units=capacity,
+            position_persistence=float(low_policy["execution"]["position_persistence"]),
+        )
+        high_persistent = _apply_spread_position_persistence(
+            current_spread_units=current,
+            proposed_target_units=neutral_ideal,
+            capacity_units=capacity,
+            position_persistence=float(high_policy["execution"]["position_persistence"]),
+        )
         result.update(
             {
                 "conditional_event": event,
-                "low_preferred_alignment": _retention(
-                    current, ideal, int(low["persistent_target_spread_units"])
-                ),
-                "high_preferred_alignment": _retention(
-                    current, ideal, int(high["persistent_target_spread_units"])
-                ),
+                "low_value": _retention(current, neutral_ideal, low_persistent),
+                "high_value": _retention(current, neutral_ideal, high_persistent),
+            }
+        )
+    elif axis == "forecast_horizon":
+        result.update(
+            {
+                "low_value": float(low_policy["signal"]["horizon_weights"][1]),
+                "high_value": float(high_policy["signal"]["horizon_weights"][1]),
             }
         )
     else:
-        result["conditional_event"] = True
+        raise ValueError(f"axis requires full capacity comparison: {axis}")
     return _round_nested(result)
 
 
@@ -203,6 +214,11 @@ def _partition(
     horizon_years: int,
     authorized_strategy_capital_usd: float,
 ) -> dict[str, Any]:
+    policies = {
+        axis: {"low": _policy(axis, LOW_SCORE), "high": _policy(axis, HIGH_SCORE)}
+        for axis in CALENDAR_SPREAD_STYLE_DIMENSIONS
+        if axis != "capital_deployment"
+    }
     rows: dict[str, list[dict[str, Any]]] = {
         axis: [] for axis in CALENDAR_SPREAD_STYLE_DIMENSIONS
     }
@@ -217,6 +233,7 @@ def _partition(
             if previous_pair is not None and current_pair != previous_pair:
                 current_units = 0
                 pair_reset_count += 1
+
             neutral = _controlled_decision_with_reversal_guard(
                 item["start_market"],
                 item["forecast"],
@@ -224,115 +241,75 @@ def _partition(
                 dedicated_radar=_controlled_radar("forecast_vs_visible_curve", 50.0),
                 authorized_strategy_capital_usd=authorized_strategy_capital_usd,
             )
+
             for axis in CALENDAR_SPREAD_STYLE_DIMENSIONS:
-                rows[axis].append(
-                    _compare_axis_turn(
+                if axis == "capital_deployment":
+                    low = _controlled_decision_with_reversal_guard(
                         item["start_market"],
                         item["forecast"],
                         current_spread_units=current_units,
-                        axis=axis,
+                        dedicated_radar=_controlled_radar(axis, LOW_SCORE),
                         authorized_strategy_capital_usd=authorized_strategy_capital_usd,
                     )
-                )
+                    high = _controlled_decision_with_reversal_guard(
+                        item["start_market"],
+                        item["forecast"],
+                        current_spread_units=current_units,
+                        dedicated_radar=_controlled_radar(axis, HIGH_SCORE),
+                        authorized_strategy_capital_usd=authorized_strategy_capital_usd,
+                    )
+                    rows[axis].append(
+                        {
+                            "axis": axis,
+                            "conditional_event": True,
+                            "low_value": int(low["capacity"]["risk_capacity_units"]),
+                            "high_value": int(high["capacity"]["risk_capacity_units"]),
+                        }
+                    )
+                else:
+                    rows[axis].append(
+                        _compare_from_neutral(
+                            neutral,
+                            axis=axis,
+                            current_spread_units=current_units,
+                            low_policy=policies[axis]["low"],
+                            high_policy=policies[axis]["high"],
+                        )
+                    )
+
             current_units = int(neutral["target_spread_units"])
             previous_pair = current_pair
             neutral_turn_count += 1
 
     summaries: dict[str, Any] = {}
     gates: list[dict[str, Any]] = []
+    conditional_axes = {
+        "forecast_vs_visible_curve",
+        "curve_continuation_reversion",
+        "holding_patience",
+    }
     for axis, axis_rows in rows.items():
         event_rows = [row for row in axis_rows if bool(row["conditional_event"])]
-        summary: dict[str, Any] = {
+        low_value = _mean([float(row["low_value"]) for row in event_rows])
+        high_value = _mean([float(row["high_value"]) for row in event_rows])
+        minimum = MIN_CONDITIONAL_EVENTS if axis in conditional_axes else 1
+        enough = len(event_rows) >= minimum
+        if axis == "dislocation_selectivity":
+            ordering = high_value <= low_value + 1e-12
+        elif axis == "capital_deployment":
+            ordering = high_value >= low_value - 1e-12
+        else:
+            ordering = high_value > low_value + 1e-12
+        summary = {
             "turn_count": len(axis_rows),
             "conditional_event_count": len(event_rows),
+            "minimum_event_count": minimum,
+            "low_value": low_value,
+            "high_value": high_value,
+            "observation_gate_pass": enough,
+            "ordering_pass": ordering,
+            "pass": enough and ordering,
         }
-        if axis in {
-            "forecast_vs_visible_curve",
-            "curve_continuation_reversion",
-            "holding_patience",
-        }:
-            low_metric = _mean(
-                [float(row["low_preferred_alignment"]) for row in event_rows]
-            )
-            high_metric = _mean(
-                [float(row["high_preferred_alignment"]) for row in event_rows]
-            )
-            enough = len(event_rows) >= MIN_CONDITIONAL_EVENTS
-            ordering = high_metric > low_metric + 1e-12
-            summary.update(
-                {
-                    "metric": "preferred_alignment",
-                    "low_value": low_metric,
-                    "high_value": high_metric,
-                    "minimum_event_count": MIN_CONDITIONAL_EVENTS,
-                }
-            )
-            passed = enough and ordering
-        elif axis == "dislocation_selectivity":
-            low_rate = _mean([1.0 if row["low_active"] else 0.0 for row in axis_rows])
-            high_rate = _mean([1.0 if row["high_active"] else 0.0 for row in axis_rows])
-            summary.update(
-                {"metric": "active_signal_rate", "low_value": low_rate, "high_value": high_rate}
-            )
-            enough = True
-            ordering = high_rate <= low_rate + 1e-12
-            passed = ordering
-        elif axis == "capital_deployment":
-            low_value = _mean([float(row["low_capacity"]) for row in axis_rows])
-            high_value = _mean([float(row["high_capacity"]) for row in axis_rows])
-            summary.update(
-                {"metric": "risk_capacity_units", "low_value": low_value, "high_value": high_value}
-            )
-            enough = True
-            ordering = high_value >= low_value - 1e-12
-            passed = ordering
-        elif axis == "adjustment_tempo":
-            completions_low: list[float] = []
-            completions_high: list[float] = []
-            for row in axis_rows:
-                current = 0.0  # reconstructed from target geometry below
-                # persistent and target are enough because tempo only changes the
-                # final move toward persistence; compare absolute move fractions.
-                low_gap = abs(float(row["low_persistent"]) - float(row["low_target"]))
-                high_gap = abs(float(row["high_persistent"]) - float(row["high_target"]))
-                completions_low.append(float(row["low_adjustment_speed"]))
-                completions_high.append(float(row["high_adjustment_speed"]))
-            low_value = _mean(completions_low)
-            high_value = _mean(completions_high)
-            summary.update(
-                {"metric": "adjustment_speed", "low_value": low_value, "high_value": high_value}
-            )
-            enough = True
-            ordering = high_value > low_value + 1e-12
-            passed = ordering
-        elif axis == "rebalance_activity":
-            low_value = _mean([float(row["low_turnover_budget"]) for row in axis_rows])
-            high_value = _mean([float(row["high_turnover_budget"]) for row in axis_rows])
-            summary.update(
-                {"metric": "advisory_pair_turnover_budget_units", "low_value": low_value, "high_value": high_value}
-            )
-            enough = True
-            ordering = high_value > low_value + 1e-12
-            passed = ordering
-        elif axis == "forecast_horizon":
-            low_value = _mean([float(row["low_four_week_weight"]) for row in axis_rows])
-            high_value = _mean([float(row["high_four_week_weight"]) for row in axis_rows])
-            summary.update(
-                {"metric": "four_week_weight", "low_value": low_value, "high_value": high_value}
-            )
-            enough = True
-            ordering = high_value > low_value + 1e-12
-            passed = ordering
-        else:
-            raise ValueError(f"unhandled calendar-spread style axis: {axis}")
-
-        summary.update(
-            {
-                "observation_gate_pass": enough,
-                "ordering_pass": ordering,
-                "pass": passed,
-            }
-        )
         summaries[axis] = summary
         gates.append({"axis": axis, **summary})
 
@@ -388,6 +365,8 @@ def build_oil_calendar_spread_style_same_state_acceptance(
         "method": {
             "neutral_path_owns_research_book_state": True,
             "low_high_compared_from_same_state": True,
+            "single_neutral_reference_primitives_per_turn": True,
+            "capital_deployment_recomputes_capacity": True,
             "pair_identity_change_resets_research_book": True,
             "market_history_coordinates_normalized_metadata_only": True,
             "construction_error_included": False,
