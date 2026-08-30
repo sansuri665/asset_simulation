@@ -52,6 +52,12 @@ OIL_CALENDAR_SPREAD_STRATEGY_V22_CONFIG_PATH = (
 OIL_CALENDAR_SPREAD_STRATEGY_V22_CONTRACT_PATH = (
     PACKAGE_ROOT / "contracts" / "oil_calendar_spread_strategy_v22.json"
 )
+OIL_CALENDAR_SPREAD_STRATEGY_V23_CONFIG_PATH = (
+    PACKAGE_ROOT / "config" / "oil_calendar_spread_strategy_v0.2.3.json"
+)
+OIL_CALENDAR_SPREAD_STRATEGY_V23_CONTRACT_PATH = (
+    PACKAGE_ROOT / "contracts" / "oil_calendar_spread_strategy_v23.json"
+)
 OIL_CALENDAR_SPREAD_PAIR_EXECUTION_CONFIG_PATH = (
     PACKAGE_ROOT / "config" / "oil_calendar_spread_pair_execution_v0.1.json"
 )
@@ -169,6 +175,12 @@ def load_registered_assets() -> dict[str, Any]:
     oil_calendar_spread_strategy_v22_contract = load_json(
         OIL_CALENDAR_SPREAD_STRATEGY_V22_CONTRACT_PATH
     )
+    oil_calendar_spread_strategy_v23_config = load_json(
+        OIL_CALENDAR_SPREAD_STRATEGY_V23_CONFIG_PATH
+    )
+    oil_calendar_spread_strategy_v23_contract = load_json(
+        OIL_CALENDAR_SPREAD_STRATEGY_V23_CONTRACT_PATH
+    )
     oil_calendar_spread_pair_execution_config = load_json(
         OIL_CALENDAR_SPREAD_PAIR_EXECUTION_CONFIG_PATH
     )
@@ -258,6 +270,14 @@ def load_registered_assets() -> dict[str, Any]:
         "oil_calendar_spread_strategy_v22_contract": oil_calendar_spread_strategy_v22_contract,
         "oil_calendar_spread_strategy_v22_contract_hash": sha256_json(
             oil_calendar_spread_strategy_v22_contract
+        ),
+        "oil_calendar_spread_strategy_v23_config": oil_calendar_spread_strategy_v23_config,
+        "oil_calendar_spread_strategy_v23_config_hash": sha256_json(
+            oil_calendar_spread_strategy_v23_config
+        ),
+        "oil_calendar_spread_strategy_v23_contract": oil_calendar_spread_strategy_v23_contract,
+        "oil_calendar_spread_strategy_v23_contract_hash": sha256_json(
+            oil_calendar_spread_strategy_v23_contract
         ),
         "oil_calendar_spread_pair_execution_config": oil_calendar_spread_pair_execution_config,
         "oil_calendar_spread_pair_execution_config_hash": sha256_json(
