@@ -1,0 +1,71 @@
+name: Calendar Spread v0.2 Candidate
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'asset_simulation/model/oil_calendar_spread_strategy_v2.py'
+      - 'asset_simulation/model/oil_strategy_book.py'
+      - 'asset_simulation/model/registry.py'
+      - 'asset_simulation/config/oil_calendar_spread_strategy_v0.2.json'
+      - 'asset_simulation/contracts/oil_calendar_spread_strategy_v2.json'
+      - 'asset_simulation/contracts/oil_strategy_book_v1.json'
+      - 'asset_simulation/tests/test_oil_calendar_spread_strategy_v2.py'
+      - 'asset_simulation/tests/test_oil_strategy_book.py'
+      - '.github/workflows/calendar-spread-v02-candidate.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: calendar-spread-v02-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  unit-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Full Python unit suite
+        run: python -m unittest discover -s asset_simulation/tests -v
+
+  candidate-contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Compile candidate modules
+        run: |
+          python -m py_compile asset_simulation/model/oil_strategy_book.py
+          python -m py_compile asset_simulation/model/oil_calendar_spread_strategy_v2.py
+      - name: Strategy-book tests
+        run: python -m unittest asset_simulation.tests.test_oil_strategy_book -v
+      - name: Calendar-spread v2 tests
+        run: python -m unittest asset_simulation.tests.test_oil_calendar_spread_strategy_v2 -v
+      - name: Hardened v0.1.2 reference tests
+        run: python -m unittest asset_simulation.tests.test_oil_calendar_spread_strategy -v
+
+  directional-regression-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Directional economic smoke remains runnable
+        run: |
+          python -m asset_simulation.audit_oil_directional_economic_calibration \
+            --seeds 0 \
+            --years 1 \
+            --summary-only \
+            --output /tmp/directional-economic-smoke.json
