@@ -1,12 +1,16 @@
 """No-lookahead real-leg execution for the short-horizon oil calendar spread.
 
 v0.1.0 proved the two-real-leg execution path but scheduled the two future
-weekly windows with volume that only became known inside those windows.  v0.1.1
+weekly windows with volume that only became known inside those windows. v0.1.1
 fixes that information boundary: schedule weights are frozen from named-contract
-weekly liquidity visible at the decision cutoff.  Newly realized OHLC/volume is
+weekly liquidity visible at the decision cutoff. Newly realized OHLC/volume is
 used only to settle the window's realized execution price, impact and cost.
 
-The module remains Gate A only.  It returns fills and a Strategy Book settlement
+The current upstream decision owner is calendar-spread strategy v0.2.3, whose
+zero-error construction layer is an identity mapping and leaves reversal policy
+to thesis. The execution algorithm itself is unchanged by that upstream fix.
+
+The module remains Gate A only. It returns fills and a Strategy Book settlement
 preview but never mutates Strategy Book, Formal Account, cash, margin or market.
 """
 
@@ -27,9 +31,9 @@ from .oil_calendar_spread_pair_execution import (
     _visible_weeks,
 )
 from .oil_calendar_spread_strategy import _extract_spread_position
-from .oil_calendar_spread_strategy_v22 import (
-    OIL_CALENDAR_SPREAD_STRATEGY_V22_ID,
-    OIL_CALENDAR_SPREAD_STRATEGY_V22_MODEL_VERSION,
+from .oil_calendar_spread_strategy_v23 import (
+    OIL_CALENDAR_SPREAD_STRATEGY_V23_ID,
+    OIL_CALENDAR_SPREAD_STRATEGY_V23_MODEL_VERSION,
 )
 from .oil_execution_desk import (
     OIL_EXECUTION_DESK_MODEL_VERSION,
@@ -74,9 +78,9 @@ def _validate_registered_assets() -> tuple[dict[str, Any], dict[str, Any], dict[
         raise ValueError("registered pair execution v0.1.1 contract id mismatch")
     if contract["model_version"] != OIL_CALENDAR_SPREAD_PAIR_EXECUTION_V11_MODEL_VERSION:
         raise ValueError("registered pair execution v0.1.1 contract version mismatch")
-    if config["strategy_id"] != OIL_CALENDAR_SPREAD_STRATEGY_V22_ID:
+    if config["strategy_id"] != OIL_CALENDAR_SPREAD_STRATEGY_V23_ID:
         raise ValueError("pair execution v0.1.1 strategy id mismatch")
-    if config["strategy_decision_model_version"] != OIL_CALENDAR_SPREAD_STRATEGY_V22_MODEL_VERSION:
+    if config["strategy_decision_model_version"] != OIL_CALENDAR_SPREAD_STRATEGY_V23_MODEL_VERSION:
         raise ValueError("pair execution v0.1.1 strategy decision owner mismatch")
     if config["execution_desk_model_version"] != OIL_EXECUTION_DESK_MODEL_VERSION:
         raise ValueError("pair execution v0.1.1 execution-desk owner mismatch")
@@ -105,16 +109,6 @@ def _cutoff_week_serial(as_of: Mapping[str, Any]) -> int:
     return (year * 12 + month - 1) * 4 + (2 if half == 1 else 4) - 1
 
 
-def _normalized_weights(values: Sequence[float]) -> list[float]:
-    positive = [max(0.0, float(value)) for value in values]
-    total = sum(positive)
-    if total <= 0.0:
-        if not positive:
-            return []
-        return [1.0 / len(positive)] * len(positive)
-    return [value / total for value in positive]
-
-
 def _frozen_schedule(
     main_contract: Mapping[str, Any],
     next_contract: Mapping[str, Any],
@@ -139,16 +133,17 @@ def _frozen_schedule(
     if len(selected) < min(2, lookback):
         raise ValueError("pair execution lacks enough pre-decision shared liquidity history")
 
-    main_visible = [max(0.0, float(main_weeks[serial]["volume_lots"])) for serial in selected]
-    next_visible = [max(0.0, float(next_weeks[serial]["volume_lots"])) for serial in selected]
+    main_visible = [
+        max(0.0, float(main_weeks[serial]["volume_lots"])) for serial in selected
+    ]
+    next_visible = [
+        max(0.0, float(next_weeks[serial]["volume_lots"])) for serial in selected
+    ]
     pair_visible = [
         min(main, next_main)
         for main, next_main in zip(main_visible, next_visible, strict=True)
     ]
 
-    # The current candidate has two future windows and a two-week visible lookback.
-    # If a later config asks for more windows than visible observations, repeat the
-    # latest visible liquidity rather than reading future volume.
     def expand(values: Sequence[float]) -> list[float]:
         raw = list(map(float, values))
         if not raw:
@@ -208,7 +203,9 @@ def _cost_sum(main: Mapping[str, Any], next_main: Mapping[str, Any]) -> dict[str
     }
     if not math.isclose(
         result["execution_cost_usd"],
-        result["spread_cost_usd"] + result["slippage_cost_usd"] + result["net_fee_usd"],
+        result["spread_cost_usd"]
+        + result["slippage_cost_usd"]
+        + result["net_fee_usd"],
         rel_tol=0.0,
         abs_tol=1e-6,
     ):
@@ -229,9 +226,9 @@ def execute_oil_calendar_spread_pair_turn_v11(
 
     assets, config, contract = _validate_registered_assets()
     decision_identity = dict(decision.get("identity", {}))
-    if str(decision_identity.get("model_version", "")) != OIL_CALENDAR_SPREAD_STRATEGY_V22_MODEL_VERSION:
-        raise ValueError("pair execution v0.1.1 requires a v0.2.2 strategy decision")
-    if str(decision_identity.get("strategy_id", "")) != OIL_CALENDAR_SPREAD_STRATEGY_V22_ID:
+    if str(decision_identity.get("model_version", "")) != OIL_CALENDAR_SPREAD_STRATEGY_V23_MODEL_VERSION:
+        raise ValueError("pair execution v0.1.1 requires a v0.2.3 strategy decision")
+    if str(decision_identity.get("strategy_id", "")) != OIL_CALENDAR_SPREAD_STRATEGY_V23_ID:
         raise ValueError("pair execution v0.1.1 received the wrong strategy id")
     if not bool(start_market.get("ok")) or not bool(end_market.get("ok")):
         raise ValueError("pair execution v0.1.1 requires successful market payloads")
@@ -258,7 +255,7 @@ def execute_oil_calendar_spread_pair_turn_v11(
     resolved_book = resolve_oil_strategy_book(
         strategy_book,
         expected_institution_id=str(decision_book["institution_id"]),
-        expected_strategy_id=OIL_CALENDAR_SPREAD_STRATEGY_V22_ID,
+        expected_strategy_id=OIL_CALENDAR_SPREAD_STRATEGY_V23_ID,
     )
     if str(resolved_book["identity"]["identity_hash"]) != str(
         decision_book["book_identity_hash"]
@@ -307,7 +304,9 @@ def execute_oil_calendar_spread_pair_turn_v11(
         max(0, next_turn_limit - abs(remediation_next)),
     )
     completion_limited_units = math.floor(abs(pair_request) * completion_ratio)
-    desk_capacity_units = math.floor(pair_turn_limit * min(1.0, normal_capacity_multiplier))
+    desk_capacity_units = math.floor(
+        pair_turn_limit * min(1.0, normal_capacity_multiplier)
+    )
     executed_pair_abs = min(
         abs(pair_request), completion_limited_units, desk_capacity_units
     )
@@ -437,7 +436,7 @@ def execute_oil_calendar_spread_pair_turn_v11(
             execution_policy=execution_policy,
             bucket="new_pair",
         )
-        # State application is atomic at the weekly boundary.  Each leg keeps its
+        # State application is atomic at the weekly boundary. Each leg keeps its
         # own fill and cost record; v0.1.1 deliberately does not invent sub-week
         # asynchronous micro-timing before a dedicated legging scheduler exists.
         running_main += int(main_pair["delta_lots"])
@@ -544,7 +543,7 @@ def execute_oil_calendar_spread_pair_turn_v11(
 
     result = {
         "schemaVersion": "asset-simulation-oil-calendar-spread-pair-execution-report-v11",
-        "strategy_id": OIL_CALENDAR_SPREAD_STRATEGY_V22_ID,
+        "strategy_id": OIL_CALENDAR_SPREAD_STRATEGY_V23_ID,
         "status": status,
         "startAsOf": start_as_of,
         "endAsOf": end_as_of,
@@ -666,7 +665,7 @@ def execute_oil_calendar_spread_pair_turn_v11(
     rounded_result = _round_nested(result)
     identity = {
         "model_version": OIL_CALENDAR_SPREAD_PAIR_EXECUTION_V11_MODEL_VERSION,
-        "strategy_id": OIL_CALENDAR_SPREAD_STRATEGY_V22_ID,
+        "strategy_id": OIL_CALENDAR_SPREAD_STRATEGY_V23_ID,
         "config_id": str(config["config_id"]),
         "config_hash": assets[
             "oil_calendar_spread_pair_execution_v11_config_hash"
