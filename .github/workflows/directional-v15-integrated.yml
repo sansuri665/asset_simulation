@@ -49,6 +49,25 @@ jobs:
           name: directional-v15-integrated-smoke
           path: artifacts/directional-economic-smoke.json
 
+  multi-strategy-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Gate B dual-strategy smoke
+        run: |
+          python -m asset_simulation.audit_oil_multi_strategy_gate_b_runtime \
+            --seeds 42 \
+            --maximum-turns 2 \
+            --output artifacts/gate-b-dual-strategy-smoke.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gate-b-dual-strategy-smoke
+          path: artifacts/gate-b-dual-strategy-smoke.json
+
   full-calibration:
     if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
