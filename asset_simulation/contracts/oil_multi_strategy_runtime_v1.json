@@ -1,0 +1,23 @@
+{
+  "contract_id": "oil_multi_strategy_runtime_v1",
+  "schema_version": "asset-simulation-oil-multi-strategy-runtime-contract-v1",
+  "role": "Gate B dual-strategy turn runtime joining two strategy books, one shared allocator, one execution desk and one formal oil-futures account.",
+  "strategy_ids": [
+    "directional_oil",
+    "calendar_spread"
+  ],
+  "invariants": [
+    "strategy capital authorization is authoritative in USD and never automatically percentage-rebalanced",
+    "directional and calendar-spread strategy books independently own virtual positions and PnL attribution",
+    "one shared Gate B allocator owns market and account capacity competition",
+    "calendar-spread order groups preserve their one-to-one named-leg ratio",
+    "one shared Trading Desk executes one external parent order per named contract",
+    "internal crosses transfer strategy-book ownership at one deterministic neutral benchmark and create no external cost",
+    "actual external fills and execution costs are allocated back exactly to strategy books",
+    "the sum of strategy-book positions equals the formal account before and after every turn",
+    "formal cash, variation margin, funding, maintenance margin and forced liquidation settle exactly once per turn",
+    "strategy fully-loaded PnL plus corporate reserve change equals formal-account net PnL",
+    "roll scheduling is excluded; simulation stops before the current-main and next-main identity changes",
+    "reported long-horizon economics remain lifecycle incomplete until a Roll Scheduler is added"
+  ]
+}
