@@ -30,12 +30,12 @@ from asset_simulation.model.oil_multi_strategy_runtime import (
 class OilMultiStrategyRuntimeTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        cls.run = run_global_macro(42, 7)
+        cls.global_run = run_global_macro(42, 7)
         cls.start = oil_futures_payload(
-            cls.run, as_of_year=2030, as_of_month=1, as_of_half=1
+            cls.global_run, as_of_year=2030, as_of_month=1, as_of_half=1
         )
         cls.end = oil_futures_payload(
-            cls.run, as_of_year=2030, as_of_month=1, as_of_half=2
+            cls.global_run, as_of_year=2030, as_of_month=1, as_of_half=2
         )
         listed = [
             str(item["contract_id"])
@@ -136,7 +136,7 @@ class OilMultiStrategyRuntimeTests(unittest.TestCase):
 
     def test_dual_strategy_runtime_is_deterministic_and_amount_authoritative(self) -> None:
         first = simulate_oil_multi_strategy_runtime(
-            self.run,
+            self.global_run,
             strategy_authorizations_usd={
                 DIRECTIONAL_STRATEGY_ID: 5_000_000.0,
                 CALENDAR_SPREAD_STRATEGY_ID: 5_000_000.0,
@@ -144,7 +144,7 @@ class OilMultiStrategyRuntimeTests(unittest.TestCase):
             maximum_turns=2,
         )
         repeat = simulate_oil_multi_strategy_runtime(
-            self.run,
+            self.global_run,
             strategy_authorizations_usd={
                 DIRECTIONAL_STRATEGY_ID: 5_000_000.0,
                 CALENDAR_SPREAD_STRATEGY_ID: 5_000_000.0,
@@ -170,7 +170,7 @@ class OilMultiStrategyRuntimeTests(unittest.TestCase):
 
     def test_calendar_spread_pending_thesis_ledger_matures_exact_horizons(self) -> None:
         report = simulate_oil_multi_strategy_runtime(
-            self.run,
+            self.global_run,
             strategy_authorizations_usd={
                 DIRECTIONAL_STRATEGY_ID: 5_000_000.0,
                 CALENDAR_SPREAD_STRATEGY_ID: 5_000_000.0,
@@ -199,7 +199,7 @@ class OilMultiStrategyRuntimeTests(unittest.TestCase):
 
     def test_runtime_stops_before_pair_change_without_roll_scheduler(self) -> None:
         report = simulate_oil_multi_strategy_runtime(
-            self.run,
+            self.global_run,
             strategy_authorizations_usd={
                 DIRECTIONAL_STRATEGY_ID: 5_000_000.0,
                 CALENDAR_SPREAD_STRATEGY_ID: 5_000_000.0,
