@@ -1,0 +1,317 @@
+# 原油双策略 50:50 Pre-Trade Limit Stress
+
+> 状态：development-only 机制压力测试；真实限额 20/20 PASS  
+> Allocator：`asset-simulation-oil-multi-strategy-pretrade-allocator-v0.1.0`  
+> Allocation policy：`system_proxy_fixed_equal_split_v1`  
+> 目的：在不改变市场 owner 限额的前提下，人为放大双策略请求，验证共享持仓／成交容量冲突的确定性仲裁
+
+## 1. 为什么需要这一层
+
+单策略时代，每个策略自己读取：
+
+- `single_contract_position_limit_lots`；
+- `turn_trade_limit_lots`；
+- `all_contract_gross_position_cap_lots`。
+
+两个策略同时运行后，只在各自 Strategy Book 内检查已经不够：
+
+```text
+Directional Book
+Calendar Spread Book
+        ↓
+各自都合规
+        ↓
+Formal Account aggregate
+可能超单合约 position limit / gross cap
+```
+
+同时，两策略可能在同一合约方向相反：
+
+```text
+Directional  BUY Main 100
+Spread       SELL Main 80
+```
+
+真正需要送到外部市场的 Main 订单可以只有 `BUY 20`。因此：
+
+```text
+position limit
+→ 看 Formal Account aggregate position
+
+turn / market capacity
+→ 看内部净额后的 external market order
+
+Strategy Book
+→ 继续保留每个策略自己的 allocated delta
+```
+
+这三个对象不能混为一谈。
+
+## 2. 当前 50:50 只是 development proxy
+
+当前公司正式 `Investment Decision` 仍未启用 multi-strategy allocation。
+
+本测试暂时冻结：
+
+```text
+Directional entitlement     50%
+Calendar Spread entitlement 50%
+Reserve                      0%
+```
+
+它不是收益最优结论，也不是正式投委会规则。
+
+单独运行 Directional 时仍保持原来的 100% 单策略兼容基线；50:50 只用于双策略机制联调。
+
+## 3. 为什么压力测试不直接改生产资本
+
+本轮按照“把容量人为拉大直到撞限额”的思路，但采用更干净的实现：
+
+- 不修改 production company equity；
+- 不修改 `oil_futures_overlay_v8` 发布的 market limits；
+- 在 audit 中直接构造相当于高资本／高 conviction 下会出现的 oversized risk-approved requests；
+- 默认 request size = 稀缺可用容量的 4 倍。
+
+这样被测试的是 allocator，而不是同时修改市场生态。
+
+## 4. 仲裁顺序
+
+当前候选冻结：
+
+```text
+1. Mandatory strategy-risk reduction
+2. Opposing strategy flow internal-netting preview
+3. Ordinary risk-increasing allocation
+4. Trading Desk execution（后续 owner）
+```
+
+Mandatory reduction 有优先级，但不能越过 exchange hard limit。如果连强制减险都因为 Formal Account 的硬约束无法执行，allocator 不伪造解决方案，而是返回：
+
+```text
+mandatory_reduction_blocked_by_hard_market_limit
+→ future Portfolio Risk escalation required
+```
+
+## 5. Ordinary risk-increasing 的 50:50 规则
+
+第一版采用 deterministic weighted max-min progressive fill。
+
+两个策略都能使用共享稀缺容量时，服务进度按照 entitlement 比较：
+
+```text
+allocated units / entitlement
+```
+
+50:50 时等价于尽量一手一手交替推进。
+
+如果总共只剩 100 手共享容量：
+
+```text
+Directional demand = 400
+Spread demand      = 400
+
+→ Directional ≈ 50
+→ Spread      ≈ 50
+```
+
+整数边界最多允许 1 手 deterministic tie-break 差异。
+
+调用顺序不是收益来源。
+
+## 6. Spread 必须作为原子 group
+
+Calendar Spread ordinary request 不是两张独立订单：
+
+```text
++1 Main
+-1 Adjacent Next
+```
+
+或反向，始终是一组 spread unit。
+
+如果：
+
+```text
+Main 尚有 1000 手容量
+Next 只剩 120 手容量
+```
+
+Spread 最多获得 120 units：
+
+```text
++120 Main
+-120 Next
+```
+
+不能出现：
+
+```text
++1000 Main
+-120 Next
+```
+
+当 Next 先成为瓶颈后，Spread 未使用的 50% entitlement 不被永久浪费；仍可使用 Main 的 Directional 可以继续获取剩余 capacity。
+
+## 7. Internal netting preview
+
+如果：
+
+```text
+Directional +600 Main
+Spread      -600 Main / +600 Next
+```
+
+在两个策略 attribution 上仍然保留：
+
+```text
+Directional Book  Main +600
+Spread Book       Main -600 / Next +600
+```
+
+但外部市场 footprint 可以预览为：
+
+```text
+Main external order = 0
+Next external order = +600
+```
+
+因此 Main：
+
+```text
+gross strategy flow = 1200 lots
+internal cross       = 600 lots
+external turnover    = 0 lots
+market turnover saved= 1200 lots
+```
+
+当前 allocator 只生成 **internal-netting preview**，不生成实际 internal fill，也不决定 transfer price。正式 fill allocation / transfer-price owner 属于后续 Strategy Book Settlement Ledger。
+
+## 8. 压力场景
+
+CI stress audit 使用真实 `oil_futures_overlay_v8` 发布限额，并对 Seeds `0,42,99,197` 的 `2030-01-H1` 构造五类 oversized request。
+
+### A. Shared position-limit collision
+
+把 Formal Account Main 仓位放到 position limit 附近，只留下 1000 手 headroom；两个策略都请求 4000 手等价容量。
+
+实际四个 Seed 均得到：
+
+```text
+Directional 500
+Spread      500
+```
+
+Main 最终恰好停在真实 position limit，四个 Seed 全部 PASS。
+
+### B. Shared Next-Main turn-capacity collision
+
+为了真正撞到**市场发布的成交限额**，Directional 与 Calendar Spread 共同在 Next Main 上发出同方向外部需求：
+
+```text
+Directional SELL Next
+Spread +1 unit = BUY Main / SELL Next
+```
+
+Spread 的 Main 腿在真实样本中有更宽的容量，因此 Next Main 的真实 turn/position capacity 成为共享瓶颈。
+
+结果：
+
+| Seed | 共享 Next 容量 | Directional | Spread | 差异 |
+|---:|---:|---:|---:|---:|
+| 0 | 22,162 | 11,081 | 11,081 | 0 |
+| 42 | 20,525 | 10,262 | 10,263 | 1 |
+| 99 | 13,971 | 6,985 | 6,986 | 1 |
+| 197 | 17,040 | 8,520 | 8,520 | 0 |
+
+每个策略的原始请求都是该共享容量的 **4 倍**。最终 external Next turnover 精确停在共享 hard capacity，50:50 的整数误差最多 1 手。
+
+### C. Spread second-leg bottleneck
+
+人为把 Formal Account 的 Next 仓位推近 Next position limit，只留 500 手 headroom，同时 Directional 与 Spread 各请求 2000 手等价容量。
+
+四个 Seed 均得到：
+
+```text
+Spread      500 units
+Directional 2000 lots
+```
+
+Spread 因 Next 腿先卡住而退出竞争，未使用 entitlement 自动释放给 Directional；Spread 仍保持严格 1:-1。
+
+### D. Opposing Main flow
+
+Directional 买 Main 1000 手，Spread 做反向 spread、卖 Main 1000 手。
+
+四个 Seed 均得到：
+
+```text
+Main strategy gross flow = 2000
+internal Main cross       = 1000
+external Main order       = 0
+market turnover saved     = 2000
+external Next order       = +1000
+```
+
+Strategy ownership 保留，但 Main 不浪费外部成交容量。
+
+### E. Mandatory risk reduction priority
+
+Directional 有 300 手 mandatory Main 减仓，同时 Spread 提出 1200 units 普通反向请求。
+
+四个 Seed 中 mandatory reduction 都完整保留；其中 300 手可以与 Spread 的相反 Main 流量形成 internal cross，所有 Formal Account hard limits 继续成立。
+
+## 9. 冻结结果
+
+```text
+Seeds: 0, 42, 99, 197
+Scenarios / Seed: 5
+Total scenarios: 20
+Passed: 20
+Failed: 0
+```
+
+分项：
+
+```text
+position collision   PASS
+turn collision       PASS
+pair bottleneck      PASS
+internal netting     PASS
+mandatory priority   PASS
+```
+
+这证明的是**共享市场容量仲裁机制可工作**，不是证明 50:50 是经济最优配置。
+
+## 10. 当前明确没有做的事情
+
+本 allocator 不负责：
+
+- 真正动态 Investment Decision；
+- 根据历史收益改变 50:50；
+- Strategy Book mutation；
+- internal cross transfer price；
+- fill generation；
+- Trading Desk schedule；
+- cash / margin / financing；
+- Portfolio VaR / drawdown；
+- multi-strategy lifecycle roll。
+
+因此这轮结果只能回答：
+
+> **当双策略同时把市场容量挤爆时，50:50 共享限额机制是否在数学和 owner 边界上能稳定工作？**
+
+答案在当前 20 个冻结压力场景中是肯定的。
+
+它仍不能回答 50:50 是否是经济上最优的长期资本配置。
+
+## 11. 与后续 Gate B 的关系
+
+Gate B 的 settlement ledger 可以以这层输出为前置接口：
+
+```text
+strategy allocated deltas
++ internal netting preview
++ external market order mandate
+```
+
+然后负责把真实 Trading Desk fills 分配回 Strategy Books，并确保 Formal Account 只结算一次现金与保证金。

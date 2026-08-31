@@ -1,0 +1,31 @@
+{
+  "contract_id": "oil_strategy_book_v1",
+  "schema_version": "asset-simulation-oil-strategy-book-contract-v1",
+  "role": "Strategy-owned named-contract position ledger used before portfolio aggregation. Each strategy sees only its own book; the formal account sees the aggregate of all books.",
+  "model_version": "asset-simulation-oil-strategy-book-v0.1.0",
+  "position_fields": {
+    "contract_id": {"unit": "named_oil_futures_contract_id"},
+    "position_lots": {"unit": "signed_integer_lots"},
+    "gross_position_lots": {"unit": "nonnegative_lots"},
+    "net_position_lots": {"unit": "signed_lots"}
+  },
+  "identity_fields": [
+    "institution_id",
+    "strategy_id",
+    "book_id",
+    "positions_hash"
+  ],
+  "aggregation_fields": {
+    "account_positions": {"unit": "signed_integer_lots_by_named_contract"},
+    "book_contributions": {"unit": "signed_integer_lots_by_book_and_contract"}
+  },
+  "invariants": [
+    "a strategy book owns only real named OIL-YYMM futures positions and never a synthetic spread security",
+    "a strategy decision may consume only its own strategy book positions; aggregate formal-account positions are not a valid substitute",
+    "portfolio aggregation sums books by named contract without changing strategy-level ownership",
+    "two strategies may hold opposite positions in the same named contract even when the aggregate account nets them",
+    "book aggregation never creates fills, pnl, margin credits or market write-back",
+    "one institution cannot aggregate a book owned by another institution",
+    "book identity is deterministic for the same institution, strategy and positions"
+  ]
+}

@@ -1,0 +1,39 @@
+{
+  "schema_version": "asset-simulation-oil-multi-strategy-pretrade-allocator-config-v1",
+  "config_id": "asset-simulation-oil-multi-strategy-pretrade-allocator-base-v0.1.0",
+  "model_version": "asset-simulation-oil-multi-strategy-pretrade-allocator-v0.1.0",
+  "runtime_status": "development_only_not_default_competition_runtime",
+  "allocation_policy_id": "system_proxy_fixed_equal_split_v1",
+  "strategy_entitlements": {
+    "directional": 0.5,
+    "calendar_spread": 0.5
+  },
+  "unallocated_reserve_fraction": 0.0,
+  "ordinary_risk_increase_policy": {
+    "method": "deterministic_weighted_max_min_progressive_fill",
+    "input_order_can_change_result": false,
+    "unused_entitlement_can_reallocate": true,
+    "atomic_calendar_spread_units": true,
+    "internal_opposing_flow_netting_preview_enabled": true
+  },
+  "priority_policy": [
+    "mandatory_strategy_risk_reduction",
+    "internal_opposing_flow_netting",
+    "ordinary_risk_increasing_allocation"
+  ],
+  "hard_limit_policy": {
+    "single_contract_position_limit_owner": "oil_futures_overlay_v8",
+    "all_contract_gross_position_cap_owner": "oil_futures_overlay_v8",
+    "external_turn_trade_limit_owner": "oil_futures_overlay_v8",
+    "position_limit_applies_to_formal_account_aggregate": true,
+    "turn_limit_applies_to_external_net_market_order_after_internal_netting": true,
+    "market_hard_limit_can_block_strategy_mandatory_reduction": true,
+    "blocked_mandatory_reduction_requires_portfolio_risk_escalation": true
+  },
+  "stress_audit": {
+    "request_multiplier": 4.0,
+    "production_capital_changed": false,
+    "market_owner_limits_changed": false,
+    "purpose": "force deterministic collisions against real published limits without treating stress sizing as an economic strategy recommendation"
+  }
+}

@@ -1,0 +1,224 @@
+name: Calendar Spread v0.2 Candidate
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'asset_simulation/model/oil_calendar_spread_strategy_v2.py'
+      - 'asset_simulation/model/oil_calendar_spread_strategy_v22.py'
+      - 'asset_simulation/model/oil_calendar_spread_strategy_v23.py'
+      - 'asset_simulation/model/oil_calendar_spread_pair_execution.py'
+      - 'asset_simulation/model/oil_calendar_spread_pair_execution_v11.py'
+      - 'asset_simulation/model/oil_calendar_spread_market_history.py'
+      - 'asset_simulation/model/oil_calendar_spread_research.py'
+      - 'asset_simulation/model/oil_multi_strategy_pretrade_allocator.py'
+      - 'asset_simulation/model/oil_strategy_book.py'
+      - 'asset_simulation/model/registry.py'
+      - 'asset_simulation/config/oil_calendar_spread_strategy_v0.2.json'
+      - 'asset_simulation/config/oil_calendar_spread_strategy_v0.2.2.json'
+      - 'asset_simulation/config/oil_calendar_spread_strategy_v0.2.3.json'
+      - 'asset_simulation/config/oil_calendar_spread_pair_execution_v0.1.json'
+      - 'asset_simulation/config/oil_calendar_spread_pair_execution_v0.1.1.json'
+      - 'asset_simulation/config/oil_calendar_spread_research_v0.1.json'
+      - 'asset_simulation/config/oil_multi_strategy_pretrade_allocator_v0.1.json'
+      - 'asset_simulation/contracts/oil_calendar_spread_strategy_v2.json'
+      - 'asset_simulation/contracts/oil_calendar_spread_strategy_v22.json'
+      - 'asset_simulation/contracts/oil_calendar_spread_strategy_v23.json'
+      - 'asset_simulation/contracts/oil_calendar_spread_pair_execution_v1.json'
+      - 'asset_simulation/contracts/oil_calendar_spread_pair_execution_v11.json'
+      - 'asset_simulation/contracts/oil_calendar_spread_research_v1.json'
+      - 'asset_simulation/contracts/oil_multi_strategy_pretrade_allocator_v1.json'
+      - 'asset_simulation/contracts/oil_strategy_book_v1.json'
+      - 'asset_simulation/audit_oil_calendar_spread_pair_execution.py'
+      - 'asset_simulation/audit_oil_calendar_spread_style_economics.py'
+      - 'asset_simulation/audit_oil_calendar_spread_style_economic_acceptance.py'
+      - 'asset_simulation/audit_oil_calendar_spread_style_identification.py'
+      - 'asset_simulation/audit_oil_calendar_spread_style_same_state_acceptance.py'
+      - 'asset_simulation/audit_oil_multi_strategy_pretrade_stress.py'
+      - 'asset_simulation/tests/test_oil_calendar_spread_strategy_v2.py'
+      - 'asset_simulation/tests/test_oil_calendar_spread_strategy_v22.py'
+      - 'asset_simulation/tests/test_oil_calendar_spread_strategy_v23.py'
+      - 'asset_simulation/tests/test_oil_calendar_spread_pair_execution.py'
+      - 'asset_simulation/tests/test_oil_calendar_spread_pair_execution_v11.py'
+      - 'asset_simulation/tests/test_oil_calendar_spread_market_history.py'
+      - 'asset_simulation/tests/test_oil_calendar_spread_research.py'
+      - 'asset_simulation/tests/test_oil_calendar_spread_style_economics.py'
+      - 'asset_simulation/tests/test_oil_calendar_spread_style_economic_acceptance.py'
+      - 'asset_simulation/tests/test_oil_calendar_spread_style_same_state_acceptance.py'
+      - 'asset_simulation/tests/test_oil_multi_strategy_pretrade_allocator.py'
+      - 'asset_simulation/tests/test_oil_strategy_book.py'
+      - '.github/workflows/calendar-spread-v02-candidate.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: calendar-spread-v02-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  unit-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Full Python unit suite
+        run: python -m unittest discover -s asset_simulation/tests -v
+
+  candidate-contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Compile candidate modules
+        run: |
+          python -m py_compile asset_simulation/model/oil_strategy_book.py
+          python -m py_compile asset_simulation/model/oil_calendar_spread_market_history.py
+          python -m py_compile asset_simulation/model/oil_calendar_spread_research.py
+          python -m py_compile asset_simulation/model/oil_calendar_spread_strategy_v2.py
+          python -m py_compile asset_simulation/model/oil_calendar_spread_strategy_v22.py
+          python -m py_compile asset_simulation/model/oil_calendar_spread_strategy_v23.py
+          python -m py_compile asset_simulation/model/oil_calendar_spread_pair_execution.py
+          python -m py_compile asset_simulation/model/oil_calendar_spread_pair_execution_v11.py
+          python -m py_compile asset_simulation/model/oil_multi_strategy_pretrade_allocator.py
+          python -m py_compile asset_simulation/audit_oil_calendar_spread_pair_execution.py
+          python -m py_compile asset_simulation/audit_oil_multi_strategy_pretrade_stress.py
+          python -m py_compile asset_simulation/audit_oil_calendar_spread_style_economics.py
+          python -m py_compile asset_simulation/audit_oil_calendar_spread_style_economic_acceptance.py
+          python -m py_compile asset_simulation/audit_oil_calendar_spread_style_identification.py
+          python -m py_compile asset_simulation/audit_oil_calendar_spread_style_same_state_acceptance.py
+      - name: Strategy-book tests
+        run: python -m unittest asset_simulation.tests.test_oil_strategy_book -v
+      - name: Dual-strategy pretrade allocator tests
+        run: python -m unittest asset_simulation.tests.test_oil_multi_strategy_pretrade_allocator -v
+      - name: Calendar-spread market-history adapter tests
+        run: python -m unittest asset_simulation.tests.test_oil_calendar_spread_market_history -v
+      - name: Calendar-spread PM style tests
+        run: python -m unittest asset_simulation.tests.test_oil_calendar_spread_research -v
+      - name: Calendar-spread PM economic semantics tests
+        run: python -m unittest asset_simulation.tests.test_oil_calendar_spread_style_economics -v
+      - name: Calendar-spread PM economic acceptance guard tests
+        run: python -m unittest asset_simulation.tests.test_oil_calendar_spread_style_economic_acceptance -v
+      - name: Calendar-spread same-state acceptance harness tests
+        run: python -m unittest asset_simulation.tests.test_oil_calendar_spread_style_same_state_acceptance -v
+      - name: Calendar-spread v0.2.1 tests
+        run: python -m unittest asset_simulation.tests.test_oil_calendar_spread_strategy_v2 -v
+      - name: Calendar-spread v0.2.2 tests
+        run: python -m unittest asset_simulation.tests.test_oil_calendar_spread_strategy_v22 -v
+      - name: Calendar-spread current v0.2.3 tests
+        run: python -m unittest asset_simulation.tests.test_oil_calendar_spread_strategy_v23 -v
+      - name: Calendar-spread pair execution v0.1.0 prototype tests
+        run: python -m unittest asset_simulation.tests.test_oil_calendar_spread_pair_execution -v
+      - name: Calendar-spread current no-lookahead pair execution tests
+        run: python -m unittest asset_simulation.tests.test_oil_calendar_spread_pair_execution_v11 -v
+      - name: Historical v0.1.2 reference invariant tests
+        run: python -m unittest asset_simulation.tests.test_oil_calendar_spread_strategy -v
+
+  pretrade-limit-stress:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Fixed 50-50 oversized-request limit stress
+        run: |
+          mkdir -p artifacts
+          python -m asset_simulation.audit_oil_multi_strategy_pretrade_stress \
+            --seeds 0,42,99,197 \
+            --request-multiplier 4 \
+            --output artifacts/oil-multi-strategy-pretrade-stress.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: oil-multi-strategy-pretrade-stress
+          path: artifacts/oil-multi-strategy-pretrade-stress.json
+
+  pair-execution-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Real-path no-lookahead pair execution audit
+        run: |
+          mkdir -p artifacts
+          python -m asset_simulation.audit_oil_calendar_spread_pair_execution \
+            --seeds 0,42,99,197 \
+            --years 1 \
+            --output artifacts/calendar-spread-pair-execution-audit.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: calendar-spread-pair-execution-audit
+          path: artifacts/calendar-spread-pair-execution-audit.json
+
+  style-identification-scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Scan broad natural-event coverage
+        run: |
+          mkdir -p artifacts
+          python -m asset_simulation.audit_oil_calendar_spread_style_identification \
+            --development-seeds 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15 \
+            --validation-seeds 100,101,102,103,104,105,106,107,108,109,110,111,112,113,114,115 \
+            --years 2 \
+            --output artifacts/calendar-spread-style-identification.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: calendar-spread-style-identification
+          path: artifacts/calendar-spread-style-identification.json
+
+  style-economic-acceptance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Broad same-state dedicated-style acceptance
+        run: |
+          mkdir -p artifacts
+          python -m asset_simulation.audit_oil_calendar_spread_style_same_state_acceptance \
+            --development-seeds 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15 \
+            --validation-seeds 100,101,102,103,104,105,106,107,108,109,110,111,112,113,114,115 \
+            --years 2 \
+            --output artifacts/calendar-spread-style-same-state-acceptance.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: calendar-spread-style-same-state-acceptance
+          path: artifacts/calendar-spread-style-same-state-acceptance.json
+
+  directional-regression-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Directional economic smoke remains runnable
+        run: |
+          python -m asset_simulation.audit_oil_directional_economic_calibration \
+            --seeds 0 \
+            --years 1 \
+            --summary-only \
+            --output /tmp/directional-economic-smoke.json

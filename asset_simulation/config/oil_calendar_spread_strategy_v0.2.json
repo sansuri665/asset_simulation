@@ -1,0 +1,118 @@
+{
+  "schema_version": "asset-simulation-oil-calendar-spread-strategy-config-v2",
+  "config_id": "asset-simulation-oil-calendar-spread-strategy-base-v0.2.1",
+  "model_version": "asset-simulation-oil-calendar-spread-strategy-v0.2.1",
+  "strategy_id": "oil.short.relative_value.calendar_spread.v1",
+  "legacy_reference_strategy_id": "short_horizon_oil_calendar_spread_v1",
+  "display_name": "Short-Horizon Oil Calendar Spread",
+  "strategy_taxonomy": {
+    "asset_class": "commodity",
+    "commodity": "crude_oil",
+    "instrument": "futures",
+    "time_scale": "short_horizon",
+    "strategy_type": "relative_value_calendar_spread",
+    "pnl_object": "main_minus_adjacent_next_dollar_spread"
+  },
+  "strategy_research_style_owner": "oil_calendar_spread_research_v1",
+  "construction_capability_owner": "oil_strategy_research_v2",
+  "reference_engine": {
+    "owner": "oil_calendar_spread_strategy_v1",
+    "model_version": "asset-simulation-oil-calendar-spread-strategy-v0.1.2",
+    "role": "pair_identity_forecast_and_curve_components_risk_capacity_and_execution_primitives"
+  },
+  "contract_roles": ["main", "next_main"],
+  "strategy_book": {
+    "owner": "oil_strategy_book_v1",
+    "required": true,
+    "positions_source": "strategy_owned_book_only",
+    "aggregate_account_positions_allowed_as_strategy_input": false,
+    "synthetic_spread_position_allowed": false
+  },
+  "construction_adapter": {
+    "owner": "oil_strategy_research_v2",
+    "source_dimensions": {
+      "spread_exposure_construction": "exposure_construction",
+      "pair_transition_planning": "transition_planning",
+      "curve_lifecycle_planning": "contract_lifecycle_planning"
+    },
+    "pair_target_scale_error_method": "mean_of_main_and_next_target_scale_errors",
+    "pair_transition_gap_error_method": "mean_of_main_and_next_transition_gap_errors",
+    "lifecycle_error_method": "portfolio_role_weight_error",
+    "lifecycle_error_application": "diagnostic_only_until_multi_turn_roll_scheduler",
+    "preserve_exact_one_to_one_target": true,
+    "construction_cannot_create_or_reverse_signal": true,
+    "default_score_100_reproduces_reference_target": true
+  },
+  "signal": {
+    "horizon_weeks": [2, 4],
+    "neutral_forecast_component_weight": 0.7,
+    "neutral_visible_curve_component_weight": 0.3,
+    "historical_lookback_weeks": 12,
+    "momentum_lookback_weeks": 4,
+    "minimum_mean_reversion_history_weeks": 6,
+    "minimum_normalized_scale": 0.0025,
+    "forecast_uncertainty_scale_weight": 0.25,
+    "forecast_full_strength_scale_multiples": 1.5,
+    "momentum_full_strength_scale_multiples": 1.5,
+    "mean_reversion_full_strength_z": 2.0,
+    "spread_normalization": "dollar_main_minus_next_divided_by_current_average_leg_price_for_scale_only",
+    "trade_objective": "forecast_and_trade_change_in_dollar_main_minus_next_spread",
+    "direction_invariant": "sign(normalized_change)==sign(dollar_spread_change)",
+    "component_mix_owner": "oil_calendar_spread_research_v1"
+  },
+  "sizing": {
+    "contract_size_bbl": 1000,
+    "lot_ratio_main_to_next": "1:-1",
+    "minimum_target_step_units": 1,
+    "capital_owner": "investment_decision_committee",
+    "deployment_owner": "appointed_strategy_research_director",
+    "conservative_pair_margin_method": "sum_of_leg_initial_margin"
+  },
+  "risk_adapter": {
+    "maximum_stressed_spread_loss_pct_of_deployed_capital": 10.0,
+    "spread_volatility_stress_multiplier": 2.5,
+    "minimum_stressed_spread_move_usd_per_bbl": 0.5,
+    "maximum_margin_pct_of_deployed_capital": 100.0,
+    "minimum_main_expiry_buffer_months": 1.0,
+    "maximum_target_leg_imbalance_lots": 0,
+    "maximum_temporary_execution_imbalance_fraction": 0.1,
+    "maximum_temporary_execution_imbalance_lots": 250,
+    "maximum_residual_directional_pnl_share": 0.2,
+    "dynamic_spread_margin_credit_enabled": false
+  },
+  "paired_execution": {
+    "mandate_type": "paired_execution_mandate_separate_legs",
+    "preferred_method": "simultaneous_or_liquidity_scheduled",
+    "execution_windows_per_turn": 2,
+    "unfilled_orders_persist": false,
+    "temporary_legging_allowed": true,
+    "remediation_priority": ["complete_missing_leg", "unwind_excess_leg"]
+  },
+  "thesis_invalidation": {
+    "statuses": ["active", "watch", "invalidated"],
+    "status_target_scale": {"active": 1.0, "watch": 0.7, "invalidated": 0.3},
+    "consecutive_failure_turns_to_invalidate": 2,
+    "severe_forecast_error_z": 2.5,
+    "minimum_direction_move_normalized": 0.001,
+    "direction_reversal_signal_threshold": 0.2,
+    "direction_reversal_requires_exit_first": true,
+    "invalidated_can_increase_same_direction": false,
+    "evaluation_policy": "score_exact_matured_horizon_only"
+  },
+  "pnl_attribution": {
+    "contract_size_bbl": 1000,
+    "balanced_pair_owner": "calendar_spread_pnl",
+    "unbalanced_leg_owner": "residual_directional_pnl",
+    "cost_fields": ["spread_execution_cost_usd", "slippage_usd", "fees_usd"],
+    "carry_method": "computed_only_from_explicit_counterfactual_leg_end_prices"
+  },
+  "scope_exclusions": [
+    "main_vs_third_month",
+    "butterfly_spreads",
+    "cross_commodity_spreads",
+    "dynamic_hedge_ratios",
+    "cointegration",
+    "statistical_arbitrage_portfolios",
+    "portfolio_internal_order_netting"
+  ]
+}

@@ -1,0 +1,58 @@
+{
+  "schema_version": "asset-simulation-oil-dual-strategy-settlement-config-v1",
+  "config_id": "asset-simulation-oil-dual-strategy-settlement-base-v0.1.0",
+  "model_version": "asset-simulation-oil-dual-strategy-settlement-v0.1.0",
+  "development_only": true,
+  "capital_policy": {
+    "policy_id": "system_proxy_fixed_equal_split_v2",
+    "directional_authorization_pct": 50.0,
+    "calendar_spread_authorization_pct": 50.0,
+    "reserve_pct": 0.0,
+    "single_strategy_directional_compatibility_remains_100_pct": true
+  },
+  "owners": {
+    "pretrade_allocator": "asset-simulation-oil-multi-strategy-pretrade-allocator-v0.2.0",
+    "directional_strategy": "asset-simulation-oil-trading-strategy-v1.6.0",
+    "calendar_spread_strategy": "asset-simulation-oil-calendar-spread-strategy-v0.2.3",
+    "execution_desk": "asset-simulation-oil-execution-desk-v0.2.0",
+    "formal_account": "asset-simulation-oil-futures-account-v0.1.0"
+  },
+  "internal_cross_policy": {
+    "transfer_price_method": "decision_cutoff_named_contract_mark",
+    "same_price_for_both_strategy_sides": true,
+    "explicit_execution_cost_usd": 0.0,
+    "market_turnover_consumed": false,
+    "cash_settled_between_strategy_books": false
+  },
+  "external_execution_policy": {
+    "execution_windows_per_half_turn": 2,
+    "schedule_information_cutoff": "decision_start_cutoff",
+    "schedule_visible_lookback_weeks": 2,
+    "realized_weekly_ohlc_volume_used_after_window_exists": true,
+    "shared_friction_primitives": "oil_trading_strategy_v8.execution_friction",
+    "completion_mode": "neutral_compatibility_full_completion_only_v1",
+    "custom_execution_profile_supported": false
+  },
+  "strategy_pnl_policy": {
+    "starting_position_mark_to_market": true,
+    "fill_to_end_mark_pnl": true,
+    "internal_cross_fill_price": "decision_cutoff_mark",
+    "external_fill_gross_pnl_uses_neutral_execution_price": true,
+    "execution_cost_attributed_separately": true,
+    "strategy_net_trading_pnl_equals_gross_pnl_minus_execution_cost": true,
+    "idle_cash_interest_owned_by_formal_account_only": true,
+    "margin_financing_owned_by_formal_account_only": true
+  },
+  "formal_account_policy": {
+    "cash_settlement_count": 1,
+    "margin_settlement_count": 1,
+    "strategy_book_cash_accounts_created": false,
+    "forced_liquidation_attribution_supported": false,
+    "forced_liquidation_requires_future_portfolio_owner": true
+  },
+  "lifecycle_policy": {
+    "calendar_spread_roll_scheduler_available": false,
+    "simulation_must_stop_before_pair_identity_change": true,
+    "old_pair_positions_may_not_disappear_on_reset": true
+  }
+}

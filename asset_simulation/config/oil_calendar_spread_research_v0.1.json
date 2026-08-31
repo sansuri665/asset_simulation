@@ -1,0 +1,149 @@
+{
+  "schema_version": "asset-simulation-oil-calendar-spread-research-config-v1",
+  "config_id": "asset-simulation-oil-calendar-spread-research-base-v0.1.0",
+  "model_version": "asset-simulation-oil-calendar-spread-research-v0.1.0",
+  "source_personnel_owner": "oil_strategy_research_v2",
+  "strategy_id": "oil.short.relative_value.calendar_spread.v1",
+  "style_dimensions": [
+    "curve_continuation_reversion",
+    "forecast_vs_visible_curve",
+    "dislocation_selectivity",
+    "capital_deployment",
+    "adjustment_tempo",
+    "rebalance_activity",
+    "holding_patience",
+    "forecast_horizon"
+  ],
+  "projection": {
+    "center": 50.0,
+    "floor": 10.0,
+    "ceiling": 90.0,
+    "idiosyncratic_scale_points": 5.0,
+    "default_appointment_is_exactly_neutral": true,
+    "base_dimensions": [
+      "continuation_reversion",
+      "capital_deployment",
+      "responsiveness",
+      "selectivity",
+      "turnover_activity",
+      "holding_patience",
+      "near_month_focus",
+      "forecast_horizon"
+    ],
+    "loadings": {
+      "curve_continuation_reversion": {
+        "continuation_reversion": 0.72,
+        "capital_deployment": 0.00,
+        "responsiveness": 0.04,
+        "selectivity": 0.00,
+        "turnover_activity": 0.05,
+        "holding_patience": 0.08,
+        "near_month_focus": 0.00,
+        "forecast_horizon": 0.08
+      },
+      "forecast_vs_visible_curve": {
+        "continuation_reversion": 0.10,
+        "capital_deployment": 0.00,
+        "responsiveness": -0.05,
+        "selectivity": 0.20,
+        "turnover_activity": -0.05,
+        "holding_patience": 0.05,
+        "near_month_focus": -0.15,
+        "forecast_horizon": 0.35
+      },
+      "dislocation_selectivity": {
+        "continuation_reversion": 0.00,
+        "capital_deployment": -0.05,
+        "responsiveness": -0.08,
+        "selectivity": 0.78,
+        "turnover_activity": -0.05,
+        "holding_patience": 0.12,
+        "near_month_focus": 0.00,
+        "forecast_horizon": 0.05
+      },
+      "capital_deployment": {
+        "continuation_reversion": 0.00,
+        "capital_deployment": 0.85,
+        "responsiveness": 0.05,
+        "selectivity": -0.05,
+        "turnover_activity": 0.05,
+        "holding_patience": 0.05,
+        "near_month_focus": 0.00,
+        "forecast_horizon": 0.00
+      },
+      "adjustment_tempo": {
+        "continuation_reversion": 0.00,
+        "capital_deployment": 0.05,
+        "responsiveness": 0.78,
+        "selectivity": -0.05,
+        "turnover_activity": 0.15,
+        "holding_patience": -0.08,
+        "near_month_focus": 0.00,
+        "forecast_horizon": -0.05
+      },
+      "rebalance_activity": {
+        "continuation_reversion": 0.03,
+        "capital_deployment": 0.05,
+        "responsiveness": 0.12,
+        "selectivity": -0.05,
+        "turnover_activity": 0.82,
+        "holding_patience": -0.10,
+        "near_month_focus": 0.00,
+        "forecast_horizon": -0.05
+      },
+      "holding_patience": {
+        "continuation_reversion": -0.03,
+        "capital_deployment": -0.03,
+        "responsiveness": -0.05,
+        "selectivity": 0.05,
+        "turnover_activity": -0.12,
+        "holding_patience": 0.85,
+        "near_month_focus": 0.00,
+        "forecast_horizon": 0.08
+      },
+      "forecast_horizon": {
+        "continuation_reversion": 0.03,
+        "capital_deployment": -0.03,
+        "responsiveness": -0.08,
+        "selectivity": 0.05,
+        "turnover_activity": -0.05,
+        "holding_patience": 0.08,
+        "near_month_focus": -0.05,
+        "forecast_horizon": 0.85
+      }
+    }
+  },
+  "reference_axis_adapter": {
+    "curve_continuation_reversion": "continuation_reversion",
+    "dislocation_selectivity": "selectivity",
+    "capital_deployment": "capital_deployment",
+    "adjustment_tempo": "responsiveness",
+    "rebalance_activity": "turnover_activity",
+    "holding_patience": "holding_patience",
+    "forecast_horizon": "forecast_horizon",
+    "near_month_focus_fixed_score": 50.0,
+    "parameter_mapping_owner": "oil_strategy_research_v2"
+  },
+  "calendar_spread_specific_mapping": {
+    "forecast_component_weight": {
+      "score_0": 0.45,
+      "score_50": 0.70,
+      "score_100": 0.90
+    },
+    "visible_curve_component_weight_is_complement": true
+  },
+  "style_tags": {
+    "high_threshold": 65.0,
+    "low_threshold": 35.0
+  },
+  "governance": {
+    "player_can_edit_dedicated_radar": false,
+    "derived_from_appointed_personnel": true,
+    "higher_score_is_better": false,
+    "preference_total_score_available": false,
+    "alpha_score_available": false,
+    "construction_capability_owner": "oil_strategy_research_v2",
+    "execution_ability_owner": "oil_execution_desk_v2",
+    "strategy_risk_owner": "calendar_spread_strategy_specific_risk_adapter"
+  }
+}

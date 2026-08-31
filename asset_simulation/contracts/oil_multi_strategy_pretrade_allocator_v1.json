@@ -1,0 +1,28 @@
+{
+  "contract_id": "oil_multi_strategy_pretrade_allocator_v1",
+  "schema_version": "asset-simulation-oil-multi-strategy-pretrade-allocator-contract-v1",
+  "model_version": "asset-simulation-oil-multi-strategy-pretrade-allocator-v0.1.0",
+  "role": "Development-only pre-trade allocator for the first two crude-oil strategies. It arbitrates shared formal-account position and external market-turn limits without erasing strategy-book ownership.",
+  "identity_fields": [
+    "allocation_policy_id",
+    "market_result_hash",
+    "account_positions_hash",
+    "directional_request_hash",
+    "calendar_spread_request_hash",
+    "result_hash"
+  ],
+  "invariants": [
+    "directional and calendar-spread ordinary risk-increasing requests receive equal 50:50 entitlement under the development proxy",
+    "allocation is deterministic and independent of request-list ordering",
+    "mandatory strategy-risk reductions are considered before ordinary risk-increasing requests but can never override an exchange hard limit",
+    "calendar-spread ordinary allocation is atomic in spread units and never breaks the one-to-one Main versus Adjacent Next leg ratio",
+    "single-contract position limits apply to aggregate formal-account named-contract positions after all allocated strategy deltas",
+    "all-contract gross position cap applies to the aggregate formal-account named-contract positions",
+    "per-turn market capacity applies to the external net named-contract order after opposing strategy flows are internally netted for pre-trade purposes",
+    "internal netting changes external market footprint only and never deletes per-strategy allocated deltas or ownership",
+    "a strategy that cannot use its entitlement because one of its hard constraints binds releases unused ordinary capacity to the other eligible strategy",
+    "new-trades-disabled contracts may not receive an external order that increases aggregate absolute exposure",
+    "the allocator does not create fills, prices, pnl, cash, margin, financing, or market write-back",
+    "stress audit demand amplification is development-only and does not modify production capital or market-owner limits"
+  ]
+}

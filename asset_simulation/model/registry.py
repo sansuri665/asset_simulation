@@ -28,11 +28,56 @@ OIL_STRATEGY_RESEARCH_CONFIG_PATH = (
 OIL_STRATEGY_RESEARCH_CONTRACT_PATH = (
     PACKAGE_ROOT / "contracts" / "oil_strategy_research_v2.json"
 )
+OIL_CALENDAR_SPREAD_RESEARCH_CONFIG_PATH = (
+    PACKAGE_ROOT / "config" / "oil_calendar_spread_research_v0.1.json"
+)
+OIL_CALENDAR_SPREAD_RESEARCH_CONTRACT_PATH = (
+    PACKAGE_ROOT / "contracts" / "oil_calendar_spread_research_v1.json"
+)
 OIL_CALENDAR_SPREAD_STRATEGY_CONFIG_PATH = (
     PACKAGE_ROOT / "config" / "oil_calendar_spread_strategy_v0.1.json"
 )
 OIL_CALENDAR_SPREAD_STRATEGY_CONTRACT_PATH = (
     PACKAGE_ROOT / "contracts" / "oil_calendar_spread_strategy_v1.json"
+)
+OIL_CALENDAR_SPREAD_STRATEGY_V2_CONFIG_PATH = (
+    PACKAGE_ROOT / "config" / "oil_calendar_spread_strategy_v0.2.json"
+)
+OIL_CALENDAR_SPREAD_STRATEGY_V2_CONTRACT_PATH = (
+    PACKAGE_ROOT / "contracts" / "oil_calendar_spread_strategy_v2.json"
+)
+OIL_CALENDAR_SPREAD_STRATEGY_V22_CONFIG_PATH = (
+    PACKAGE_ROOT / "config" / "oil_calendar_spread_strategy_v0.2.2.json"
+)
+OIL_CALENDAR_SPREAD_STRATEGY_V22_CONTRACT_PATH = (
+    PACKAGE_ROOT / "contracts" / "oil_calendar_spread_strategy_v22.json"
+)
+OIL_CALENDAR_SPREAD_STRATEGY_V23_CONFIG_PATH = (
+    PACKAGE_ROOT / "config" / "oil_calendar_spread_strategy_v0.2.3.json"
+)
+OIL_CALENDAR_SPREAD_STRATEGY_V23_CONTRACT_PATH = (
+    PACKAGE_ROOT / "contracts" / "oil_calendar_spread_strategy_v23.json"
+)
+OIL_CALENDAR_SPREAD_PAIR_EXECUTION_CONFIG_PATH = (
+    PACKAGE_ROOT / "config" / "oil_calendar_spread_pair_execution_v0.1.json"
+)
+OIL_CALENDAR_SPREAD_PAIR_EXECUTION_CONTRACT_PATH = (
+    PACKAGE_ROOT / "contracts" / "oil_calendar_spread_pair_execution_v1.json"
+)
+OIL_CALENDAR_SPREAD_PAIR_EXECUTION_V11_CONFIG_PATH = (
+    PACKAGE_ROOT / "config" / "oil_calendar_spread_pair_execution_v0.1.1.json"
+)
+OIL_CALENDAR_SPREAD_PAIR_EXECUTION_V11_CONTRACT_PATH = (
+    PACKAGE_ROOT / "contracts" / "oil_calendar_spread_pair_execution_v11.json"
+)
+OIL_MULTI_STRATEGY_PRETRADE_ALLOCATOR_CONFIG_PATH = (
+    PACKAGE_ROOT / "config" / "oil_multi_strategy_pretrade_allocator_v0.1.json"
+)
+OIL_MULTI_STRATEGY_PRETRADE_ALLOCATOR_CONTRACT_PATH = (
+    PACKAGE_ROOT / "contracts" / "oil_multi_strategy_pretrade_allocator_v1.json"
+)
+OIL_STRATEGY_BOOK_CONTRACT_PATH = (
+    PACKAGE_ROOT / "contracts" / "oil_strategy_book_v1.json"
 )
 OIL_EXECUTION_DESK_CONFIG_PATH = (
     PACKAGE_ROOT / "config" / "oil_execution_desk_v0.2.json"
@@ -112,12 +157,55 @@ def load_registered_assets() -> dict[str, Any]:
     oil_short_term_forecast_contract = load_json(OIL_SHORT_TERM_FORECAST_CONTRACT_PATH)
     oil_strategy_research_config = load_json(OIL_STRATEGY_RESEARCH_CONFIG_PATH)
     oil_strategy_research_contract = load_json(OIL_STRATEGY_RESEARCH_CONTRACT_PATH)
+    oil_calendar_spread_research_config = load_json(
+        OIL_CALENDAR_SPREAD_RESEARCH_CONFIG_PATH
+    )
+    oil_calendar_spread_research_contract = load_json(
+        OIL_CALENDAR_SPREAD_RESEARCH_CONTRACT_PATH
+    )
     oil_calendar_spread_strategy_config = load_json(
         OIL_CALENDAR_SPREAD_STRATEGY_CONFIG_PATH
     )
     oil_calendar_spread_strategy_contract = load_json(
         OIL_CALENDAR_SPREAD_STRATEGY_CONTRACT_PATH
     )
+    oil_calendar_spread_strategy_v2_config = load_json(
+        OIL_CALENDAR_SPREAD_STRATEGY_V2_CONFIG_PATH
+    )
+    oil_calendar_spread_strategy_v2_contract = load_json(
+        OIL_CALENDAR_SPREAD_STRATEGY_V2_CONTRACT_PATH
+    )
+    oil_calendar_spread_strategy_v22_config = load_json(
+        OIL_CALENDAR_SPREAD_STRATEGY_V22_CONFIG_PATH
+    )
+    oil_calendar_spread_strategy_v22_contract = load_json(
+        OIL_CALENDAR_SPREAD_STRATEGY_V22_CONTRACT_PATH
+    )
+    oil_calendar_spread_strategy_v23_config = load_json(
+        OIL_CALENDAR_SPREAD_STRATEGY_V23_CONFIG_PATH
+    )
+    oil_calendar_spread_strategy_v23_contract = load_json(
+        OIL_CALENDAR_SPREAD_STRATEGY_V23_CONTRACT_PATH
+    )
+    oil_calendar_spread_pair_execution_config = load_json(
+        OIL_CALENDAR_SPREAD_PAIR_EXECUTION_CONFIG_PATH
+    )
+    oil_calendar_spread_pair_execution_contract = load_json(
+        OIL_CALENDAR_SPREAD_PAIR_EXECUTION_CONTRACT_PATH
+    )
+    oil_calendar_spread_pair_execution_v11_config = load_json(
+        OIL_CALENDAR_SPREAD_PAIR_EXECUTION_V11_CONFIG_PATH
+    )
+    oil_calendar_spread_pair_execution_v11_contract = load_json(
+        OIL_CALENDAR_SPREAD_PAIR_EXECUTION_V11_CONTRACT_PATH
+    )
+    oil_multi_strategy_pretrade_allocator_config = load_json(
+        OIL_MULTI_STRATEGY_PRETRADE_ALLOCATOR_CONFIG_PATH
+    )
+    oil_multi_strategy_pretrade_allocator_contract = load_json(
+        OIL_MULTI_STRATEGY_PRETRADE_ALLOCATOR_CONTRACT_PATH
+    )
+    oil_strategy_book_contract = load_json(OIL_STRATEGY_BOOK_CONTRACT_PATH)
     oil_execution_desk_config = load_json(OIL_EXECUTION_DESK_CONFIG_PATH)
     oil_execution_desk_contract = load_json(OIL_EXECUTION_DESK_CONTRACT_PATH)
     corporate_risk_control_config = load_json(CORPORATE_RISK_CONTROL_CONFIG_PATH)
@@ -163,18 +251,76 @@ def load_registered_assets() -> dict[str, Any]:
         "oil_strategy_research_contract_hash": sha256_json(
             oil_strategy_research_contract
         ),
-        "oil_calendar_spread_strategy_config": (
-            oil_calendar_spread_strategy_config
+        "oil_calendar_spread_research_config": oil_calendar_spread_research_config,
+        "oil_calendar_spread_research_config_hash": sha256_json(
+            oil_calendar_spread_research_config
         ),
+        "oil_calendar_spread_research_contract": oil_calendar_spread_research_contract,
+        "oil_calendar_spread_research_contract_hash": sha256_json(
+            oil_calendar_spread_research_contract
+        ),
+        "oil_calendar_spread_strategy_config": oil_calendar_spread_strategy_config,
         "oil_calendar_spread_strategy_config_hash": sha256_json(
             oil_calendar_spread_strategy_config
         ),
-        "oil_calendar_spread_strategy_contract": (
-            oil_calendar_spread_strategy_contract
-        ),
+        "oil_calendar_spread_strategy_contract": oil_calendar_spread_strategy_contract,
         "oil_calendar_spread_strategy_contract_hash": sha256_json(
             oil_calendar_spread_strategy_contract
         ),
+        "oil_calendar_spread_strategy_v2_config": oil_calendar_spread_strategy_v2_config,
+        "oil_calendar_spread_strategy_v2_config_hash": sha256_json(
+            oil_calendar_spread_strategy_v2_config
+        ),
+        "oil_calendar_spread_strategy_v2_contract": oil_calendar_spread_strategy_v2_contract,
+        "oil_calendar_spread_strategy_v2_contract_hash": sha256_json(
+            oil_calendar_spread_strategy_v2_contract
+        ),
+        "oil_calendar_spread_strategy_v22_config": oil_calendar_spread_strategy_v22_config,
+        "oil_calendar_spread_strategy_v22_config_hash": sha256_json(
+            oil_calendar_spread_strategy_v22_config
+        ),
+        "oil_calendar_spread_strategy_v22_contract": oil_calendar_spread_strategy_v22_contract,
+        "oil_calendar_spread_strategy_v22_contract_hash": sha256_json(
+            oil_calendar_spread_strategy_v22_contract
+        ),
+        "oil_calendar_spread_strategy_v23_config": oil_calendar_spread_strategy_v23_config,
+        "oil_calendar_spread_strategy_v23_config_hash": sha256_json(
+            oil_calendar_spread_strategy_v23_config
+        ),
+        "oil_calendar_spread_strategy_v23_contract": oil_calendar_spread_strategy_v23_contract,
+        "oil_calendar_spread_strategy_v23_contract_hash": sha256_json(
+            oil_calendar_spread_strategy_v23_contract
+        ),
+        "oil_calendar_spread_pair_execution_config": oil_calendar_spread_pair_execution_config,
+        "oil_calendar_spread_pair_execution_config_hash": sha256_json(
+            oil_calendar_spread_pair_execution_config
+        ),
+        "oil_calendar_spread_pair_execution_contract": oil_calendar_spread_pair_execution_contract,
+        "oil_calendar_spread_pair_execution_contract_hash": sha256_json(
+            oil_calendar_spread_pair_execution_contract
+        ),
+        "oil_calendar_spread_pair_execution_v11_config": oil_calendar_spread_pair_execution_v11_config,
+        "oil_calendar_spread_pair_execution_v11_config_hash": sha256_json(
+            oil_calendar_spread_pair_execution_v11_config
+        ),
+        "oil_calendar_spread_pair_execution_v11_contract": oil_calendar_spread_pair_execution_v11_contract,
+        "oil_calendar_spread_pair_execution_v11_contract_hash": sha256_json(
+            oil_calendar_spread_pair_execution_v11_contract
+        ),
+        "oil_multi_strategy_pretrade_allocator_config": (
+            oil_multi_strategy_pretrade_allocator_config
+        ),
+        "oil_multi_strategy_pretrade_allocator_config_hash": sha256_json(
+            oil_multi_strategy_pretrade_allocator_config
+        ),
+        "oil_multi_strategy_pretrade_allocator_contract": (
+            oil_multi_strategy_pretrade_allocator_contract
+        ),
+        "oil_multi_strategy_pretrade_allocator_contract_hash": sha256_json(
+            oil_multi_strategy_pretrade_allocator_contract
+        ),
+        "oil_strategy_book_contract": oil_strategy_book_contract,
+        "oil_strategy_book_contract_hash": sha256_json(oil_strategy_book_contract),
         "oil_execution_desk_config": oil_execution_desk_config,
         "oil_execution_desk_config_hash": sha256_json(oil_execution_desk_config),
         "oil_execution_desk_contract": oil_execution_desk_contract,
@@ -188,17 +334,13 @@ def load_registered_assets() -> dict[str, Any]:
         "oil_strategy_risk_contract": oil_strategy_risk_contract,
         "oil_strategy_risk_contract_hash": sha256_json(oil_strategy_risk_contract),
         "oil_trading_strategy_config": oil_trading_strategy_config,
-        "oil_trading_strategy_config_hash": sha256_json(
-            oil_trading_strategy_config
-        ),
+        "oil_trading_strategy_config_hash": sha256_json(oil_trading_strategy_config),
         "oil_trading_strategy_contract": oil_trading_strategy_contract,
         "oil_trading_strategy_contract_hash": sha256_json(
             oil_trading_strategy_contract
         ),
         "oil_futures_account_config": oil_futures_account_config,
-        "oil_futures_account_config_hash": sha256_json(
-            oil_futures_account_config
-        ),
+        "oil_futures_account_config_hash": sha256_json(oil_futures_account_config),
         "oil_futures_account_contract": oil_futures_account_contract,
         "oil_futures_account_contract_hash": sha256_json(
             oil_futures_account_contract
@@ -207,9 +349,7 @@ def load_registered_assets() -> dict[str, Any]:
         "institution_organization_config_hash": sha256_json(
             institution_organization_config
         ),
-        "institution_organization_contract": (
-            institution_organization_contract
-        ),
+        "institution_organization_contract": institution_organization_contract,
         "institution_organization_contract_hash": sha256_json(
             institution_organization_contract
         ),
