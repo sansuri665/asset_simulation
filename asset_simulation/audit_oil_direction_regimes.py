@@ -90,7 +90,6 @@ def _replay_style(
 ) -> list[dict[str, Any]]:
     positions: dict[str, int] = {}
     equity = initial_proprietary_capital_usd()
-    risk_state = None
     strategy_risk_state = None
     thesis_state = None
     turnover_history: list[int] = []
@@ -102,7 +101,6 @@ def _replay_style(
             positions=positions,
             equity_usd=equity,
             strategy_research_profile=profile,
-            risk_state=risk_state,
             strategy_risk_state=strategy_risk_state,
             thesis_state=thesis_state,
             fee_state={
@@ -122,7 +120,6 @@ def _replay_style(
             str(key): int(value)
             for key, value in settlement["accountAfter"]["positions"].items()
         }
-        risk_state = dict(decision["corporateRisk"]["state"])
         strategy_risk_state = dict(decision["strategyRisk"]["state"])
         thesis_state = dict(settlement["thesisInvalidation"]["state"])
         turnover_history.append(
