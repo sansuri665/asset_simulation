@@ -1,0 +1,17 @@
+{
+  "contract_id": "oil_multi_strategy_gate_b_v1",
+  "schema_version": "asset-simulation-oil-multi-strategy-gate-b-contract-v1",
+  "role": "Gate B amount-based strategy authorization state and deterministic shared-capacity allocation kernel for the first multi-strategy oil runtime.",
+  "invariants": [
+    "strategy authorization is authoritative in USD and never automatically rescaled to preserve a percentage",
+    "an authorization amendment does not directly mutate strategy-book or formal-account positions",
+    "risk-increasing orders require a positive amount authorization but risk-reducing and mandatory orders remain eligible",
+    "internal crosses are zero-sum across strategy books and never consume external market turnover",
+    "external parent orders equal the sum of strategy external fill allocations by named contract",
+    "atomic multi-leg order groups preserve their integer leg ratios",
+    "formal-account ending positions equal opening formal positions plus external parent orders",
+    "the sum of ending strategy-book positions equals formal-account ending positions by named contract",
+    "single-contract trade limits, single-contract position limits, the all-contract gross position cap, and the optional aggregate initial-margin cap are enforced on the one formal account",
+    "input order and mapping order cannot change the deterministic allocation result"
+  ]
+}
