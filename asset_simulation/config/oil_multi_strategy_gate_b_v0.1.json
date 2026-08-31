@@ -1,0 +1,26 @@
+{
+  "schema_version": "asset-simulation-oil-multi-strategy-gate-b-config-v1",
+  "config_id": "asset-simulation-oil-multi-strategy-gate-b-base-v0.1.0",
+  "model_version": "asset-simulation-oil-multi-strategy-gate-b-v0.1.0",
+  "authorization": {
+    "authority_unit": "usd",
+    "percentages_are_diagnostic_only": true,
+    "automatic_percentage_rebalancing_enabled": false,
+    "company_leverage_authorization_enabled": false,
+    "authorization_change_mutates_positions": false,
+    "new_decision_total_authorization_must_not_exceed_reference_equity": true
+  },
+  "allocation": {
+    "method": "deterministic_equal_unit_water_filling_with_global_feasibility",
+    "priority_order": [
+      "mandatory_liquidation",
+      "residual_remediation",
+      "risk_reduction",
+      "risk_increase"
+    ],
+    "internal_cross_before_external_parent_order": true,
+    "atomic_group_ratios_preserved": true,
+    "maximum_groups_per_priority_subset_search": 8,
+    "maximum_total_requested_units": 1000000
+  }
+}
