@@ -57,11 +57,11 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.13'
-      - name: Gate B dual-strategy smoke
+      - name: Gate B dual-strategy comparison
         run: |
           python -m asset_simulation.audit_oil_multi_strategy_gate_b_runtime \
-            --seeds 42 \
-            --maximum-turns 2 \
+            --seeds 0,42,99 \
+            --maximum-turns 6 \
             --output artifacts/gate-b-dual-strategy-smoke.json
       - uses: actions/upload-artifact@v4
         with:
