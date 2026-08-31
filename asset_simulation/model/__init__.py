@@ -23,6 +23,15 @@ from .oil_calendar_spread_strategy import (
     build_oil_calendar_spread_research_decision,
     evaluate_oil_calendar_spread_thesis_state,
 )
+from .oil_multi_strategy_gate_b import (
+    OIL_MULTI_STRATEGY_GATE_B_MODEL_VERSION,
+    allocate_gate_b_strategy_orders,
+    amend_strategy_capital_authorization_state,
+    build_gate_b_market_limits_from_oil_futures_payload,
+    create_strategy_capital_authorization_state,
+    evaluate_strategy_capital_authorization_status,
+    load_oil_multi_strategy_gate_b_assets,
+)
 from .oil_execution_desk import (
     OIL_EXECUTION_DESK_MODEL_VERSION,
     generate_oil_execution_desk_roster,
@@ -46,6 +55,13 @@ __all__ = [
     "build_oil_calendar_spread_execution_report",
     "attribute_oil_calendar_spread_pnl",
     "evaluate_oil_calendar_spread_thesis_state",
+    "OIL_MULTI_STRATEGY_GATE_B_MODEL_VERSION",
+    "create_strategy_capital_authorization_state",
+    "amend_strategy_capital_authorization_state",
+    "evaluate_strategy_capital_authorization_status",
+    "build_gate_b_market_limits_from_oil_futures_payload",
+    "allocate_gate_b_strategy_orders",
+    "load_oil_multi_strategy_gate_b_assets",
     "OIL_EXECUTION_DESK_MODEL_VERSION",
     "generate_oil_execution_desk_roster",
 ]
