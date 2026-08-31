@@ -32,6 +32,20 @@ from .oil_multi_strategy_gate_b import (
     evaluate_strategy_capital_authorization_status,
     load_oil_multi_strategy_gate_b_assets,
 )
+from .oil_multi_strategy_execution import (
+    CALENDAR_SPREAD_STRATEGY_ID,
+    DIRECTIONAL_STRATEGY_ID,
+    execute_oil_multi_strategy_parent_orders,
+    settle_oil_multi_strategy_allocated_turn,
+)
+from .oil_multi_strategy_runtime import (
+    OIL_MULTI_STRATEGY_RUNTIME_MODEL_VERSION,
+    advance_oil_multi_strategy_runtime_one_turn,
+    build_oil_multi_strategy_child_orders,
+    create_oil_multi_strategy_runtime_state,
+    load_oil_multi_strategy_runtime_assets,
+    simulate_oil_multi_strategy_runtime,
+)
 from .oil_execution_desk import (
     OIL_EXECUTION_DESK_MODEL_VERSION,
     generate_oil_execution_desk_roster,
@@ -62,6 +76,16 @@ __all__ = [
     "build_gate_b_market_limits_from_oil_futures_payload",
     "allocate_gate_b_strategy_orders",
     "load_oil_multi_strategy_gate_b_assets",
+    "OIL_MULTI_STRATEGY_RUNTIME_MODEL_VERSION",
+    "DIRECTIONAL_STRATEGY_ID",
+    "CALENDAR_SPREAD_STRATEGY_ID",
+    "build_oil_multi_strategy_child_orders",
+    "execute_oil_multi_strategy_parent_orders",
+    "settle_oil_multi_strategy_allocated_turn",
+    "create_oil_multi_strategy_runtime_state",
+    "advance_oil_multi_strategy_runtime_one_turn",
+    "simulate_oil_multi_strategy_runtime",
+    "load_oil_multi_strategy_runtime_assets",
     "OIL_EXECUTION_DESK_MODEL_VERSION",
     "generate_oil_execution_desk_roster",
 ]
