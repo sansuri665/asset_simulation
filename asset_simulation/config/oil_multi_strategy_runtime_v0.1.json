@@ -1,0 +1,45 @@
+{
+  "schema_version": "asset-simulation-oil-multi-strategy-runtime-config-v1",
+  "config_id": "asset-simulation-oil-multi-strategy-runtime-base-v0.1.0",
+  "model_version": "asset-simulation-oil-multi-strategy-runtime-v0.1.0",
+  "strategy_ids": [
+    "directional_oil",
+    "calendar_spread"
+  ],
+  "turns_per_year": 24,
+  "execution": {
+    "shared_desk_count": 1,
+    "internal_transfer_price_method": "realized_window_neutral_ohlc4_volume_weighted",
+    "ordinary_risk_increase_completion_applied_before_allocator": true,
+    "risk_reduction_completion_ratio": 1.0,
+    "parent_orders_fully_filled_after_allocator": true,
+    "round_trip_turnover_enabled": false,
+    "external_cost_allocation_method": "absolute_external_lots_pro_rata_by_contract"
+  },
+  "accounting": {
+    "strategy_nav_plus_corporate_reserve_equals_formal_equity": true,
+    "cash_settlement_count_per_turn": 1,
+    "aggregate_margin_charge_count_per_turn": 1,
+    "idle_cash_interest_owner": "corporate_reserve",
+    "margin_financing_cost_allocation": "average_standalone_initial_margin_share",
+    "forced_liquidation_cost_allocation": "forced_lots_by_contract",
+    "rounding_tolerance_usd": 0.05
+  },
+  "calendar_spread_thesis": {
+    "pending_evaluation_owner": "multi_strategy_runtime",
+    "maximum_pending_evaluations": 64,
+    "matured_evaluation_order": "created_turn_then_horizon"
+  },
+  "lifecycle": {
+    "roll_scheduler_enabled": false,
+    "stop_before_main_next_pair_change": true,
+    "long_horizon_economic_status": "lifecycle_incomplete"
+  },
+  "report": {
+    "default_initial_company_cash_usd": 10000000.0,
+    "default_directional_only_authorization_usd": 10000000.0,
+    "default_dual_directional_authorization_usd": 5000000.0,
+    "default_dual_calendar_spread_authorization_usd": 5000000.0,
+    "default_maximum_turns": 6
+  }
+}
