@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Asset Simulation · 原油物理平衡</title>
+  <link rel="stylesheet" href="/static/css/viewer.css">
+</head>
+<body>
+  <div class="app-shell overview-shell">
+    <header class="topbar">
+      <div class="brand-block">
+        <span class="brand-mark">AS</span>
+        <div><h1>Asset Simulation</h1><p>全球原油物理市场</p></div>
+      </div>
+
+      <nav class="page-nav" aria-label="页面">
+        <a id="overviewLink" href="/?seed=42&years=60">宏观与原油</a>
+        <a href="/physical?seed=42&years=60" aria-current="page">原油物理平衡</a>
+        <a id="shippingLink" href="/shipping?seed=42&years=60">原油海运</a>
+      </nav>
+
+      <form id="physicalForm" class="run-controls">
+        <label>Seed <input id="seedInput" type="number" min="0" step="1" value="42"></label>
+        <label>模拟年数 <input id="yearsInput" type="number" min="5" max="90" step="1" value="60"></label>
+        <button type="submit" class="primary-button">加载世界</button>
+      </form>
+    </header>
+
+    <main class="overview-main single-chart-main">
+      <section class="overview-hero compact-hero">
+        <span class="eyebrow accent">GLOBAL PHYSICAL OIL</span>
+        <h2>原油物理平衡</h2>
+        <p>需求、生产与库存逐月守恒；产能余量决定供给侧是否紧张。图表展示的是同一全球原油池中的真实物理数量。</p>
+      </section>
+
+      <nav id="mainModeNav" class="main-mode-nav" aria-label="物理平衡指标">
+        <button type="button" data-mode="balance" aria-pressed="true">供需</button>
+        <button type="button" data-mode="inventory" aria-pressed="false">库存</button>
+        <button type="button" data-mode="capacity" aria-pressed="false">产能</button>
+      </nav>
+
+      <section class="single-chart-workspace">
+        <article class="panel focus-chart-panel">
+          <header class="panel-head focus-panel-head">
+            <div>
+              <span id="chartEyebrow" class="eyebrow">PHYSICAL BALANCE · MONTHLY</span>
+              <h3 id="chartTitle">全球原油供需</h3>
+            </div>
+            <span id="interactionHint" class="interaction-hint">按住图表左右拖动；移动鼠标查看月份</span>
+          </header>
+          <div id="focusChart" class="focus-chart is-pannable" role="img" aria-label="可交互原油物理平衡时间序列"></div>
+          <div class="focus-chart-footer">
+            <div id="focusLegend" class="chart-legend"></div>
+            <span id="windowLabel" class="window-label"></span>
+          </div>
+        </article>
+
+        <aside class="panel focus-detail-panel">
+          <header class="panel-head">
+            <div><span class="eyebrow">SELECTED MONTH</span><h3 id="detailTitle">2030-01</h3></div>
+            <span id="detailBadge" class="direction-badge">—</span>
+          </header>
+          <div id="focusPrimary" class="focus-primary physical-primary"></div>
+          <div id="focusDetails" class="detail-grid focus-detail-grid"></div>
+          <div id="detailNote" class="focus-detail-note"></div>
+        </aside>
+      </section>
+
+      <footer>
+        <span id="identityText">—</span>
+        <span id="statusText">正在加载月度物理世界…</span>
+      </footer>
+    </main>
+  </div>
+  <script type="module" src="/static/js/physical.js"></script>
+</body>
+</html>

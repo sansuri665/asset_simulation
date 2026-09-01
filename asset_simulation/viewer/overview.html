@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Asset Simulation · 宏观与原油</title>
+  <link rel="stylesheet" href="/static/css/viewer.css">
+</head>
+<body>
+  <div class="app-shell overview-shell">
+    <header class="topbar">
+      <div class="brand-block">
+        <span class="brand-mark">AS</span>
+        <div><h1>Asset Simulation</h1><p>世界背景总览</p></div>
+      </div>
+
+      <nav class="page-nav" aria-label="页面">
+        <a href="/" aria-current="page">宏观与原油</a>
+        <a id="physicalLink" href="/physical?seed=42&years=60&year=2030&month=1">原油物理平衡</a>
+        <a id="shippingLink" href="/shipping?seed=42&years=60&year=2030&month=1">原油海运</a>
+      </nav>
+
+      <form id="overviewForm" class="run-controls">
+        <label>Seed <input id="seedInput" type="number" min="0" step="1" value="42"></label>
+        <label>模拟年数 <input id="yearsInput" type="number" min="5" max="90" step="1" value="60"></label>
+        <button type="submit" class="primary-button">加载世界</button>
+      </form>
+    </header>
+
+    <main class="overview-main single-chart-main">
+      <section class="overview-hero compact-hero">
+        <span class="eyebrow accent">GLOBAL BACKDROP</span>
+        <h2>宏观环境与原油价格</h2>
+        <p>年度宏观是世界背景，原油价格在年度锚之间提供月度路径。图表本身就是时间导航。</p>
+      </section>
+
+      <nav id="mainModeNav" class="main-mode-nav" aria-label="主指标">
+        <button type="button" data-mode="macro" aria-pressed="true">全球宏观</button>
+        <button type="button" data-mode="oil" aria-pressed="false">原油价格</button>
+      </nav>
+
+      <section class="single-chart-workspace">
+        <article class="panel focus-chart-panel">
+          <header class="panel-head focus-panel-head">
+            <div>
+              <span id="chartEyebrow" class="eyebrow">ANNUAL MACRO · 2025—2085</span>
+              <h3 id="chartTitle">全球宏观年度路径</h3>
+            </div>
+            <div class="focus-head-actions">
+              <span id="interactionHint" class="interaction-hint">在图上移动鼠标查看每一年</span>
+              <nav id="oilPeriodNav" class="chart-tabs" aria-label="原油价格周期" hidden>
+                <button type="button" data-period="annual" aria-pressed="true">年线</button>
+                <button type="button" data-period="monthly" aria-pressed="false">月线</button>
+              </nav>
+            </div>
+          </header>
+          <div id="focusChart" class="focus-chart" role="img" aria-label="可交互时间序列"></div>
+          <div class="focus-chart-footer">
+            <div id="focusLegend" class="chart-legend"></div>
+            <span id="windowLabel" class="window-label"></span>
+          </div>
+        </article>
+
+        <aside class="panel focus-detail-panel">
+          <header class="panel-head">
+            <div><span id="detailEyebrow" class="eyebrow">SELECTED YEAR</span><h3 id="detailTitle">2030</h3></div>
+            <span id="detailBadge" class="direction-badge">常态</span>
+          </header>
+          <div id="focusPrimary" class="focus-primary"></div>
+          <div id="focusDetails" class="detail-grid focus-detail-grid"></div>
+          <div id="detailNote" class="focus-detail-note"></div>
+        </aside>
+      </section>
+
+      <footer>
+        <span id="overviewIdentity">—</span>
+        <span id="overviewStatus">正在加载年度世界…</span>
+      </footer>
+    </main>
+  </div>
+  <script type="module" src="/static/js/overview.js"></script>
+</body>
+</html>

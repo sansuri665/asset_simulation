@@ -1,0 +1,52 @@
+{
+  "schema_version": "asset-simulation-oil-shipping-demand-contract-v2",
+  "contract_id": "oil_shipping_demand_v2",
+  "model_version": "asset-simulation-oil-shipping-demand-v0.2.0",
+  "time_scale": "month",
+  "identity_fields": ["seed", "turn_index", "year", "month", "label"],
+  "market_inputs": {
+    "macro_information_year": "latest_completed_annual_year",
+    "macro_realized_growth_pct": "percent_yoy",
+    "macro_real_oil_price_index": "index_2025_100",
+    "macro_brent_oil_price_usd": "current_usd_per_barrel"
+  },
+  "physical_oil_fields": {
+    "days": "calendar_days",
+    "desired_demand_mbd": "million_barrels_per_day",
+    "realized_demand_mbd": "million_barrels_per_day",
+    "production_mbd": "million_barrels_per_day",
+    "production_capacity_mbd": "million_barrels_per_day",
+    "spare_capacity_mbd": "million_barrels_per_day",
+    "opening_inventory_mmbbl": "million_barrels",
+    "inventory_change_mmbbl": "million_barrels",
+    "closing_inventory_mmbbl": "million_barrels",
+    "inventory_days": "days_of_realized_demand",
+    "unmet_demand_mmbbl": "million_barrels",
+    "mass_balance_residual_mmbbl": "million_barrels"
+  },
+  "shipping_demand_fields": {
+    "seaborne_share": "ratio",
+    "inventory_trade_adjustment_mbd": "million_barrels_per_day",
+    "seaborne_cargo_mbd": "million_barrels_per_day",
+    "cargo_million_tonnes": "million_metric_tonnes_per_turn",
+    "average_haul_nm": "nautical_miles",
+    "trade_dislocation_index": "ratio",
+    "tonne_nautical_miles_billion": "billion_tonne_nautical_miles_per_turn",
+    "annualized_tonne_nautical_miles_billion": "billion_tonne_nautical_miles_per_year"
+  },
+  "invariants": [
+    "one turn is one full calendar month",
+    "closing_inventory = opening_inventory + production * days - realized_demand * days",
+    "seaborne_cargo is a flow and is not a freight rate",
+    "tonne_miles = cargo_mass * average_haul",
+    "no freight-rate path exists in this contract",
+    "only the latest completed annual macro row is available to a turn",
+    "player actions do not alter public oil or shipping demand"
+  ],
+  "scenario_fields": {
+    "demand_rate_impulse_pct": "percent",
+    "production_outage_mbd": "million_barrels_per_day",
+    "seaborne_share_impulse_pp": "percentage_points",
+    "average_haul_impulse_pct": "percent"
+  }
+}

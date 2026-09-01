@@ -1,0 +1,70 @@
+{
+  "schema_version": "asset-simulation-oil-shipping-demand-config-v2",
+  "config_id": "asset-simulation-global-crude-shipping-demand-v0.2.0",
+  "model_version": "asset-simulation-oil-shipping-demand-v0.2.0",
+  "time": {
+    "turns_per_month": 1,
+    "game_start_year": 2030
+  },
+  "units": {
+    "barrels_per_metric_tonne": 7.3
+  },
+  "physical_oil": {
+    "initial_demand_mbd": 102.8,
+    "initial_production_mbd": 102.8,
+    "initial_production_capacity_mbd": 106.3,
+    "initial_inventory_days": 58.0,
+    "target_inventory_days": 58.0,
+    "inventory_rebalance_turns": 6.0,
+    "storage_capacity_days": 92.0,
+    "demand": {
+      "gdp_growth_elasticity": 0.58,
+      "autonomous_efficiency_drag_pct": 0.62,
+      "real_price_level_elasticity": 0.012,
+      "annual_news_scale_pct": 0.35,
+      "annual_growth_bounds_pct": [-3.0, 3.5],
+      "seasonal_amplitude_pct": 1.15,
+      "monthly_news_persistence": 0.3844,
+      "monthly_news_scale_pct": 0.188,
+      "monthly_news_bounds_pct": [-1.25, 1.25]
+    },
+    "capacity": {
+      "base_growth_pct": 0.30,
+      "demand_growth_pass_through": 0.48,
+      "lagged_real_price_level_elasticity": 0.006,
+      "annual_news_scale_pct": 0.28,
+      "annual_growth_bounds_pct": [-1.5, 2.8],
+      "target_spare_capacity_mbd": 4.0,
+      "capacity_rebalance_years": 2.5
+    },
+    "production": {
+      "adjustment_speed": 0.6864,
+      "monthly_noise_persistence": 0.5184,
+      "monthly_noise_scale_mbd": 0.148,
+      "monthly_noise_bounds_mbd": [-0.8, 0.8]
+    },
+    "bounds": {
+      "demand_mbd": [55.0, 180.0],
+      "production_capacity_mbd": [60.0, 200.0]
+    }
+  },
+  "shipping_demand": {
+    "seaborne_share_center": 0.38,
+    "initial_seaborne_share": 0.38,
+    "seaborne_share_persistence": 0.970225,
+    "seaborne_share_news_scale": 0.002106,
+    "seaborne_share_bounds": [0.30, 0.48],
+    "inventory_trade_exposure": 0.65,
+    "base_average_haul_nm": 5000.0,
+    "initial_trade_dislocation_index": 1.0,
+    "trade_dislocation_persistence": 0.931225,
+    "trade_dislocation_news_scale": 0.011115,
+    "trade_dislocation_bounds": [0.82, 1.35]
+  },
+  "scenario_fields": {
+    "demand_rate_impulse_pct": "percent",
+    "production_outage_mbd": "million_barrels_per_day",
+    "seaborne_share_impulse_pp": "percentage_points",
+    "average_haul_impulse_pct": "percent"
+  }
+}

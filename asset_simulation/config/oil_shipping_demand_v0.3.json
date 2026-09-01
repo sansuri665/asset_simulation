@@ -1,0 +1,109 @@
+{
+  "schema_version": "asset-simulation-oil-shipping-demand-config-v3",
+  "config_id": "asset-simulation-global-crude-shipping-demand-v0.3.0",
+  "model_version": "asset-simulation-oil-shipping-demand-v0.3.0",
+  "time": {
+    "turns_per_month": 1,
+    "game_start_year": 2030
+  },
+  "units": {
+    "barrels_per_metric_tonne": 7.3
+  },
+  "physical_oil": {
+    "initial_demand_mbd": 102.8,
+    "initial_production_mbd": 102.8,
+    "initial_production_capacity_mbd": 106.3,
+    "initial_inventory_days": 60.0,
+    "target_inventory_days": 60.0,
+    "target_inventory_persistence": 0.988,
+    "target_inventory_news_scale_days": 0.45,
+    "target_inventory_bounds_days": [51.0, 70.0],
+    "inventory_rebalance_turns": 10.0,
+    "storage_capacity_days": 92.0,
+    "demand": {
+      "gdp_growth_elasticity": 0.58,
+      "autonomous_efficiency_drag_pct": 0.62,
+      "real_price_level_elasticity": 0.012,
+      "annual_news_scale_pct": 0.35,
+      "annual_growth_bounds_pct": [-3.0, 3.5],
+      "seasonal_amplitude_pct": 0.82,
+      "seasonal_amplitude_persistence": 0.62,
+      "seasonal_amplitude_news_scale_pct": 0.16,
+      "seasonal_amplitude_bounds_pct": [0.42, 1.20],
+      "seasonal_phase_persistence": 0.55,
+      "seasonal_phase_news_scale_months": 0.30,
+      "seasonal_phase_bounds_months": [-0.90, 0.90],
+      "seasonal_second_harmonic_weight": 0.32,
+      "seasonal_shape_persistence": 0.52,
+      "seasonal_shape_news_scale": 0.055,
+      "seasonal_second_harmonic_weight_bounds": [0.18, 0.46],
+      "monthly_news_persistence": 0.42,
+      "monthly_news_scale_pct": 0.28,
+      "monthly_news_bounds_pct": [-1.60, 1.60],
+      "long_run_regimes": [
+        {
+          "id": "continuation",
+          "weight": 0.22,
+          "initial_structural_drag_pct": 0.15,
+          "mature_structural_drag_pct": 0.55,
+          "ramp_start_year": 2025,
+          "ramp_end_year": 2040
+        },
+        {
+          "id": "transition_plateau",
+          "weight": 0.58,
+          "initial_structural_drag_pct": 0.28,
+          "mature_structural_drag_pct": 0.85,
+          "ramp_start_year": 2025,
+          "ramp_end_year": 2040
+        },
+        {
+          "id": "accelerated_transition",
+          "weight": 0.20,
+          "initial_structural_drag_pct": 0.38,
+          "mature_structural_drag_pct": 1.20,
+          "ramp_start_year": 2025,
+          "ramp_end_year": 2038
+        }
+      ]
+    },
+    "capacity": {
+      "base_growth_pct": 0.30,
+      "demand_growth_pass_through": 0.48,
+      "lagged_real_price_level_elasticity": 0.006,
+      "annual_news_scale_pct": 0.28,
+      "annual_growth_bounds_pct": [-1.5, 2.8],
+      "target_spare_capacity_mbd": 4.0,
+      "capacity_rebalance_years": 2.5
+    },
+    "production": {
+      "adjustment_speed": 0.55,
+      "monthly_noise_persistence": 0.72,
+      "monthly_noise_scale_mbd": 0.24,
+      "monthly_noise_bounds_mbd": [-1.4, 1.4]
+    },
+    "bounds": {
+      "demand_mbd": [45.0, 160.0],
+      "production_capacity_mbd": [50.0, 180.0]
+    }
+  },
+  "shipping_demand": {
+    "seaborne_share_center": 0.38,
+    "initial_seaborne_share": 0.38,
+    "seaborne_share_persistence": 0.970225,
+    "seaborne_share_news_scale": 0.002106,
+    "seaborne_share_bounds": [0.30, 0.48],
+    "inventory_trade_exposure": 0.65,
+    "base_average_haul_nm": 5000.0,
+    "initial_trade_dislocation_index": 1.0,
+    "trade_dislocation_persistence": 0.931225,
+    "trade_dislocation_news_scale": 0.011115,
+    "trade_dislocation_bounds": [0.82, 1.35]
+  },
+  "scenario_fields": {
+    "demand_rate_impulse_pct": "percent",
+    "production_outage_mbd": "million_barrels_per_day",
+    "seaborne_share_impulse_pp": "percentage_points",
+    "average_haul_impulse_pct": "percent"
+  }
+}

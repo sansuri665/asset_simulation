@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Asset Simulation · 原油海运</title>
+  <link rel="stylesheet" href="/static/css/viewer.css">
+</head>
+<body>
+  <div class="app-shell overview-shell">
+    <header class="topbar">
+      <div class="brand-block">
+        <span class="brand-mark">AS</span>
+        <div><h1>Asset Simulation</h1><p>区域物理平衡 · 航线 · 吨海里</p></div>
+      </div>
+
+      <nav class="page-nav" aria-label="页面">
+        <a id="overviewLink" href="/?seed=42&years=60">宏观与原油</a>
+        <a id="physicalLink" href="/physical?seed=42&years=60">原油物理平衡</a>
+        <a href="/shipping?seed=42&years=60" aria-current="page">原油海运</a>
+      </nav>
+
+      <form id="shippingForm" class="run-controls">
+        <label>Seed <input id="seedInput" type="number" min="0" step="1" value="42"></label>
+        <label>模拟年数 <input id="yearsInput" type="number" min="5" max="90" step="1" value="60"></label>
+        <button type="submit" class="primary-button">加载世界</button>
+      </form>
+    </header>
+
+    <main class="overview-main single-chart-main">
+      <section class="overview-hero compact-hero">
+        <span class="eyebrow accent">REGIONAL CRUDE BALANCE</span>
+        <h2>原油海运</h2>
+        <p>全球产量、炼化需求、库存变化与管道流向先形成各区域的海运盈余或缺口，再由受约束的航线网络结算为货量、航程与吨海里需求。</p>
+      </section>
+
+      <section id="shippingChain" class="shipping-chain" aria-label="原油海运因果链"></section>
+
+      <nav id="mainModeNav" class="main-mode-nav" aria-label="海运货量视图">
+        <button type="button" data-mode="overview" aria-pressed="true">全球总览</button>
+        <button type="button" data-mode="regions" aria-pressed="false">区域平衡</button>
+        <button type="button" data-mode="routes" aria-pressed="false">主要航线</button>
+      </nav>
+
+      <section id="routeBoard" class="route-board panel" hidden>
+        <header class="panel-head route-board-head">
+          <div><span class="eyebrow">ROUTE FAMILIES</span><h3>九条主要航线与其他航线池</h3></div>
+          <span>点击一行查看该航线的月度历史</span>
+        </header>
+        <div id="routeList" class="route-list"></div>
+      </section>
+
+      <section id="regionBoard" class="route-board panel" hidden>
+        <header class="panel-head route-board-head">
+          <div><span class="eyebrow">REGIONAL PHYSICAL BALANCE</span><h3>区域产量、原油当量需求与海运差额</h3></div>
+          <span>点击一行查看该区域的月度历史</span>
+        </header>
+        <div id="regionList" class="route-list"></div>
+      </section>
+
+      <section class="single-chart-workspace">
+        <article class="panel focus-chart-panel">
+          <header class="panel-head focus-panel-head">
+            <div>
+              <span id="chartEyebrow" class="eyebrow">SEABORNE CARGO · MONTHLY</span>
+              <h3 id="chartTitle">全球海运原油流量</h3>
+            </div>
+            <div class="focus-head-actions">
+              <span class="interaction-hint">按住图表左右拖动；移动鼠标查看月份</span>
+              <nav id="metricNav" class="chart-tabs" aria-label="总览指标">
+                <button type="button" data-metric="cargo" aria-pressed="true">货量</button>
+                <button type="button" data-metric="tonneMiles" aria-pressed="false">吨海里</button>
+                <button type="button" data-metric="haul" aria-pressed="false">航程</button>
+              </nav>
+              <nav id="regionViewNav" class="chart-tabs" aria-label="区域指标" hidden>
+                <button type="button" data-region-view="balance" aria-pressed="true">海运平衡</button>
+                <button type="button" data-region-view="fundamentals" aria-pressed="false">产量／需求</button>
+              </nav>
+            </div>
+          </header>
+          <div id="focusChart" class="focus-chart is-pannable" role="img" aria-label="可交互原油海运时间序列"></div>
+          <div class="focus-chart-footer">
+            <div id="focusLegend" class="chart-legend"></div>
+            <span id="windowLabel" class="window-label"></span>
+          </div>
+        </article>
+
+        <aside class="panel focus-detail-panel">
+          <header class="panel-head">
+            <div><span id="detailEyebrow" class="eyebrow">SELECTED MONTH</span><h3 id="detailTitle">2030-01</h3></div>
+            <span id="detailBadge" class="direction-badge">—</span>
+          </header>
+          <div id="focusPrimary" class="focus-primary shipping-primary"></div>
+          <div id="focusDetails" class="detail-grid focus-detail-grid"></div>
+          <div id="detailNote" class="focus-detail-note"></div>
+        </aside>
+      </section>
+
+      <footer>
+        <span id="identityText">—</span>
+        <span id="statusText">正在加载月度区域平衡…</span>
+      </footer>
+    </main>
+  </div>
+  <script type="module" src="/static/js/app.js"></script>
+</body>
+</html>
