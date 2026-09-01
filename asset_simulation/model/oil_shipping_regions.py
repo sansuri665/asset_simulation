@@ -15,8 +15,8 @@ def initial_regional_state(config: Mapping[str, Any]) -> dict[str, dict[str, flo
             str(region["region_id"]): float(region["initial_production_share"])
             for region in regions
         },
-        "refinery_shares": {
-            str(region["region_id"]): float(region["initial_refinery_share"])
+        "crude_run_shares": {
+            str(region["region_id"]): float(region["initial_crude_run_share"])
             for region in regions
         },
         "pipeline_net_exports_mbd": {
@@ -43,6 +43,7 @@ def _evolve_shares(
     field_prefix: str,
     seed: int,
     turn_index: int,
+    month: int,
     persistence: float,
     news_scale: float,
 ) -> dict[str, float]:
@@ -51,9 +52,15 @@ def _evolve_shares(
         region_id = str(region["region_id"])
         baseline = float(region[f"initial_{field_prefix}_share"])
         low, high = map(float, region[f"{field_prefix}_share_bounds"])
+        annual_bias = (
+            float(region.get(f"{field_prefix}_share_annual_bias_pct", 0.0))
+            if month == 1 and turn_index > 0
+            else 0.0
+        )
         raw[region_id] = clamp(
             baseline
             + persistence * (float(previous[region_id]) - baseline)
+            + float(previous[region_id]) * annual_bias / 100.0
             + news_scale
             * normal(
                 seed,
@@ -117,7 +124,7 @@ def _apply_zero_sum_impulses(
 
 def _advance_production_policy(
     previous: Mapping[str, float],
-    physical_turn: Mapping[str, float],
+    crude_turn: Mapping[str, float],
     *,
     seed: int,
     turn_index: int,
@@ -138,7 +145,7 @@ def _advance_production_policy(
         decision_index = turn_index // decision_interval
         market_target = (
             float(policy["inventory_pressure_response_mbd_per_pct_point"])
-            * float(physical_turn["inventory_supply_pressure_pct"])
+            * float(crude_turn["crude_inventory_supply_pressure_pct"])
         )
         target = clamp(
             persistence * target
@@ -278,7 +285,7 @@ def _advance_us_gulf_cycle(
 
 def advance_regional_balance(
     state: Mapping[str, Mapping[str, float]],
-    physical_turn: Mapping[str, float],
+    crude_turn: Mapping[str, float],
     *,
     seed: int,
     turn_index: int,
@@ -301,17 +308,19 @@ def advance_regional_balance(
         field_prefix="production",
         seed=seed,
         turn_index=turn_index,
+        month=month,
         persistence=float(regional["share_persistence"]),
         news_scale=float(regional["production_share_news_scale"]),
     )
-    refinery_shares = _evolve_shares(
-        state["refinery_shares"],
+    crude_run_shares = _evolve_shares(
+        state["crude_run_shares"],
         regions,
-        field_prefix="refinery",
+        field_prefix="crude_run",
         seed=seed,
         turn_index=turn_index,
+        month=month,
         persistence=float(regional["share_persistence"]),
-        news_scale=float(regional["refinery_share_news_scale"]),
+        news_scale=float(regional["crude_run_share_news_scale"]),
     )
     pipeline = _evolve_pipeline(
         state["pipeline_net_exports_mbd"],
@@ -323,17 +332,17 @@ def advance_regional_balance(
         balancing_region_id=balancing_region_id,
     )
 
-    global_production = float(physical_turn["production_mbd"])
-    global_refinery_demand = float(physical_turn["realized_demand_mbd"])
-    global_inventory_change = float(physical_turn["inventory_change_mmbbl"])
-    days = int(physical_turn["days"])
+    global_production = float(crude_turn["crude_production_mbd"])
+    global_crude_runs = float(crude_turn["crude_refinery_runs_mbd"])
+    global_inventory_change = float(crude_turn["crude_inventory_change_mmbbl"])
+    days = int(crude_turn["days"])
     production = {
         region_id: global_production * share
         for region_id, share in production_shares.items()
     }
-    refinery = {
-        region_id: global_refinery_demand * share
-        for region_id, share in refinery_shares.items()
+    crude_runs = {
+        region_id: global_crude_runs * share
+        for region_id, share in crude_run_shares.items()
     }
     inventory = {
         str(region["region_id"]): global_inventory_change
@@ -353,7 +362,7 @@ def advance_regional_balance(
         )
     production_policy, is_policy_decision_month = _advance_production_policy(
         state["production_policy"],
-        physical_turn,
+        crude_turn,
         seed=seed,
         turn_index=turn_index,
         policy=policy_config,
@@ -409,33 +418,37 @@ def advance_regional_balance(
     ]
     for region_id in known_region_ids:
         production[region_id] += production_cycle_adjustments[region_id]
-        refinery[region_id] += refinery_cycle_adjustments[region_id]
+        crude_runs[region_id] += refinery_cycle_adjustments[region_id]
 
     _apply_zero_sum_impulses(
         production,
-        impulse.get("regional_production_impulse_mbd", {}),
+        impulse.get("regional_crude_production_impulse_mbd", {}),
         known_region_ids=known_region_ids,
-        balancing_region_id=str(regional["production_impulse_balancing_region_id"]),
-        field_name="regional_production_impulse_mbd",
+        balancing_region_id=str(
+            regional["crude_production_impulse_balancing_region_id"]
+        ),
+        field_name="regional_crude_production_impulse_mbd",
     )
     _apply_zero_sum_impulses(
-        refinery,
-        impulse.get("regional_refinery_impulse_mbd", {}),
+        crude_runs,
+        impulse.get("regional_crude_runs_impulse_mbd", {}),
         known_region_ids=known_region_ids,
-        balancing_region_id=str(regional["refinery_impulse_balancing_region_id"]),
-        field_name="regional_refinery_impulse_mbd",
+        balancing_region_id=str(regional["crude_runs_impulse_balancing_region_id"]),
+        field_name="regional_crude_runs_impulse_mbd",
     )
     _apply_zero_sum_impulses(
         inventory,
-        impulse.get("regional_inventory_impulse_mmbbl", {}),
+        impulse.get("regional_crude_inventory_impulse_mmbbl", {}),
         known_region_ids=known_region_ids,
-        balancing_region_id=str(regional["inventory_impulse_balancing_region_id"]),
-        field_name="regional_inventory_impulse_mmbbl",
+        balancing_region_id=str(
+            regional["crude_inventory_impulse_balancing_region_id"]
+        ),
+        field_name="regional_crude_inventory_impulse_mmbbl",
     )
     if any(value < 0.0 for value in production.values()):
         raise ValueError("regional production impulse creates negative production")
-    if any(value < 0.0 for value in refinery.values()):
-        raise ValueError("regional refinery impulse creates negative refinery demand")
+    if any(value < 0.0 for value in crude_runs.values()):
+        raise ValueError("regional crude-run impulse creates negative refinery runs")
 
     balances: list[dict[str, Any]] = []
     for region in regions:
@@ -443,7 +456,7 @@ def advance_regional_balance(
         inventory_change_mbd = inventory[region_id] / days
         net_balance = (
             production[region_id]
-            - refinery[region_id]
+            - crude_runs[region_id]
             - inventory_change_mbd
             - pipeline[region_id]
         )
@@ -451,7 +464,7 @@ def advance_regional_balance(
             {
                 "region_id": region_id,
                 "region_name": str(region["region_name"]),
-                "production_mbd": round(production[region_id], 8),
+                "crude_production_mbd": round(production[region_id], 8),
                 "production_policy_adjustment_mbd": round(
                     policy_adjustments[region_id],
                     8,
@@ -489,7 +502,7 @@ def advance_regional_balance(
                     and region_id
                     in {us_gulf_region_id, us_gulf_production_balancing_id}
                 ),
-                "refinery_demand_mbd": round(refinery[region_id], 8),
+                "crude_refinery_runs_mbd": round(crude_runs[region_id], 8),
                 "refinery_cycle_adjustment_mbd": round(
                     refinery_cycle_adjustments[region_id],
                     8,
@@ -504,9 +517,9 @@ def advance_regional_balance(
                     ),
                     8,
                 ),
-                "inventory_change_mmbbl": round(inventory[region_id], 8),
-                "inventory_change_mbd": round(inventory_change_mbd, 8),
-                "pipeline_net_exports_mbd": round(pipeline[region_id], 8),
+                "crude_inventory_change_mmbbl": round(inventory[region_id], 8),
+                "crude_inventory_change_mbd": round(inventory_change_mbd, 8),
+                "crude_pipeline_net_exports_mbd": round(pipeline[region_id], 8),
                 "net_seaborne_balance_mbd": round(net_balance, 8),
                 "trade_role": "exporter" if net_balance > 0.0 else "importer",
             }
@@ -524,19 +537,19 @@ def advance_regional_balance(
         "regional_balances": balances,
         "regional_export_supply_mbd": round(export_supply, 8),
         "regional_import_requirement_mbd": round(import_requirement, 8),
-        "regional_production_residual_mbd": round(
+        "regional_crude_production_residual_mbd": round(
             sum(production.values()) - global_production,
             8,
         ),
-        "regional_refinery_residual_mbd": round(
-            sum(refinery.values()) - global_refinery_demand,
+        "regional_crude_runs_residual_mbd": round(
+            sum(crude_runs.values()) - global_crude_runs,
             8,
         ),
-        "regional_inventory_residual_mmbbl": round(
+        "regional_crude_inventory_residual_mmbbl": round(
             sum(inventory.values()) - global_inventory_change,
             8,
         ),
-        "regional_pipeline_residual_mbd": round(sum(pipeline.values()), 8),
+        "regional_crude_pipeline_residual_mbd": round(sum(pipeline.values()), 8),
         "regional_net_balance_residual_mbd": round(
             sum(float(region["net_seaborne_balance_mbd"]) for region in balances),
             8,
@@ -544,7 +557,7 @@ def advance_regional_balance(
     }
     next_state = {
         "production_shares": production_shares,
-        "refinery_shares": refinery_shares,
+        "crude_run_shares": crude_run_shares,
         "pipeline_net_exports_mbd": pipeline,
         "production_policy": production_policy,
         "us_gulf_cycle": us_gulf_cycle,

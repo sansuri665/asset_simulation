@@ -115,10 +115,10 @@ function activeDefinition(rows) {
     const selected = regionFor(selectedRow());
     if (state.regionView === "fundamentals") {
       return {
-        eyebrow: "REGIONAL PRODUCTION / DEMAND · MONTHLY", title: `${selected.region_name} · 产量与原油当量需求`, unit: "百万桶/日", digits: 1, zeroBased: true,
+        eyebrow: "REGIONAL CRUDE PRODUCTION / RUNS · MONTHLY", title: `${selected.region_name} · 原油产量与炼厂原油加工`, unit: "百万桶/日", digits: 1, zeroBased: true,
         series: [
-          { label: "原油产量", color: "#41d39a", fill: false, values: rows.map((row) => Number(regionFor(row).production_mbd)) },
-          { label: "原油当量需求", color: "#f3a357", fill: false, values: rows.map((row) => Number(regionFor(row).refinery_demand_mbd)) },
+          { label: "区域原油产量", color: "#41d39a", fill: false, values: rows.map((row) => Number(regionFor(row).crude_production_mbd)) },
+          { label: "炼厂原油加工量", color: "#f3a357", fill: false, values: rows.map((row) => Number(regionFor(row).crude_refinery_runs_mbd)) },
         ],
       };
     }
@@ -206,8 +206,8 @@ function updateChartSelection(localIndex) {
 function renderChain(row) {
   const imbalance = Math.max(Number(row.regional_export_supply_mbd), Number(row.regional_import_requirement_mbd));
   $("shippingChain").innerHTML = [
-    ["01", "全球物理池", fmt(row.production_mbd, 1, " 百万桶/日"), `全球石油需求 ${fmt(row.realized_demand_mbd, 1, " 百万桶/日")}`],
-    ["02", "区域海运差额", fmt(imbalance, 1, " 百万桶/日"), `库存变化 ${signed(row.inventory_change_mmbbl, 1, " 百万桶")}`],
+    ["01", "全球原油物理池", fmt(row.crude_production_mbd, 1, " 百万桶/日"), `炼厂原油加工 ${fmt(row.crude_refinery_runs_mbd, 1, " 百万桶/日")}`],
+    ["02", "区域原油海运差额", fmt(imbalance, 1, " 百万桶/日"), `原油库存变化 ${signed(row.crude_inventory_change_mmbbl, 1, " 百万桶")}`],
     ["03", "航线货量", fmt(row.seaborne_cargo_mbd, 1, " 百万桶/日"), `加权航程 ${fmt(row.average_haul_nm, 0, " 海里")}`],
     ["04", "吨海里需求", fmt(row.annualized_tonne_nautical_miles_billion, 0, " 十亿吨海里/年"), "各航线货量 × 有效航程"],
   ].map(([step, label, value, note], index) => `<div class="shipping-chain-node"><span>${step}</span><div><small>${label}</small><strong>${value}</strong><em>${note}</em></div></div>${index < 3 ? '<i class="shipping-chain-arrow">→</i>' : ""}`).join("");
@@ -220,7 +220,7 @@ function renderRouteList() {
 
 function renderRegionList() {
   if (state.mode !== "regions") return;
-  $("regionList").innerHTML = `<div class="route-row region-row route-row-labels"><span>区域</span><span>角色</span><span>产量</span><span>需求（原油当量）</span><span>管道净出口</span><span>海运净差额</span></div>${selectedRow().regional_balances.map((region) => `<button type="button" class="route-row region-row ${region.region_id === state.selectedRegionId ? "is-selected" : ""}" data-region-id="${region.region_id}"><strong>${region.region_name}</strong><span>${Number(region.net_seaborne_balance_mbd) >= 0 ? "出口区" : "进口区"}</span><span>${fmt(region.production_mbd, 2, " 百万桶/日")}</span><span>${fmt(region.refinery_demand_mbd, 2, " 百万桶/日")}</span><span>${signed(region.pipeline_net_exports_mbd, 2, " 百万桶/日")}</span><em class="${directionClass(region.net_seaborne_balance_mbd)}">${signed(region.net_seaborne_balance_mbd, 2, " 百万桶/日")}</em></button>`).join("")}`;
+  $("regionList").innerHTML = `<div class="route-row region-row route-row-labels"><span>区域</span><span>角色</span><span>原油产量</span><span>炼厂原油加工</span><span>原油管道净出口</span><span>海运净差额</span></div>${selectedRow().regional_balances.map((region) => `<button type="button" class="route-row region-row ${region.region_id === state.selectedRegionId ? "is-selected" : ""}" data-region-id="${region.region_id}"><strong>${region.region_name}</strong><span>${Number(region.net_seaborne_balance_mbd) >= 0 ? "出口区" : "进口区"}</span><span>${fmt(region.crude_production_mbd, 2, " 百万桶/日")}</span><span>${fmt(region.crude_refinery_runs_mbd, 2, " 百万桶/日")}</span><span>${signed(region.crude_pipeline_net_exports_mbd, 2, " 百万桶/日")}</span><em class="${directionClass(region.net_seaborne_balance_mbd)}">${signed(region.net_seaborne_balance_mbd, 2, " 百万桶/日")}</em></button>`).join("")}`;
 }
 
 function updateDetails() {
@@ -236,8 +236,8 @@ function updateDetails() {
     $("detailEyebrow").textContent = "REGIONAL PHYSICAL BALANCE";
     setBadge(exporter ? "海运盈余" : "海运缺口", exporter ? "up" : "down");
     $("focusPrimary").innerHTML = `<span>${region.region_name} · 海运净平衡</span><strong>${signed(region.net_seaborne_balance_mbd, 2, " 百万桶/日")}</strong><small class="${directionClass(change)}">${change == null ? "月度路径起点" : `环比变化 ${signed(change, 2, " 百万桶/日")}`}</small>`;
-    $("focusDetails").innerHTML = [detailItem("原油产量", fmt(region.production_mbd, 2, " 百万桶/日")), detailItem("原油当量需求", fmt(region.refinery_demand_mbd, 2, " 百万桶/日")), detailItem("库存变化", signed(region.inventory_change_mmbbl, 2, " 百万桶")), detailItem("库存日率", signed(region.inventory_change_mbd, 3, " 百万桶/日")), detailItem("管道净出口", signed(region.pipeline_net_exports_mbd, 2, " 百万桶/日")), detailItem("贸易角色", exporter ? "海运出口区" : "海运进口区")].join("");
-    $("detailNote").textContent = "海运净平衡 = 区域产量 − 原油当量需求 − 库存变化（日率）− 管道净出口。当前需求是全球石油需求的区域代理量，并非独立模拟的炼厂原油加工量。";
+    $("focusDetails").innerHTML = [detailItem("原油产量", fmt(region.crude_production_mbd, 2, " 百万桶/日")), detailItem("炼厂原油加工", fmt(region.crude_refinery_runs_mbd, 2, " 百万桶/日")), detailItem("原油库存变化", signed(region.crude_inventory_change_mmbbl, 2, " 百万桶")), detailItem("库存日率", signed(region.crude_inventory_change_mbd, 3, " 百万桶/日")), detailItem("原油管道净出口", signed(region.crude_pipeline_net_exports_mbd, 2, " 百万桶/日")), detailItem("贸易角色", exporter ? "海运出口区" : "海运进口区")].join("");
+    $("detailNote").textContent = "海运净平衡 = 区域原油产量 − 炼厂原油加工量 − 原油库存变化（日率）− 原油管道净出口。所有输入均来自独立 crude-only 物理层。";
     return;
   }
   if (state.mode === "routes") {
@@ -265,7 +265,7 @@ function updateDetails() {
   setBadge(change == null ? "月度起点" : change >= 0 ? "指标上升" : "指标下降", change == null ? "" : change >= 0 ? "up" : "down");
   $("focusPrimary").innerHTML = `<span>${labels[state.metric]}</span><strong>${fmt(value, digits, suffixes[state.metric])}</strong><small class="${directionClass(change)}">${change == null ? "月度路径起点" : `环比 ${signed(change, 2, "%")}`}</small>`;
   $("focusDetails").innerHTML = [detailItem("出口供给", fmt(row.regional_export_supply_mbd, 2, " 百万桶/日")), detailItem("进口需求", fmt(row.regional_import_requirement_mbd, 2, " 百万桶/日")), detailItem("本月货物", fmt(row.cargo_million_tonnes, 2, " 百万吨")), detailItem("平均航程", fmt(row.average_haul_nm, 0, " 海里")), detailItem("年化吨海里", fmt(row.annualized_tonne_nautical_miles_billion, 0, " 十亿吨海里/年")), detailItem("航线网络", `${row.explicit_route_count} 条主要 + 其他池`)].join("");
-  $("detailNote").textContent = "海运货量来自区域物理盈余与缺口，不使用固定海运比例。当前区域需求仍是全球石油需求的原油当量代理，尚未独立模拟炼厂原油加工量。";
+  $("detailNote").textContent = "海运货量来自 crude-only 区域物理盈余与缺口，不使用固定海运比例，也不把全球总液体消费按地区拆成原油进口需求。";
 }
 
 function pointerLocalIndex(event) {

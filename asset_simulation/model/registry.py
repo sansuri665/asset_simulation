@@ -13,10 +13,10 @@ PACKAGE_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_CONFIG_PATH = PACKAGE_ROOT / "config" / "global_macro_v0.8.json"
 FIELD_CONTRACT_PATH = PACKAGE_ROOT / "contracts" / "global_macro_minimum_v3.json"
 OIL_SHIPPING_DEMAND_CONFIG_PATH = (
-    PACKAGE_ROOT / "config" / "oil_shipping_demand_v0.5.json"
+    PACKAGE_ROOT / "config" / "oil_shipping_demand_v0.6.json"
 )
 OIL_SHIPPING_DEMAND_CONTRACT_PATH = (
-    PACKAGE_ROOT / "contracts" / "oil_shipping_demand_v5.json"
+    PACKAGE_ROOT / "contracts" / "oil_shipping_demand_v6.json"
 )
 
 

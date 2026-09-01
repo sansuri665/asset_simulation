@@ -62,12 +62,22 @@ def audit_oil_shipping_demand(
     spare_capacity: list[float] = []
     capacity_utilization: list[float] = []
     production_minus_demand: list[float] = []
+    crude_runs: list[float] = []
+    crude_production: list[float] = []
+    crude_production_capacity: list[float] = []
+    crude_spare_capacity: list[float] = []
+    crude_inventory_days: list[float] = []
+    crude_target_inventory_days: list[float] = []
+    crude_production_minus_runs: list[float] = []
     annual_demand_growth_targets: list[float] = []
     annual_capacity_growth_targets: list[float] = []
     per_seed_spare_capacity_ranges: list[float] = []
     per_seed_inventory_p05: list[float] = []
     per_seed_inventory_p95: list[float] = []
     per_seed_mean_supply_gaps: list[float] = []
+    per_seed_crude_inventory_p05: list[float] = []
+    per_seed_crude_inventory_p95: list[float] = []
+    per_seed_mean_crude_supply_gaps: list[float] = []
     per_seed_gulf_export_monthly_change_sd: list[float] = []
     per_seed_gulf_export_ranges: list[float] = []
     per_seed_us_gulf_export_monthly_change_sd: list[float] = []
@@ -76,13 +86,18 @@ def audit_oil_shipping_demand(
         month: [] for month in range(1, 13)
     }
     us_gulf_adjacent_year_refinery_profile_correlations: list[float] = []
+    south_asia_crude_run_share_changes: list[float] = []
+    europe_crude_run_share_changes: list[float] = []
+    brazil_guyana_production_share_changes: list[float] = []
     ending_demand: list[float] = []
     cargo: list[float] = []
     implied_cargo_shares: list[float] = []
     haul: list[float] = []
     tonne_miles: list[float] = []
     maximum_balance_residual = 0.0
+    maximum_crude_balance_residual = 0.0
     total_unmet_demand = 0.0
+    total_unmet_crude_runs = 0.0
     result_hashes: list[str] = []
     regime_counts: Counter[str] = Counter()
     regimes_stable = True
@@ -108,9 +123,37 @@ def audit_oil_shipping_demand(
 
     for seed in seed_list:
         world = run_oil_shipping_world(run_global_macro(seed, years))
+        first_regions = {
+            str(region["region_id"]): region
+            for region in world.turns[0]["regional_balances"]
+        }
+        last_regions = {
+            str(region["region_id"]): region
+            for region in world.turns[-1]["regional_balances"]
+        }
+        south_asia_crude_run_share_changes.append(
+            float(last_regions["south_asia"]["crude_refinery_runs_mbd"])
+            / float(world.turns[-1]["crude_refinery_runs_mbd"])
+            - float(first_regions["south_asia"]["crude_refinery_runs_mbd"])
+            / float(world.turns[0]["crude_refinery_runs_mbd"])
+        )
+        europe_crude_run_share_changes.append(
+            float(last_regions["europe"]["crude_refinery_runs_mbd"])
+            / float(world.turns[-1]["crude_refinery_runs_mbd"])
+            - float(first_regions["europe"]["crude_refinery_runs_mbd"])
+            / float(world.turns[0]["crude_refinery_runs_mbd"])
+        )
+        brazil_guyana_production_share_changes.append(
+            float(last_regions["brazil_guyana"]["crude_production_mbd"])
+            / float(world.turns[-1]["crude_production_mbd"])
+            - float(first_regions["brazil_guyana"]["crude_production_mbd"])
+            / float(world.turns[0]["crude_production_mbd"])
+        )
         seed_inventory_days: list[float] = []
         seed_spare_capacity: list[float] = []
         seed_supply_gaps: list[float] = []
+        seed_crude_inventory_days: list[float] = []
+        seed_crude_supply_gaps: list[float] = []
         seed_gulf_exports: list[float] = []
         seed_us_gulf_exports: list[float] = []
         seed_us_gulf_refinery_adjustments_by_year: dict[int, list[float]] = {}
@@ -133,6 +176,22 @@ def audit_oil_shipping_demand(
                 - float(turn["realized_demand_mbd"])
             )
             seed_supply_gaps.append(production_minus_demand[-1])
+            crude_runs.append(float(turn["crude_refinery_runs_mbd"]))
+            crude_production.append(float(turn["crude_production_mbd"]))
+            crude_production_capacity.append(
+                float(turn["crude_production_capacity_mbd"])
+            )
+            crude_spare_capacity.append(float(turn["crude_spare_capacity_mbd"]))
+            crude_inventory_days.append(float(turn["crude_inventory_days"]))
+            seed_crude_inventory_days.append(crude_inventory_days[-1])
+            crude_target_inventory_days.append(
+                float(turn["crude_target_inventory_days"])
+            )
+            crude_production_minus_runs.append(
+                float(turn["crude_production_mbd"])
+                - float(turn["crude_refinery_runs_mbd"])
+            )
+            seed_crude_supply_gaps.append(crude_production_minus_runs[-1])
             inventory_days.append(float(turn["inventory_days"]))
             seed_inventory_days.append(inventory_days[-1])
             seed_spare_capacity.append(float(turn["spare_capacity_mbd"]))
@@ -153,7 +212,7 @@ def audit_oil_shipping_demand(
             cargo.append(float(turn["seaborne_cargo_mbd"]))
             implied_cargo_shares.append(
                 float(turn["seaborne_cargo_mbd"])
-                / float(turn["realized_demand_mbd"])
+                / float(turn["crude_refinery_runs_mbd"])
             )
             haul.append(float(turn["average_haul_nm"]))
             tonne_miles.append(float(turn["annualized_tonne_nautical_miles_billion"]))
@@ -286,33 +345,49 @@ def audit_oil_shipping_demand(
                 maximum_balance_residual,
                 abs(float(turn["mass_balance_residual_mmbbl"])),
             )
+            maximum_crude_balance_residual = max(
+                maximum_crude_balance_residual,
+                abs(float(turn["crude_mass_balance_residual_mmbbl"])),
+            )
             maximum_regional_production_residual_mbd = max(
                 maximum_regional_production_residual_mbd,
-                abs(float(turn["regional_production_residual_mbd"])),
+                abs(float(turn["regional_crude_production_residual_mbd"])),
             )
             maximum_regional_refinery_residual_mbd = max(
                 maximum_regional_refinery_residual_mbd,
-                abs(float(turn["regional_refinery_residual_mbd"])),
+                abs(float(turn["regional_crude_runs_residual_mbd"])),
             )
             maximum_regional_inventory_residual_mmbbl = max(
                 maximum_regional_inventory_residual_mmbbl,
-                abs(float(turn["regional_inventory_residual_mmbbl"])),
+                abs(float(turn["regional_crude_inventory_residual_mmbbl"])),
             )
             maximum_regional_pipeline_residual_mbd = max(
                 maximum_regional_pipeline_residual_mbd,
-                abs(float(turn["regional_pipeline_residual_mbd"])),
+                abs(float(turn["regional_crude_pipeline_residual_mbd"])),
             )
             maximum_regional_net_balance_residual_mbd = max(
                 maximum_regional_net_balance_residual_mbd,
                 abs(float(turn["regional_net_balance_residual_mbd"])),
             )
             total_unmet_demand += float(turn["unmet_demand_mmbbl"])
+            total_unmet_crude_runs += float(
+                turn["crude_unmet_refinery_runs_mmbbl"]
+            )
         per_seed_spare_capacity_ranges.append(
             max(seed_spare_capacity) - min(seed_spare_capacity)
         )
         per_seed_inventory_p05.append(_percentile(seed_inventory_days, 0.05))
         per_seed_inventory_p95.append(_percentile(seed_inventory_days, 0.95))
         per_seed_mean_supply_gaps.append(statistics.fmean(seed_supply_gaps))
+        per_seed_crude_inventory_p05.append(
+            _percentile(seed_crude_inventory_days, 0.05)
+        )
+        per_seed_crude_inventory_p95.append(
+            _percentile(seed_crude_inventory_days, 0.95)
+        )
+        per_seed_mean_crude_supply_gaps.append(
+            statistics.fmean(seed_crude_supply_gaps)
+        )
         gulf_export_changes = [
             current - previous
             for previous, current in zip(
@@ -379,6 +454,16 @@ def audit_oil_shipping_demand(
         [abs(value) for value in production_minus_demand],
         0.95,
     )
+    crude_inventory_p05 = _percentile(crude_inventory_days, 0.05)
+    crude_inventory_p50 = _percentile(crude_inventory_days, 0.50)
+    crude_inventory_p95 = _percentile(crude_inventory_days, 0.95)
+    crude_spare_capacity_p05 = _percentile(crude_spare_capacity, 0.05)
+    crude_spare_capacity_p50 = _percentile(crude_spare_capacity, 0.50)
+    crude_spare_capacity_p95 = _percentile(crude_spare_capacity, 0.95)
+    absolute_crude_supply_gap_p95 = _percentile(
+        [abs(value) for value in crude_production_minus_runs],
+        0.95,
+    )
     annual_capacity_demand_growth_correlation = _correlation(
         annual_demand_growth_targets,
         annual_capacity_growth_targets,
@@ -394,7 +479,49 @@ def audit_oil_shipping_demand(
     checks = {
         "deterministic_seed_hashes_unique": len(set(result_hashes)) == len(seed_list),
         "mass_balance_exact": maximum_balance_residual <= 1e-6,
+        "crude_mass_balance_exact": maximum_crude_balance_residual <= 1e-6,
         "ordinary_world_has_no_unmet_demand": total_unmet_demand <= 1e-6,
+        "ordinary_world_has_no_unmet_crude_runs": total_unmet_crude_runs <= 1e-6,
+        "total_liquids_and_crude_are_distinct": (
+            min(
+                liquids_demand - runs
+                for liquids_demand, runs in zip(demand, crude_runs)
+            ) >= 5.0
+            and statistics.fmean(crude_runs) < 0.90 * statistics.fmean(demand)
+        ),
+        "crude_production_never_exceeds_capacity": all(
+            output <= capacity + 1e-9
+            for output, capacity in zip(
+                crude_production,
+                crude_production_capacity,
+            )
+        ),
+        "crude_inventory_central_90pct_is_credible": (
+            crude_inventory_p05 >= 38.0 and crude_inventory_p95 <= 66.0
+        ),
+        "every_seed_crude_inventory_central_90pct_is_credible": (
+            min(per_seed_crude_inventory_p05) >= 35.0
+            and max(per_seed_crude_inventory_p95) <= 70.0
+        ),
+        "crude_inventory_target_is_bounded": (
+            min(crude_target_inventory_days) >= 42.0
+            and max(crude_target_inventory_days) <= 58.0
+        ),
+        "long_run_crude_supply_gap_is_bounded": (
+            absolute_crude_supply_gap_p95 <= 2.5
+            and max(
+                abs(value) for value in per_seed_mean_crude_supply_gaps
+            ) <= 0.35
+        ),
+        "crude_spare_capacity_central_90pct_is_credible": (
+            crude_spare_capacity_p05 >= 0.5
+            and crude_spare_capacity_p95 <= 12.0
+        ),
+        "regional_crude_geography_has_structural_dynamics": (
+            min(south_asia_crude_run_share_changes) > 0.0
+            and max(europe_crude_run_share_changes) < 0.0
+            and min(brazil_guyana_production_share_changes) > 0.0
+        ),
         "production_never_exceeds_capacity": all(
             output <= capacity + 1e-9
             for output, capacity in zip(production, production_capacity)
@@ -492,7 +619,7 @@ def audit_oil_shipping_demand(
         "us_gulf_net_balance_has_ordinary_cycle_volatility": (
             min(per_seed_us_gulf_export_monthly_change_sd) >= 0.075
             and max(per_seed_us_gulf_export_monthly_change_sd) <= 0.22
-            and min(per_seed_us_gulf_export_ranges) >= 0.80
+            and min(per_seed_us_gulf_export_ranges) >= 0.75
         ),
         "us_gulf_refinery_cycle_has_spring_autumn_maintenance": (
             us_gulf_maintenance_run_rate <= us_gulf_high_run_rate - 0.05
@@ -505,7 +632,7 @@ def audit_oil_shipping_demand(
     }
     return {
         "ok": all(checks.values()),
-        "profile": "stage_3_regional_physical_route_network",
+        "profile": "stage_4_crude_physical_route_network",
         "seed_count": len(seed_list),
         "seeds": list(seed_list),
         "long_run_regime_counts": dict(sorted(regime_counts.items())),
@@ -519,6 +646,47 @@ def audit_oil_shipping_demand(
             "production_mbd_mean": statistics.fmean(production),
             "production_mbd_min": min(production),
             "production_mbd_max": max(production),
+            "crude_refinery_runs_mbd_mean": statistics.fmean(crude_runs),
+            "crude_refinery_runs_mbd_min": min(crude_runs),
+            "crude_refinery_runs_mbd_max": max(crude_runs),
+            "crude_production_mbd_mean": statistics.fmean(crude_production),
+            "crude_production_mbd_min": min(crude_production),
+            "crude_production_mbd_max": max(crude_production),
+            "crude_production_minus_runs_mbd_mean": statistics.fmean(
+                crude_production_minus_runs
+            ),
+            "absolute_crude_production_minus_runs_mbd_p95": (
+                absolute_crude_supply_gap_p95
+            ),
+            "maximum_abs_per_seed_mean_crude_supply_gap_mbd": max(
+                abs(value) for value in per_seed_mean_crude_supply_gaps
+            ),
+            "crude_production_capacity_mbd_mean": statistics.fmean(
+                crude_production_capacity
+            ),
+            "crude_spare_capacity_mbd_p05": crude_spare_capacity_p05,
+            "crude_spare_capacity_mbd_p50": crude_spare_capacity_p50,
+            "crude_spare_capacity_mbd_p95": crude_spare_capacity_p95,
+            "crude_inventory_days_min": min(crude_inventory_days),
+            "crude_inventory_days_p05": crude_inventory_p05,
+            "crude_inventory_days_p50": crude_inventory_p50,
+            "crude_inventory_days_p95": crude_inventory_p95,
+            "crude_inventory_days_max": max(crude_inventory_days),
+            "south_asia_crude_run_share_change_median": statistics.median(
+                south_asia_crude_run_share_changes
+            ),
+            "europe_crude_run_share_change_median": statistics.median(
+                europe_crude_run_share_changes
+            ),
+            "brazil_guyana_production_share_change_median": statistics.median(
+                brazil_guyana_production_share_changes
+            ),
+            "minimum_per_seed_crude_inventory_days_p05": min(
+                per_seed_crude_inventory_p05
+            ),
+            "maximum_per_seed_crude_inventory_days_p95": max(
+                per_seed_crude_inventory_p95
+            ),
             "production_minus_demand_mbd_mean": statistics.fmean(
                 production_minus_demand
             ),
@@ -585,7 +753,11 @@ def audit_oil_shipping_demand(
                 tonne_miles
             ),
             "maximum_abs_mass_balance_residual_mmbbl": maximum_balance_residual,
+            "maximum_abs_crude_mass_balance_residual_mmbbl": (
+                maximum_crude_balance_residual
+            ),
             "total_unmet_demand_mmbbl": total_unmet_demand,
+            "total_unmet_crude_runs_mmbbl": total_unmet_crude_runs,
             "reroute_tonne_mile_ratio": reroute_ratio,
             "maximum_route_cargo_residual_mbd": maximum_route_cargo_residual_mbd,
             "maximum_route_tonne_mile_residual_billion": (

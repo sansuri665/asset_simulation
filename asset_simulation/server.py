@@ -149,7 +149,7 @@ class AssetSimulationHandler(BaseHTTPRequestHandler):
                     {
                         "ok": True,
                         "serviceId": SERVICE_ID,
-                        "status": "stage_3_regional_physical_route_network",
+                        "status": "stage_4_crude_physical_route_network",
                         "viewerAvailable": True,
                         "endpoints": [
                             "/api/health",

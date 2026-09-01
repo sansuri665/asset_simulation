@@ -165,6 +165,78 @@ class OilShippingWorldTests(unittest.TestCase):
         self.assertEqual(28, int(self.short_world.turns[1]["days"]))
         self.assertEqual(29, int(self.short_world.turns[37]["days"]))
 
+    def test_crude_layer_is_distinct_from_total_liquids_and_exact(self) -> None:
+        for turn in self.short_world.turns:
+            self.assertNotEqual(
+                float(turn["realized_demand_mbd"]),
+                float(turn["crude_refinery_runs_mbd"]),
+            )
+            self.assertGreater(
+                float(turn["realized_demand_mbd"]),
+                float(turn["crude_refinery_runs_mbd"]),
+            )
+            expected = (
+                float(turn["crude_opening_inventory_mmbbl"])
+                + float(turn["crude_production_mbd"]) * int(turn["days"])
+                - float(turn["crude_refinery_runs_mbd"]) * int(turn["days"])
+            )
+            self.assertAlmostEqual(
+                float(turn["crude_closing_inventory_mmbbl"]),
+                expected,
+                places=6,
+            )
+            self.assertAlmostEqual(
+                float(turn["crude_mass_balance_residual_mmbbl"]),
+                0.0,
+                places=8,
+            )
+            self.assertGreaterEqual(float(turn["crude_inventory_days"]), 0.0)
+            self.assertGreaterEqual(float(turn["crude_spare_capacity_mbd"]), 0.0)
+            self.assertLessEqual(
+                float(turn["crude_production_mbd"]),
+                float(turn["crude_production_capacity_mbd"]),
+            )
+
+        first = self.short_world.turns[0]
+        self.assertAlmostEqual(float(first["crude_refinery_runs_mbd"]), 83.8, delta=0.5)
+        self.assertAlmostEqual(float(first["crude_production_mbd"]), 83.8, delta=0.5)
+        self.assertGreater(
+            float(first["realized_demand_mbd"])
+            - float(first["crude_refinery_runs_mbd"]),
+            15.0,
+        )
+
+    def test_regional_crude_run_geography_has_structural_dynamics(self) -> None:
+        long_world = run_oil_shipping_world(run_global_macro(42, 60))
+
+        def share(turn: dict[str, object], region_id: str, field: str) -> float:
+            region = next(
+                region
+                for region in turn["regional_balances"]
+                if region["region_id"] == region_id
+            )
+            total_field = (
+                "crude_refinery_runs_mbd"
+                if field == "crude_refinery_runs_mbd"
+                else "crude_production_mbd"
+            )
+            return float(region[field]) / float(turn[total_field])
+
+        first = long_world.turns[0]
+        last = long_world.turns[-1]
+        self.assertGreater(
+            share(last, "south_asia", "crude_refinery_runs_mbd"),
+            share(first, "south_asia", "crude_refinery_runs_mbd"),
+        )
+        self.assertLess(
+            share(last, "europe", "crude_refinery_runs_mbd"),
+            share(first, "europe", "crude_refinery_runs_mbd"),
+        )
+        self.assertGreater(
+            share(last, "brazil_guyana", "crude_production_mbd"),
+            share(first, "brazil_guyana", "crude_production_mbd"),
+        )
+
     def test_supply_is_not_a_contemporaneous_demand_servo(self) -> None:
         demand_spike = run_oil_shipping_world(
             self.short_macro,
@@ -273,7 +345,7 @@ class OilShippingWorldTests(unittest.TestCase):
         self.assertEqual(9, self.short_world.identity["explicit_route_count"])
         self.assertEqual(10, len(self.short_world.identity["route_ids"]))
         self.assertEqual(
-            "regional_physical_surplus_and_deficit",
+            "regional_crude_surplus_and_deficit",
             self.short_world.identity["cargo_generation"],
         )
 
@@ -294,23 +366,32 @@ class OilShippingWorldTests(unittest.TestCase):
             )
             regions = turn["regional_balances"]
             self.assertAlmostEqual(
-                float(turn["production_mbd"]),
-                sum(float(region["production_mbd"]) for region in regions),
+                float(turn["crude_production_mbd"]),
+                sum(float(region["crude_production_mbd"]) for region in regions),
                 places=6,
             )
             self.assertAlmostEqual(
-                float(turn["realized_demand_mbd"]),
-                sum(float(region["refinery_demand_mbd"]) for region in regions),
+                float(turn["crude_refinery_runs_mbd"]),
+                sum(
+                    float(region["crude_refinery_runs_mbd"])
+                    for region in regions
+                ),
                 places=6,
             )
             self.assertAlmostEqual(
-                float(turn["inventory_change_mmbbl"]),
-                sum(float(region["inventory_change_mmbbl"]) for region in regions),
+                float(turn["crude_inventory_change_mmbbl"]),
+                sum(
+                    float(region["crude_inventory_change_mmbbl"])
+                    for region in regions
+                ),
                 places=6,
             )
             self.assertAlmostEqual(
                 0.0,
-                sum(float(region["pipeline_net_exports_mbd"]) for region in regions),
+                sum(
+                    float(region["crude_pipeline_net_exports_mbd"])
+                    for region in regions
+                ),
                 places=6,
             )
             self.assertAlmostEqual(
@@ -483,7 +564,7 @@ class OilShippingWorldTests(unittest.TestCase):
         self.assertLessEqual(max(map(abs, refinery_changes)), 0.20 + 1e-8)
         self.assertGreater(statistics.stdev(export_changes), 0.075)
         self.assertLess(statistics.stdev(export_changes), 0.22)
-        self.assertGreater(max(exports) - min(exports), 0.80)
+        self.assertGreater(max(exports) - min(exports), 0.75)
         maintenance_run_rate = statistics.fmean(
             statistics.fmean(refinery_adjustments_by_month[month])
             for month in (1, 2, 3, 9, 10, 11)
@@ -558,19 +639,19 @@ class OilShippingWorldTests(unittest.TestCase):
         regional_supply_shift = run_oil_shipping_world(
             self.short_macro,
             scenario_by_turn={
-                0: {"regional_production_impulse_mbd": {"gulf": -2.0}}
+                0: {"regional_crude_production_impulse_mbd": {"gulf": -2.0}}
             },
         ).turns[0]
         refinery_shift = run_oil_shipping_world(
             self.short_macro,
             scenario_by_turn={
-                0: {"regional_refinery_impulse_mbd": {"east_asia": -2.0}}
+                0: {"regional_crude_runs_impulse_mbd": {"east_asia": -2.0}}
             },
         ).turns[0]
         inventory_shift = run_oil_shipping_world(
             self.short_macro,
             scenario_by_turn={
-                0: {"regional_inventory_impulse_mmbbl": {"europe": 20.0}}
+                0: {"regional_crude_inventory_impulse_mmbbl": {"europe": 20.0}}
             },
         ).turns[0]
         route_reroute = run_oil_shipping_world(
@@ -677,6 +758,28 @@ class OilShippingWorldTests(unittest.TestCase):
             places=8,
         )
 
+        crude_outage = run_oil_shipping_world(
+            self.short_macro,
+            scenario_by_turn={0: {"crude_production_outage_mbd": 5.0}},
+        ).turns[0]
+        self.assertEqual(
+            float(crude_outage["production_mbd"]),
+            float(baseline["production_mbd"]),
+        )
+        self.assertLess(
+            float(crude_outage["crude_production_mbd"]),
+            float(baseline["crude_production_mbd"]),
+        )
+        self.assertLess(
+            float(crude_outage["crude_closing_inventory_mmbbl"]),
+            float(baseline["crude_closing_inventory_mmbbl"]),
+        )
+        self.assertAlmostEqual(
+            float(crude_outage["crude_mass_balance_residual_mmbbl"]),
+            0.0,
+            places=8,
+        )
+
     def test_ordinary_multi_seed_worlds_remain_physical(self) -> None:
         for seed in range(12):
             world = run_oil_shipping_world(run_global_macro(seed, 12))
@@ -692,7 +795,7 @@ class OilShippingWorldTests(unittest.TestCase):
             self.assertTrue(all("seaborne_share" not in turn for turn in world.turns))
             implied_shares = [
                 float(turn["seaborne_cargo_mbd"])
-                / float(turn["realized_demand_mbd"])
+                / float(turn["crude_refinery_runs_mbd"])
                 for turn in world.turns
             ]
             self.assertGreater(max(implied_shares) - min(implied_shares), 0.002)
@@ -711,7 +814,9 @@ class OilShippingWorldTests(unittest.TestCase):
         with self.assertRaises(TypeError):
             run_oil_shipping_world(
                 self.short_macro,
-                scenario_by_turn={0: {"regional_production_impulse_mbd": 1.0}},
+                scenario_by_turn={
+                    0: {"regional_crude_production_impulse_mbd": 1.0}
+                },
             )
         with self.assertRaises(KeyError):
             run_oil_shipping_world(

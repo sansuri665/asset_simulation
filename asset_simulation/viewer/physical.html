@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Asset Simulation · 原油物理平衡</title>
+  <title>Asset Simulation · 全球总液体物理平衡</title>
   <link rel="stylesheet" href="/static/css/viewer.css">
 </head>
 <body>
@@ -11,12 +11,12 @@
     <header class="topbar">
       <div class="brand-block">
         <span class="brand-mark">AS</span>
-        <div><h1>Asset Simulation</h1><p>全球原油物理市场</p></div>
+        <div><h1>Asset Simulation</h1><p>全球石油与其他液体宏观物理市场</p></div>
       </div>
 
       <nav class="page-nav" aria-label="页面">
         <a id="overviewLink" href="/?seed=42&years=60">宏观与原油</a>
-        <a href="/physical?seed=42&years=60" aria-current="page">原油物理平衡</a>
+        <a href="/physical?seed=42&years=60" aria-current="page">总液体物理平衡</a>
         <a id="shippingLink" href="/shipping?seed=42&years=60">原油海运</a>
       </nav>
 
@@ -30,8 +30,8 @@
     <main class="overview-main single-chart-main">
       <section class="overview-hero compact-hero">
         <span class="eyebrow accent">GLOBAL PHYSICAL OIL</span>
-        <h2>原油物理平衡</h2>
-        <p>需求、生产与库存逐月守恒；产能余量决定供给侧是否紧张。图表展示的是同一全球原油池中的真实物理数量。</p>
+        <h2>全球总液体物理平衡</h2>
+        <p>石油与其他液体的需求、生产与库存逐月守恒；本页是宏观能源池，不等于供炼厂加工并进入原油轮贸易的 crude-only 物理层。</p>
       </section>
 
       <nav id="mainModeNav" class="main-mode-nav" aria-label="物理平衡指标">
@@ -45,11 +45,11 @@
           <header class="panel-head focus-panel-head">
             <div>
               <span id="chartEyebrow" class="eyebrow">PHYSICAL BALANCE · MONTHLY</span>
-              <h3 id="chartTitle">全球原油供需</h3>
+              <h3 id="chartTitle">全球总液体供需</h3>
             </div>
             <span id="interactionHint" class="interaction-hint">按住图表左右拖动；移动鼠标查看月份</span>
           </header>
-          <div id="focusChart" class="focus-chart is-pannable" role="img" aria-label="可交互原油物理平衡时间序列"></div>
+          <div id="focusChart" class="focus-chart is-pannable" role="img" aria-label="可交互全球总液体物理平衡时间序列"></div>
           <div class="focus-chart-footer">
             <div id="focusLegend" class="chart-legend"></div>
             <span id="windowLabel" class="window-label"></span>

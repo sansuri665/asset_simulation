@@ -16,7 +16,7 @@
 
       <nav class="page-nav" aria-label="页面">
         <a id="overviewLink" href="/?seed=42&years=60">宏观与原油</a>
-        <a id="physicalLink" href="/physical?seed=42&years=60">原油物理平衡</a>
+        <a id="physicalLink" href="/physical?seed=42&years=60">总液体物理平衡</a>
         <a href="/shipping?seed=42&years=60" aria-current="page">原油海运</a>
       </nav>
 
@@ -31,7 +31,7 @@
       <section class="overview-hero compact-hero">
         <span class="eyebrow accent">REGIONAL CRUDE BALANCE</span>
         <h2>原油海运</h2>
-        <p>全球产量、炼化需求、库存变化与管道流向先形成各区域的海运盈余或缺口，再由受约束的航线网络结算为货量、航程与吨海里需求。</p>
+        <p>独立的全球原油产量、炼厂原油加工、原油库存与管道流向先形成各区域海运盈余或缺口，再由受约束的航线网络结算为货量、航程与吨海里需求。</p>
       </section>
 
       <section id="shippingChain" class="shipping-chain" aria-label="原油海运因果链"></section>
@@ -52,7 +52,7 @@
 
       <section id="regionBoard" class="route-board panel" hidden>
         <header class="panel-head route-board-head">
-          <div><span class="eyebrow">REGIONAL PHYSICAL BALANCE</span><h3>区域产量、原油当量需求与海运差额</h3></div>
+          <div><span class="eyebrow">REGIONAL CRUDE BALANCE</span><h3>区域原油产量、炼厂原油加工与海运差额</h3></div>
           <span>点击一行查看该区域的月度历史</span>
         </header>
         <div id="regionList" class="route-list"></div>
@@ -74,7 +74,7 @@
               </nav>
               <nav id="regionViewNav" class="chart-tabs" aria-label="区域指标" hidden>
                 <button type="button" data-region-view="balance" aria-pressed="true">海运平衡</button>
-                <button type="button" data-region-view="fundamentals" aria-pressed="false">产量／需求</button>
+                <button type="button" data-region-view="fundamentals" aria-pressed="false">原油产量／加工</button>
               </nav>
             </div>
           </header>

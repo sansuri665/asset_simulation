@@ -104,7 +104,7 @@ async function getJson(url) {
 
 async function loadWorld() {
   syncControls();
-  $("statusText").textContent = "正在生成月度原油物理世界…";
+  $("statusText").textContent = "正在生成月度总液体物理世界…";
   try {
     const endYear = 2025 + state.years;
     state.payload = await getJson(`/api/oil-shipping?seed=${state.seed}&years=${state.years}&year=${endYear}&month=12`);
@@ -142,8 +142,8 @@ function activeDefinition(rows) {
       eyebrow: "PRODUCTION CAPACITY · MONTHLY",
       title: "全球原油产能与利用",
       series: [
-        { label: "生产能力", color: "#67a8ff", values: rows.map((row) => Number(row.production_capacity_mbd)) },
-        { label: "实际产量", color: "#f3a357", values: rows.map((row) => Number(row.production_mbd)) },
+        { label: "总液体生产能力", color: "#67a8ff", values: rows.map((row) => Number(row.production_capacity_mbd)) },
+        { label: "总液体实际产量", color: "#f3a357", values: rows.map((row) => Number(row.production_mbd)) },
       ],
       digits: 0,
     };
@@ -152,8 +152,8 @@ function activeDefinition(rows) {
     eyebrow: "SUPPLY & DEMAND · MONTHLY",
     title: "全球原油供需",
     series: [
-      { label: "实际需求", color: "#53d4dd", values: rows.map((row) => Number(row.realized_demand_mbd)) },
-      { label: "实际产量", color: "#f3a357", values: rows.map((row) => Number(row.production_mbd)) },
+      { label: "总液体实际需求", color: "#53d4dd", values: rows.map((row) => Number(row.realized_demand_mbd)) },
+      { label: "总液体实际产量", color: "#f3a357", values: rows.map((row) => Number(row.production_mbd)) },
     ],
     digits: 0,
   };
@@ -238,7 +238,7 @@ function updateDetails() {
       detailItem("期末库存", fmt(row.closing_inventory_mmbbl, 1, " 百万桶")),
       detailItem("库存变化", signed(change, 2, " 百万桶"), directionClass(change)),
       detailItem("动态目标", fmt(row.target_inventory_days, 1, " 天")),
-      detailItem("实际需求", fmt(row.realized_demand_mbd, 2, " mbd")),
+      detailItem("总液体实际需求", fmt(row.realized_demand_mbd, 2, " mbd")),
       detailItem("质量残差", fmt(row.mass_balance_residual_mmbbl, 6, " 百万桶")),
     ].join("");
     $("detailNote").textContent = "期末库存严格等于期初库存加生产、减消费；虚线目标会随库存偏好缓慢漂移，不再固定在58天。";
@@ -250,8 +250,8 @@ function updateDetails() {
     setBadge(spare < 2 ? "产能紧张" : spare < 4 ? "余量偏低" : "余量充足", spare < 2 ? "down" : spare >= 4 ? "up" : "");
     $("focusPrimary").innerHTML = `<span>剩余产能</span><strong>${fmt(spare, 2, " mbd")}</strong><small>产能利用率 ${fmt(utilization, 1, "%")}</small>`;
     $("focusDetails").innerHTML = [
-      detailItem("生产能力", fmt(row.production_capacity_mbd, 2, " mbd")),
-      detailItem("实际产量", fmt(row.production_mbd, 2, " mbd")),
+      detailItem("总液体生产能力", fmt(row.production_capacity_mbd, 2, " mbd")),
+      detailItem("总液体实际产量", fmt(row.production_mbd, 2, " mbd")),
       detailItem("停产冲击", fmt(row.production_outage_mbd, 2, " mbd"), Number(row.production_outage_mbd) ? "negative" : ""),
       detailItem("产能增速目标", signed(row.annual_capacity_growth_target_pct, 2, "%"), directionClass(row.annual_capacity_growth_target_pct)),
       detailItem("需求增速目标", signed(row.annual_demand_growth_target_pct, 2, "%"), directionClass(row.annual_demand_growth_target_pct)),
@@ -262,10 +262,10 @@ function updateDetails() {
   }
   const gap = Number(row.production_mbd) - Number(row.realized_demand_mbd);
   setBadge(gap > .02 ? "产量高于需求" : gap < -.02 ? "需求高于产量" : "供需接近", gap > .02 ? "up" : gap < -.02 ? "down" : "");
-  $("focusPrimary").innerHTML = `<span>实际原油需求</span><strong>${fmt(row.realized_demand_mbd, 2, " mbd")}</strong><small class="${directionClass(gap)}">产量差 ${signed(gap, 2, " mbd")}</small>`;
+  $("focusPrimary").innerHTML = `<span>总液体实际需求</span><strong>${fmt(row.realized_demand_mbd, 2, " mbd")}</strong><small class="${directionClass(gap)}">总液体产量差 ${signed(gap, 2, " mbd")}</small>`;
   $("focusDetails").innerHTML = [
-    detailItem("实际产量", fmt(row.production_mbd, 2, " mbd")),
-    detailItem("期望需求", fmt(row.desired_demand_mbd, 2, " mbd")),
+    detailItem("总液体实际产量", fmt(row.production_mbd, 2, " mbd")),
+    detailItem("总液体期望需求", fmt(row.desired_demand_mbd, 2, " mbd")),
     detailItem("库存变化", signed(row.inventory_change_mmbbl, 2, " 百万桶"), directionClass(row.inventory_change_mmbbl)),
     detailItem("未满足需求", fmt(row.unmet_demand_mmbbl, 2, " 百万桶"), Number(row.unmet_demand_mmbbl) ? "negative" : ""),
     detailItem("需求季节项", signed(row.demand_seasonal_pct, 2, "%"), directionClass(row.demand_seasonal_pct)),
