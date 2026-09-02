@@ -82,10 +82,50 @@ def audit_oil_shipping_demand(
     per_seed_gulf_export_ranges: list[float] = []
     per_seed_us_gulf_export_monthly_change_sd: list[float] = []
     per_seed_us_gulf_export_ranges: list[float] = []
+    per_seed_other_export_monthly_change_sd: list[float] = []
+    per_seed_other_export_ranges: list[float] = []
+    per_seed_other_export_overlay_correlation: list[float] = []
+    per_seed_other_export_gulf_correlation: list[float] = []
+    per_seed_east_asia_import_monthly_change_sd: list[float] = []
+    per_seed_east_asia_import_ranges: list[float] = []
+    per_seed_east_asia_overlay_correlation: list[float] = []
+    per_seed_south_asia_import_monthly_change_sd: list[float] = []
+    per_seed_south_asia_import_ranges: list[float] = []
+    per_seed_south_asia_overlay_correlation: list[float] = []
+    per_seed_europe_import_monthly_change_sd: list[float] = []
+    per_seed_europe_import_ranges: list[float] = []
+    per_seed_europe_overlay_correlation: list[float] = []
+    per_seed_north_america_import_monthly_change_sd: list[float] = []
+    per_seed_north_america_import_ranges: list[float] = []
+    per_seed_north_america_import_overlay_correlation: list[float] = []
+    per_seed_rest_of_world_import_monthly_change_sd: list[float] = []
+    per_seed_rest_of_world_import_ranges: list[float] = []
+    per_seed_rest_of_world_overlay_correlation: list[float] = []
+    per_seed_rest_of_world_us_gulf_correlation: list[float] = []
     us_gulf_refinery_adjustments_by_month: dict[int, list[float]] = {
         month: [] for month in range(1, 13)
     }
     us_gulf_adjacent_year_refinery_profile_correlations: list[float] = []
+    east_asia_refinery_adjustments_by_month: dict[int, list[float]] = {
+        month: [] for month in range(1, 13)
+    }
+    east_asia_adjacent_year_refinery_profile_correlations: list[float] = []
+    south_asia_refinery_adjustments_by_month: dict[int, list[float]] = {
+        month: [] for month in range(1, 13)
+    }
+    south_asia_adjacent_year_refinery_profile_correlations: list[float] = []
+    europe_refinery_adjustments_by_month: dict[int, list[float]] = {
+        month: [] for month in range(1, 13)
+    }
+    europe_adjacent_year_refinery_profile_correlations: list[float] = []
+    north_america_import_refinery_adjustments_by_month: dict[int, list[float]] = {
+        month: [] for month in range(1, 13)
+    }
+    north_america_import_adjacent_year_refinery_profile_correlations: list[float] = []
+    rest_of_world_own_refinery_adjustments_by_month: dict[int, list[float]] = {
+        month: [] for month in range(1, 13)
+    }
+    rest_of_world_adjacent_year_refinery_profile_correlations: list[float] = []
     south_asia_crude_run_share_changes: list[float] = []
     europe_crude_run_share_changes: list[float] = []
     brazil_guyana_production_share_changes: list[float] = []
@@ -110,19 +150,52 @@ def audit_oil_shipping_demand(
     maximum_regional_inventory_residual_mmbbl = 0.0
     maximum_regional_pipeline_residual_mbd = 0.0
     maximum_regional_net_balance_residual_mbd = 0.0
-    maximum_production_policy_residual_mbd = 0.0
+    maximum_production_conservation_residual_mbd = 0.0
     maximum_gulf_policy_target_mbd = 0.0
     maximum_gulf_policy_monthly_adjustment_mbd = 0.0
-    maximum_us_gulf_production_cycle_residual_mbd = 0.0
     maximum_us_gulf_refinery_cycle_residual_mbd = 0.0
+    maximum_refinery_conservation_residual_mbd = 0.0
+    maximum_east_asia_refinery_target_mbd = 0.0
+    maximum_east_asia_refinery_monthly_adjustment_mbd = 0.0
+    east_asia_always_importer = True
+    maximum_south_asia_refinery_target_mbd = 0.0
+    maximum_south_asia_refinery_monthly_adjustment_mbd = 0.0
+    south_asia_always_importer = True
+    maximum_europe_refinery_target_mbd = 0.0
+    maximum_europe_refinery_monthly_adjustment_mbd = 0.0
+    europe_always_importer = True
+    maximum_north_america_import_refinery_target_mbd = 0.0
+    maximum_north_america_import_refinery_monthly_adjustment_mbd = 0.0
+    north_america_import_always_importer = True
+    maximum_rest_of_world_refinery_target_mbd = 0.0
+    maximum_rest_of_world_refinery_monthly_adjustment_mbd = 0.0
+    rest_of_world_always_importer = True
     maximum_us_gulf_production_target_mbd = 0.0
     maximum_us_gulf_refinery_target_mbd = 0.0
     maximum_us_gulf_production_monthly_adjustment_mbd = 0.0
     maximum_us_gulf_refinery_monthly_adjustment_mbd = 0.0
     route_ids: set[str] = set()
 
+    def allocated_share(
+        regions: dict[str, dict[str, object]],
+        region_id: str,
+        field: str,
+        total: float,
+    ) -> float:
+        region = regions[region_id]
+        allocated = float(region[field])
+        if field == "crude_production_mbd":
+            allocated -= float(region["production_policy_adjustment_mbd"])
+            allocated -= float(region["production_cycle_adjustment_mbd"])
+            allocated -= float(region["conservation_adjustment_mbd"])
+        if field == "crude_refinery_runs_mbd":
+            allocated -= float(region["refinery_cycle_adjustment_mbd"])
+            allocated -= float(region["refinery_conservation_adjustment_mbd"])
+        return allocated / float(total)
+
     for seed in seed_list:
         world = run_oil_shipping_world(run_global_macro(seed, years))
+
         first_regions = {
             str(region["region_id"]): region
             for region in world.turns[0]["regional_balances"]
@@ -132,22 +205,46 @@ def audit_oil_shipping_demand(
             for region in world.turns[-1]["regional_balances"]
         }
         south_asia_crude_run_share_changes.append(
-            float(last_regions["south_asia"]["crude_refinery_runs_mbd"])
-            / float(world.turns[-1]["crude_refinery_runs_mbd"])
-            - float(first_regions["south_asia"]["crude_refinery_runs_mbd"])
-            / float(world.turns[0]["crude_refinery_runs_mbd"])
+            allocated_share(
+                last_regions,
+                "south_asia",
+                "crude_refinery_runs_mbd",
+                world.turns[-1]["crude_refinery_runs_mbd"],
+            )
+            - allocated_share(
+                first_regions,
+                "south_asia",
+                "crude_refinery_runs_mbd",
+                world.turns[0]["crude_refinery_runs_mbd"],
+            )
         )
         europe_crude_run_share_changes.append(
-            float(last_regions["europe"]["crude_refinery_runs_mbd"])
-            / float(world.turns[-1]["crude_refinery_runs_mbd"])
-            - float(first_regions["europe"]["crude_refinery_runs_mbd"])
-            / float(world.turns[0]["crude_refinery_runs_mbd"])
+            allocated_share(
+                last_regions,
+                "europe",
+                "crude_refinery_runs_mbd",
+                world.turns[-1]["crude_refinery_runs_mbd"],
+            )
+            - allocated_share(
+                first_regions,
+                "europe",
+                "crude_refinery_runs_mbd",
+                world.turns[0]["crude_refinery_runs_mbd"],
+            )
         )
         brazil_guyana_production_share_changes.append(
-            float(last_regions["brazil_guyana"]["crude_production_mbd"])
-            / float(world.turns[-1]["crude_production_mbd"])
-            - float(first_regions["brazil_guyana"]["crude_production_mbd"])
-            / float(world.turns[0]["crude_production_mbd"])
+            allocated_share(
+                last_regions,
+                "brazil_guyana",
+                "crude_production_mbd",
+                world.turns[-1]["crude_production_mbd"],
+            )
+            - allocated_share(
+                first_regions,
+                "brazil_guyana",
+                "crude_production_mbd",
+                world.turns[0]["crude_production_mbd"],
+            )
         )
         seed_inventory_days: list[float] = []
         seed_spare_capacity: list[float] = []
@@ -156,10 +253,34 @@ def audit_oil_shipping_demand(
         seed_crude_supply_gaps: list[float] = []
         seed_gulf_exports: list[float] = []
         seed_us_gulf_exports: list[float] = []
+        seed_other_export_exports: list[float] = []
+        seed_other_export_overlay: list[float] = []
+        seed_east_asia_imports: list[float] = []
+        seed_east_asia_overlay: list[float] = []
+        seed_south_asia_imports: list[float] = []
+        seed_south_asia_overlay: list[float] = []
+        seed_europe_imports: list[float] = []
+        seed_europe_overlay: list[float] = []
+        seed_north_america_imports: list[float] = []
+        seed_north_america_overlay: list[float] = []
+        seed_rest_of_world_imports: list[float] = []
+        seed_rest_of_world_overlay: list[float] = []
+        seed_rest_of_world_own_refinery: list[float] = []
+        seed_us_gulf_refinery: list[float] = []
         seed_us_gulf_refinery_adjustments_by_year: dict[int, list[float]] = {}
+        seed_east_asia_refinery_adjustments_by_year: dict[int, list[float]] = {}
+        seed_south_asia_refinery_adjustments_by_year: dict[int, list[float]] = {}
+        seed_europe_refinery_adjustments_by_year: dict[int, list[float]] = {}
+        seed_north_america_refinery_adjustments_by_year: dict[int, list[float]] = {}
+        seed_rest_of_world_own_refinery_adjustments_by_year: dict[int, list[float]] = {}
         previous_gulf_policy_adjustment: float | None = None
         previous_us_gulf_production_adjustment: float | None = None
         previous_us_gulf_refinery_adjustment: float | None = None
+        previous_east_asia_refinery_adjustment: float | None = None
+        previous_south_asia_refinery_adjustment: float | None = None
+        previous_europe_refinery_adjustment: float | None = None
+        previous_north_america_refinery_adjustment: float | None = None
+        previous_rest_of_world_own_refinery_adjustment: float | None = None
         result_hashes.append(str(world.identity["result_hash"]))
         regime = str(world.identity["long_run_demand_regime"])
         regime_counts[regime] += 1
@@ -223,10 +344,65 @@ def audit_oil_shipping_demand(
             }
             gulf = regions_by_id["gulf"]
             us_gulf = regions_by_id["us_gulf"]
+            other_export = regions_by_id["other_export_regions"]
+            east_asia = regions_by_id["east_asia"]
+            south_asia = regions_by_id["south_asia"]
+            europe = regions_by_id["europe"]
+            north_america = regions_by_id["north_america_import"]
+            rest_of_world = regions_by_id["rest_of_world"]
             seed_gulf_exports.append(float(gulf["net_seaborne_balance_mbd"]))
             seed_us_gulf_exports.append(
                 float(us_gulf["net_seaborne_balance_mbd"])
             )
+            seed_other_export_exports.append(
+                float(other_export["net_seaborne_balance_mbd"])
+            )
+            seed_east_asia_imports.append(
+                -float(east_asia["net_seaborne_balance_mbd"])
+            )
+            seed_south_asia_imports.append(
+                -float(south_asia["net_seaborne_balance_mbd"])
+            )
+            seed_europe_imports.append(
+                -float(europe["net_seaborne_balance_mbd"])
+            )
+            seed_north_america_imports.append(
+                -float(north_america["net_seaborne_balance_mbd"])
+            )
+            seed_rest_of_world_imports.append(
+                -float(rest_of_world["net_seaborne_balance_mbd"])
+            )
+            east_asia_always_importer = east_asia_always_importer and (
+                float(east_asia["net_seaborne_balance_mbd"]) < 0.0
+            )
+            south_asia_always_importer = south_asia_always_importer and (
+                float(south_asia["net_seaborne_balance_mbd"]) < 0.0
+            )
+            europe_always_importer = europe_always_importer and (
+                float(europe["net_seaborne_balance_mbd"]) < 0.0
+            )
+            north_america_import_always_importer = (
+                north_america_import_always_importer
+                and float(north_america["net_seaborne_balance_mbd"]) < 0.0
+            )
+            rest_of_world_always_importer = rest_of_world_always_importer and (
+                float(rest_of_world["net_seaborne_balance_mbd"]) < 0.0
+            )
+            seed_other_export_overlay.append(
+                -float(gulf["production_policy_adjustment_mbd"])
+                - float(us_gulf["production_cycle_adjustment_mbd"])
+                - float(
+                    regions_by_id["brazil_guyana"]["production_cycle_adjustment_mbd"]
+                )
+                - float(
+                    regions_by_id["west_africa"]["production_cycle_adjustment_mbd"]
+                )
+            )
+            seed_east_asia_overlay.append(seed_other_export_overlay[-1])
+            seed_south_asia_overlay.append(seed_other_export_overlay[-1])
+            seed_europe_overlay.append(seed_other_export_overlay[-1])
+            seed_north_america_overlay.append(seed_other_export_overlay[-1])
+            seed_rest_of_world_overlay.append(seed_other_export_overlay[-1])
             gulf_policy_adjustment = float(
                 gulf["production_policy_adjustment_mbd"]
             )
@@ -240,11 +416,16 @@ def audit_oil_shipping_demand(
                     abs(gulf_policy_adjustment - previous_gulf_policy_adjustment),
                 )
             previous_gulf_policy_adjustment = gulf_policy_adjustment
-            maximum_production_policy_residual_mbd = max(
-                maximum_production_policy_residual_mbd,
+            maximum_production_conservation_residual_mbd = max(
+                maximum_production_conservation_residual_mbd,
+                abs(
+                    float(turn["regional_production_conservation_residual_mbd"])
+                ),
                 abs(
                     sum(
                         float(region["production_policy_adjustment_mbd"])
+                        + float(region["production_cycle_adjustment_mbd"])
+                        + float(region["conservation_adjustment_mbd"])
                         for region in regions_by_id.values()
                     )
                 ),
@@ -255,13 +436,68 @@ def audit_oil_shipping_demand(
             us_gulf_refinery_adjustment = float(
                 us_gulf["refinery_cycle_adjustment_mbd"]
             )
+            east_asia_refinery_adjustment = float(
+                east_asia["refinery_cycle_adjustment_mbd"]
+            )
+            south_asia_refinery_adjustment = float(
+                south_asia["refinery_cycle_adjustment_mbd"]
+            )
+            europe_refinery_adjustment = float(
+                europe["refinery_cycle_adjustment_mbd"]
+            )
+            north_america_refinery_adjustment = float(
+                north_america["refinery_cycle_adjustment_mbd"]
+            )
+            rest_of_world_own_refinery_adjustment = (
+                us_gulf_refinery_adjustment
+                + float(rest_of_world["refinery_cycle_adjustment_mbd"])
+            )
             us_gulf_refinery_adjustments_by_month[int(turn["month"])].append(
                 us_gulf_refinery_adjustment
+            )
+            east_asia_refinery_adjustments_by_month[int(turn["month"])].append(
+                east_asia_refinery_adjustment
+            )
+            south_asia_refinery_adjustments_by_month[int(turn["month"])].append(
+                south_asia_refinery_adjustment
+            )
+            europe_refinery_adjustments_by_month[int(turn["month"])].append(
+                europe_refinery_adjustment
+            )
+            north_america_import_refinery_adjustments_by_month[int(turn["month"])].append(
+                north_america_refinery_adjustment
+            )
+            rest_of_world_own_refinery_adjustments_by_month[int(turn["month"])].append(
+                rest_of_world_own_refinery_adjustment
             )
             seed_us_gulf_refinery_adjustments_by_year.setdefault(
                 int(turn["year"]),
                 [],
             ).append(us_gulf_refinery_adjustment)
+            seed_east_asia_refinery_adjustments_by_year.setdefault(
+                int(turn["year"]),
+                [],
+            ).append(east_asia_refinery_adjustment)
+            seed_south_asia_refinery_adjustments_by_year.setdefault(
+                int(turn["year"]),
+                [],
+            ).append(south_asia_refinery_adjustment)
+            seed_europe_refinery_adjustments_by_year.setdefault(
+                int(turn["year"]),
+                [],
+            ).append(europe_refinery_adjustment)
+            seed_north_america_refinery_adjustments_by_year.setdefault(
+                int(turn["year"]),
+                [],
+            ).append(north_america_refinery_adjustment)
+            seed_rest_of_world_own_refinery_adjustments_by_year.setdefault(
+                int(turn["year"]),
+                [],
+            ).append(rest_of_world_own_refinery_adjustment)
+            seed_rest_of_world_own_refinery.append(
+                rest_of_world_own_refinery_adjustment
+            )
+            seed_us_gulf_refinery.append(us_gulf_refinery_adjustment)
             maximum_us_gulf_production_target_mbd = max(
                 maximum_us_gulf_production_target_mbd,
                 abs(float(us_gulf["production_cycle_target_mbd"])),
@@ -269,6 +505,29 @@ def audit_oil_shipping_demand(
             maximum_us_gulf_refinery_target_mbd = max(
                 maximum_us_gulf_refinery_target_mbd,
                 abs(float(us_gulf["refinery_cycle_target_mbd"])),
+            )
+            maximum_east_asia_refinery_target_mbd = max(
+                maximum_east_asia_refinery_target_mbd,
+                abs(float(east_asia["refinery_cycle_target_mbd"])),
+            )
+            maximum_south_asia_refinery_target_mbd = max(
+                maximum_south_asia_refinery_target_mbd,
+                abs(float(south_asia["refinery_cycle_target_mbd"])),
+            )
+            maximum_europe_refinery_target_mbd = max(
+                maximum_europe_refinery_target_mbd,
+                abs(float(europe["refinery_cycle_target_mbd"])),
+            )
+            maximum_north_america_import_refinery_target_mbd = max(
+                maximum_north_america_import_refinery_target_mbd,
+                abs(float(north_america["refinery_cycle_target_mbd"])),
+            )
+            maximum_rest_of_world_refinery_target_mbd = max(
+                maximum_rest_of_world_refinery_target_mbd,
+                abs(
+                    float(rest_of_world["refinery_cycle_target_mbd"])
+                    + float(us_gulf["refinery_cycle_target_mbd"])
+                ),
             )
             if previous_us_gulf_production_adjustment is not None:
                 maximum_us_gulf_production_monthly_adjustment_mbd = max(
@@ -286,22 +545,72 @@ def audit_oil_shipping_demand(
                         - previous_us_gulf_refinery_adjustment
                     ),
                 )
+            if previous_east_asia_refinery_adjustment is not None:
+                maximum_east_asia_refinery_monthly_adjustment_mbd = max(
+                    maximum_east_asia_refinery_monthly_adjustment_mbd,
+                    abs(
+                        east_asia_refinery_adjustment
+                        - previous_east_asia_refinery_adjustment
+                    ),
+                )
+            if previous_south_asia_refinery_adjustment is not None:
+                maximum_south_asia_refinery_monthly_adjustment_mbd = max(
+                    maximum_south_asia_refinery_monthly_adjustment_mbd,
+                    abs(
+                        south_asia_refinery_adjustment
+                        - previous_south_asia_refinery_adjustment
+                    ),
+                )
+            if previous_europe_refinery_adjustment is not None:
+                maximum_europe_refinery_monthly_adjustment_mbd = max(
+                    maximum_europe_refinery_monthly_adjustment_mbd,
+                    abs(
+                        europe_refinery_adjustment
+                        - previous_europe_refinery_adjustment
+                    ),
+                )
+            if previous_north_america_refinery_adjustment is not None:
+                maximum_north_america_import_refinery_monthly_adjustment_mbd = max(
+                    maximum_north_america_import_refinery_monthly_adjustment_mbd,
+                    abs(
+                        north_america_refinery_adjustment
+                        - previous_north_america_refinery_adjustment
+                    ),
+                )
+            if previous_rest_of_world_own_refinery_adjustment is not None:
+                maximum_rest_of_world_refinery_monthly_adjustment_mbd = max(
+                    maximum_rest_of_world_refinery_monthly_adjustment_mbd,
+                    abs(
+                        rest_of_world_own_refinery_adjustment
+                        - previous_rest_of_world_own_refinery_adjustment
+                    ),
+                )
             previous_us_gulf_production_adjustment = us_gulf_production_adjustment
             previous_us_gulf_refinery_adjustment = us_gulf_refinery_adjustment
-            maximum_us_gulf_production_cycle_residual_mbd = max(
-                maximum_us_gulf_production_cycle_residual_mbd,
-                abs(
-                    sum(
-                        float(region["production_cycle_adjustment_mbd"])
-                        for region in regions_by_id.values()
-                    )
-                ),
+            previous_east_asia_refinery_adjustment = east_asia_refinery_adjustment
+            previous_south_asia_refinery_adjustment = south_asia_refinery_adjustment
+            previous_europe_refinery_adjustment = europe_refinery_adjustment
+            previous_north_america_refinery_adjustment = (
+                north_america_refinery_adjustment
+            )
+            previous_rest_of_world_own_refinery_adjustment = (
+                rest_of_world_own_refinery_adjustment
             )
             maximum_us_gulf_refinery_cycle_residual_mbd = max(
                 maximum_us_gulf_refinery_cycle_residual_mbd,
                 abs(
+                    us_gulf_refinery_adjustment
+                    + float(rest_of_world["refinery_cycle_adjustment_mbd"])
+                    - rest_of_world_own_refinery_adjustment
+                ),
+            )
+            maximum_refinery_conservation_residual_mbd = max(
+                maximum_refinery_conservation_residual_mbd,
+                abs(float(turn["regional_refinery_conservation_residual_mbd"])),
+                abs(
                     sum(
                         float(region["refinery_cycle_adjustment_mbd"])
+                        + float(region["refinery_conservation_adjustment_mbd"])
                         for region in regions_by_id.values()
                     )
                 ),
@@ -414,6 +723,108 @@ def audit_oil_shipping_demand(
         per_seed_us_gulf_export_ranges.append(
             max(seed_us_gulf_exports) - min(seed_us_gulf_exports)
         )
+        other_export_changes = [
+            current - previous
+            for previous, current in zip(
+                seed_other_export_exports,
+                seed_other_export_exports[1:],
+            )
+        ]
+        per_seed_other_export_monthly_change_sd.append(
+            statistics.stdev(other_export_changes)
+        )
+        per_seed_other_export_ranges.append(
+            max(seed_other_export_exports) - min(seed_other_export_exports)
+        )
+        per_seed_other_export_overlay_correlation.append(
+            _correlation(seed_other_export_exports, seed_other_export_overlay)
+        )
+        per_seed_other_export_gulf_correlation.append(
+            _correlation(seed_other_export_exports, seed_gulf_exports)
+        )
+        east_asia_import_changes = [
+            current - previous
+            for previous, current in zip(
+                seed_east_asia_imports,
+                seed_east_asia_imports[1:],
+            )
+        ]
+        per_seed_east_asia_import_monthly_change_sd.append(
+            statistics.stdev(east_asia_import_changes)
+        )
+        per_seed_east_asia_import_ranges.append(
+            max(seed_east_asia_imports) - min(seed_east_asia_imports)
+        )
+        per_seed_east_asia_overlay_correlation.append(
+            _correlation(seed_east_asia_imports, seed_east_asia_overlay)
+        )
+        south_asia_import_changes = [
+            current - previous
+            for previous, current in zip(
+                seed_south_asia_imports,
+                seed_south_asia_imports[1:],
+            )
+        ]
+        per_seed_south_asia_import_monthly_change_sd.append(
+            statistics.stdev(south_asia_import_changes)
+        )
+        per_seed_south_asia_import_ranges.append(
+            max(seed_south_asia_imports) - min(seed_south_asia_imports)
+        )
+        per_seed_south_asia_overlay_correlation.append(
+            _correlation(seed_south_asia_imports, seed_south_asia_overlay)
+        )
+        europe_import_changes = [
+            current - previous
+            for previous, current in zip(
+                seed_europe_imports,
+                seed_europe_imports[1:],
+            )
+        ]
+        per_seed_europe_import_monthly_change_sd.append(
+            statistics.stdev(europe_import_changes)
+        )
+        per_seed_europe_import_ranges.append(
+            max(seed_europe_imports) - min(seed_europe_imports)
+        )
+        per_seed_europe_overlay_correlation.append(
+            _correlation(seed_europe_imports, seed_europe_overlay)
+        )
+        north_america_import_changes = [
+            current - previous
+            for previous, current in zip(
+                seed_north_america_imports,
+                seed_north_america_imports[1:],
+            )
+        ]
+        per_seed_north_america_import_monthly_change_sd.append(
+            statistics.stdev(north_america_import_changes)
+        )
+        per_seed_north_america_import_ranges.append(
+            max(seed_north_america_imports) - min(seed_north_america_imports)
+        )
+        per_seed_north_america_import_overlay_correlation.append(
+            _correlation(seed_north_america_imports, seed_north_america_overlay)
+        )
+        rest_of_world_import_changes = [
+            current - previous
+            for previous, current in zip(
+                seed_rest_of_world_imports,
+                seed_rest_of_world_imports[1:],
+            )
+        ]
+        per_seed_rest_of_world_import_monthly_change_sd.append(
+            statistics.stdev(rest_of_world_import_changes)
+        )
+        per_seed_rest_of_world_import_ranges.append(
+            max(seed_rest_of_world_imports) - min(seed_rest_of_world_imports)
+        )
+        per_seed_rest_of_world_overlay_correlation.append(
+            _correlation(seed_rest_of_world_imports, seed_rest_of_world_overlay)
+        )
+        per_seed_rest_of_world_us_gulf_correlation.append(
+            _correlation(seed_rest_of_world_own_refinery, seed_us_gulf_refinery)
+        )
         us_gulf_years = sorted(seed_us_gulf_refinery_adjustments_by_year)
         us_gulf_adjacent_year_refinery_profile_correlations.extend(
             _correlation(
@@ -421,6 +832,54 @@ def audit_oil_shipping_demand(
                 seed_us_gulf_refinery_adjustments_by_year[current],
             )
             for previous, current in zip(us_gulf_years, us_gulf_years[1:])
+        )
+        east_asia_years = sorted(seed_east_asia_refinery_adjustments_by_year)
+        east_asia_adjacent_year_refinery_profile_correlations.extend(
+            _correlation(
+                seed_east_asia_refinery_adjustments_by_year[previous],
+                seed_east_asia_refinery_adjustments_by_year[current],
+            )
+            for previous, current in zip(east_asia_years, east_asia_years[1:])
+        )
+        south_asia_years = sorted(seed_south_asia_refinery_adjustments_by_year)
+        south_asia_adjacent_year_refinery_profile_correlations.extend(
+            _correlation(
+                seed_south_asia_refinery_adjustments_by_year[previous],
+                seed_south_asia_refinery_adjustments_by_year[current],
+            )
+            for previous, current in zip(south_asia_years, south_asia_years[1:])
+        )
+        europe_years = sorted(seed_europe_refinery_adjustments_by_year)
+        europe_adjacent_year_refinery_profile_correlations.extend(
+            _correlation(
+                seed_europe_refinery_adjustments_by_year[previous],
+                seed_europe_refinery_adjustments_by_year[current],
+            )
+            for previous, current in zip(europe_years, europe_years[1:])
+        )
+        north_america_years = sorted(seed_north_america_refinery_adjustments_by_year)
+        north_america_import_adjacent_year_refinery_profile_correlations.extend(
+            _correlation(
+                seed_north_america_refinery_adjustments_by_year[previous],
+                seed_north_america_refinery_adjustments_by_year[current],
+            )
+            for previous, current in zip(
+                north_america_years,
+                north_america_years[1:],
+            )
+        )
+        rest_of_world_years = sorted(
+            seed_rest_of_world_own_refinery_adjustments_by_year
+        )
+        rest_of_world_adjacent_year_refinery_profile_correlations.extend(
+            _correlation(
+                seed_rest_of_world_own_refinery_adjustments_by_year[previous],
+                seed_rest_of_world_own_refinery_adjustments_by_year[current],
+            )
+            for previous, current in zip(
+                rest_of_world_years,
+                rest_of_world_years[1:],
+            )
         )
         years_in_world = sorted(turns_by_year)
         adjacent_year_demand_shape_correlations.extend(
@@ -475,6 +934,52 @@ def audit_oil_shipping_demand(
     us_gulf_high_run_rate = statistics.fmean(
         statistics.fmean(us_gulf_refinery_adjustments_by_month[month])
         for month in (5, 6, 7, 8, 12)
+    )
+    east_asia_maintenance_run_rate = statistics.fmean(
+        statistics.fmean(east_asia_refinery_adjustments_by_month[month])
+        for month in (3, 4, 5, 10, 11)
+    )
+    east_asia_high_run_rate = statistics.fmean(
+        statistics.fmean(east_asia_refinery_adjustments_by_month[month])
+        for month in (6, 7, 8)
+    )
+    south_asia_maintenance_run_rate = statistics.fmean(
+        statistics.fmean(south_asia_refinery_adjustments_by_month[month])
+        for month in (4, 5, 9, 10)
+    )
+    south_asia_high_run_rate = statistics.fmean(
+        statistics.fmean(south_asia_refinery_adjustments_by_month[month])
+        for month in (7, 8, 12)
+    )
+    europe_maintenance_run_rate = statistics.fmean(
+        statistics.fmean(europe_refinery_adjustments_by_month[month])
+        for month in (3, 4, 9, 10)
+    )
+    europe_high_run_rate = statistics.fmean(
+        statistics.fmean(europe_refinery_adjustments_by_month[month])
+        for month in (6, 7, 12, 1)
+    )
+    north_america_import_maintenance_run_rate = statistics.fmean(
+        statistics.fmean(
+            north_america_import_refinery_adjustments_by_month[month]
+        )
+        for month in (5, 6, 10, 11)
+    )
+    north_america_import_high_run_rate = statistics.fmean(
+        statistics.fmean(
+            north_america_import_refinery_adjustments_by_month[month]
+        )
+        for month in (8, 1, 2)
+    )
+    rest_of_world_maintenance_run_rate = statistics.fmean(
+        statistics.fmean(
+            rest_of_world_own_refinery_adjustments_by_month[month]
+        )
+        for month in (2, 3, 7, 8)
+    )
+    rest_of_world_high_run_rate = statistics.fmean(
+        statistics.fmean(rest_of_world_own_refinery_adjustments_by_month[month])
+        for month in (5, 11, 12)
     )
     checks = {
         "deterministic_seed_hashes_unique": len(set(result_hashes)) == len(seed_list),
@@ -598,8 +1103,8 @@ def audit_oil_shipping_demand(
             maximum_regional_pipeline_residual_mbd,
             maximum_regional_net_balance_residual_mbd,
         ) <= 1e-6,
-        "gulf_production_policy_is_zero_sum_and_bounded": (
-            maximum_production_policy_residual_mbd <= 1e-8
+        "gulf_production_policy_is_bounded_and_conserved": (
+            maximum_production_conservation_residual_mbd <= 1e-6
             and maximum_gulf_policy_target_mbd <= 2.2 + 1e-8
             and maximum_gulf_policy_monthly_adjustment_mbd <= 0.40 + 1e-8
         ),
@@ -608,9 +1113,9 @@ def audit_oil_shipping_demand(
             and max(per_seed_gulf_export_monthly_change_sd) <= 0.35
             and min(per_seed_gulf_export_ranges) >= 1.0
         ),
-        "us_gulf_cycles_are_zero_sum_and_bounded": (
-            maximum_us_gulf_production_cycle_residual_mbd <= 1e-8
-            and maximum_us_gulf_refinery_cycle_residual_mbd <= 1e-8
+        "us_gulf_cycles_are_bounded_and_refinery_zero_sum": (
+            maximum_us_gulf_refinery_cycle_residual_mbd <= 1e-8
+            and maximum_refinery_conservation_residual_mbd <= 1e-6
             and maximum_us_gulf_production_target_mbd <= 1.2 + 1e-8
             and maximum_us_gulf_refinery_target_mbd <= 0.65 + 1e-8
             and maximum_us_gulf_production_monthly_adjustment_mbd <= 0.18 + 1e-8
@@ -628,6 +1133,148 @@ def audit_oil_shipping_demand(
             statistics.median(
                 us_gulf_adjacent_year_refinery_profile_correlations
             ) < 0.90
+        ),
+        "other_export_is_not_a_mechanical_mirror": (
+            max(abs(value) for value in per_seed_other_export_overlay_correlation)
+            <= 0.85
+            and max(abs(value) for value in per_seed_other_export_gulf_correlation)
+            <= 0.90
+        ),
+        "other_export_has_independent_ordinary_volatility": (
+            min(per_seed_other_export_monthly_change_sd) >= 0.04
+            and max(per_seed_other_export_monthly_change_sd) <= 0.16
+            and all(
+                other_sd < gulf_sd
+                for other_sd, gulf_sd in zip(
+                    per_seed_other_export_monthly_change_sd,
+                    per_seed_gulf_export_monthly_change_sd,
+                )
+            )
+            and min(per_seed_other_export_ranges) >= 0.40
+        ),
+        "east_asia_remains_an_importer": east_asia_always_importer,
+        "east_asia_refinery_cycle_is_bounded": (
+            maximum_east_asia_refinery_target_mbd <= 0.85 + 1e-8
+            and maximum_east_asia_refinery_monthly_adjustment_mbd <= 0.22 + 1e-8
+        ),
+        "east_asia_refinery_cycle_has_spring_autumn_maintenance": (
+            east_asia_maintenance_run_rate <= east_asia_high_run_rate - 0.05
+        ),
+        "east_asia_refinery_cycle_is_not_a_fixed_annual_template": (
+            statistics.median(
+                east_asia_adjacent_year_refinery_profile_correlations
+            ) < 0.90
+        ),
+        "east_asia_is_not_a_mechanical_production_mirror": (
+            max(abs(value) for value in per_seed_east_asia_overlay_correlation)
+            <= 0.85
+        ),
+        "east_asia_imports_have_independent_ordinary_volatility": (
+            min(per_seed_east_asia_import_monthly_change_sd) >= 0.065
+            and max(per_seed_east_asia_import_monthly_change_sd) <= 0.18
+            and min(per_seed_east_asia_import_ranges) >= 0.40
+        ),
+        "south_asia_remains_an_importer": south_asia_always_importer,
+        "south_asia_refinery_cycle_is_bounded": (
+            maximum_south_asia_refinery_target_mbd <= 0.38 + 1e-8
+            and maximum_south_asia_refinery_monthly_adjustment_mbd <= 0.12 + 1e-8
+        ),
+        "south_asia_refinery_cycle_has_pre_post_monsoon_maintenance": (
+            south_asia_maintenance_run_rate <= south_asia_high_run_rate - 0.03
+        ),
+        "south_asia_refinery_cycle_is_not_a_fixed_annual_template": (
+            statistics.median(
+                south_asia_adjacent_year_refinery_profile_correlations
+            ) < 0.90
+        ),
+        "south_asia_is_not_a_mechanical_production_mirror": (
+            max(abs(value) for value in per_seed_south_asia_overlay_correlation)
+            <= 0.85
+        ),
+        "south_asia_imports_have_independent_ordinary_volatility": (
+            min(per_seed_south_asia_import_monthly_change_sd) >= 0.040
+            and max(per_seed_south_asia_import_monthly_change_sd) <= 0.14
+            and min(per_seed_south_asia_import_ranges) >= 0.25
+        ),
+        "europe_remains_an_importer": europe_always_importer,
+        "europe_refinery_cycle_is_bounded": (
+            maximum_europe_refinery_target_mbd <= 0.60 + 1e-8
+            and maximum_europe_refinery_monthly_adjustment_mbd <= 0.16 + 1e-8
+        ),
+        "europe_refinery_cycle_has_spring_autumn_maintenance": (
+            europe_maintenance_run_rate <= europe_high_run_rate - 0.04
+        ),
+        "europe_refinery_cycle_is_not_a_fixed_annual_template": (
+            statistics.median(
+                europe_adjacent_year_refinery_profile_correlations
+            ) < 0.90
+        ),
+        "europe_is_not_a_mechanical_production_mirror": (
+            max(abs(value) for value in per_seed_europe_overlay_correlation)
+            <= 0.85
+        ),
+        "europe_imports_have_independent_ordinary_volatility": (
+            min(per_seed_europe_import_monthly_change_sd) >= 0.052
+            and max(per_seed_europe_import_monthly_change_sd) <= 0.16
+            and min(per_seed_europe_import_ranges) >= 0.35
+        ),
+        "north_america_import_remains_an_importer": (
+            north_america_import_always_importer
+        ),
+        "north_america_import_refinery_cycle_is_bounded": (
+            maximum_north_america_import_refinery_target_mbd <= 0.50 + 1e-8
+            and maximum_north_america_import_refinery_monthly_adjustment_mbd
+            <= 0.14 + 1e-8
+        ),
+        "north_america_import_refinery_cycle_has_later_spring_autumn_maintenance": (
+            north_america_import_maintenance_run_rate
+            <= north_america_import_high_run_rate - 0.03
+        ),
+        "north_america_import_refinery_cycle_is_not_a_fixed_annual_template": (
+            statistics.median(
+                north_america_import_adjacent_year_refinery_profile_correlations
+            ) < 0.90
+        ),
+        "north_america_import_is_not_a_mechanical_production_mirror": (
+            max(
+                abs(value)
+                for value in per_seed_north_america_import_overlay_correlation
+            )
+            <= 0.85
+        ),
+        "north_america_import_has_independent_ordinary_volatility": (
+            min(per_seed_north_america_import_monthly_change_sd) >= 0.050
+            and max(per_seed_north_america_import_monthly_change_sd) <= 0.14
+            and min(per_seed_north_america_import_ranges) >= 0.28
+        ),
+        "rest_of_world_remains_an_importer": rest_of_world_always_importer,
+        "rest_of_world_refinery_cycle_is_bounded": (
+            maximum_rest_of_world_refinery_target_mbd <= 0.42 + 1e-8
+            and maximum_rest_of_world_refinery_monthly_adjustment_mbd
+            <= 0.13 + 1e-8
+        ),
+        "rest_of_world_refinery_cycle_has_mixed_latitude_maintenance": (
+            rest_of_world_maintenance_run_rate
+            <= rest_of_world_high_run_rate - 0.02
+        ),
+        "rest_of_world_refinery_cycle_is_not_a_fixed_annual_template": (
+            statistics.median(
+                rest_of_world_adjacent_year_refinery_profile_correlations
+            )
+            < 0.90
+        ),
+        "rest_of_world_is_not_a_mechanical_production_mirror": (
+            max(abs(value) for value in per_seed_rest_of_world_overlay_correlation)
+            <= 0.85
+        ),
+        "rest_of_world_is_not_a_us_gulf_refinery_mirror": (
+            max(abs(value) for value in per_seed_rest_of_world_us_gulf_correlation)
+            <= 0.85
+        ),
+        "rest_of_world_imports_have_independent_ordinary_volatility": (
+            min(per_seed_rest_of_world_import_monthly_change_sd) >= 0.060
+            and max(per_seed_rest_of_world_import_monthly_change_sd) <= 0.18
+            and min(per_seed_rest_of_world_import_ranges) >= 0.55
         ),
     }
     return {
@@ -787,8 +1434,8 @@ def audit_oil_shipping_demand(
                 per_seed_gulf_export_ranges
             ),
             "gulf_export_range_mbd_max": max(per_seed_gulf_export_ranges),
-            "maximum_production_policy_residual_mbd": (
-                maximum_production_policy_residual_mbd
+            "maximum_production_conservation_residual_mbd": (
+                maximum_production_conservation_residual_mbd
             ),
             "maximum_gulf_policy_target_mbd": maximum_gulf_policy_target_mbd,
             "maximum_gulf_policy_monthly_adjustment_mbd": (
@@ -819,9 +1466,6 @@ def audit_oil_shipping_demand(
                     us_gulf_adjacent_year_refinery_profile_correlations
                 )
             ),
-            "maximum_us_gulf_production_cycle_residual_mbd": (
-                maximum_us_gulf_production_cycle_residual_mbd
-            ),
             "maximum_us_gulf_refinery_cycle_residual_mbd": (
                 maximum_us_gulf_refinery_cycle_residual_mbd
             ),
@@ -836,6 +1480,187 @@ def audit_oil_shipping_demand(
             ),
             "maximum_us_gulf_refinery_monthly_adjustment_mbd": (
                 maximum_us_gulf_refinery_monthly_adjustment_mbd
+            ),
+            "maximum_refinery_conservation_residual_mbd": (
+                maximum_refinery_conservation_residual_mbd
+            ),
+            "east_asia_import_monthly_change_sd_mbd_min": min(
+                per_seed_east_asia_import_monthly_change_sd
+            ),
+            "east_asia_import_monthly_change_sd_mbd_median": statistics.median(
+                per_seed_east_asia_import_monthly_change_sd
+            ),
+            "east_asia_import_monthly_change_sd_mbd_max": max(
+                per_seed_east_asia_import_monthly_change_sd
+            ),
+            "east_asia_import_range_mbd_min": min(
+                per_seed_east_asia_import_ranges
+            ),
+            "east_asia_maintenance_refinery_adjustment_mbd_mean": (
+                east_asia_maintenance_run_rate
+            ),
+            "east_asia_high_run_refinery_adjustment_mbd_mean": (
+                east_asia_high_run_rate
+            ),
+            "east_asia_adjacent_year_refinery_profile_correlation_median": (
+                statistics.median(
+                    east_asia_adjacent_year_refinery_profile_correlations
+                )
+            ),
+            "east_asia_overlay_correlation_abs_max": max(
+                abs(value) for value in per_seed_east_asia_overlay_correlation
+            ),
+            "maximum_east_asia_refinery_target_mbd": (
+                maximum_east_asia_refinery_target_mbd
+            ),
+            "maximum_east_asia_refinery_monthly_adjustment_mbd": (
+                maximum_east_asia_refinery_monthly_adjustment_mbd
+            ),
+            "south_asia_import_monthly_change_sd_mbd_min": min(
+                per_seed_south_asia_import_monthly_change_sd
+            ),
+            "south_asia_import_monthly_change_sd_mbd_median": statistics.median(
+                per_seed_south_asia_import_monthly_change_sd
+            ),
+            "south_asia_import_monthly_change_sd_mbd_max": max(
+                per_seed_south_asia_import_monthly_change_sd
+            ),
+            "south_asia_import_range_mbd_min": min(
+                per_seed_south_asia_import_ranges
+            ),
+            "south_asia_maintenance_refinery_adjustment_mbd_mean": (
+                south_asia_maintenance_run_rate
+            ),
+            "south_asia_high_run_refinery_adjustment_mbd_mean": (
+                south_asia_high_run_rate
+            ),
+            "south_asia_adjacent_year_refinery_profile_correlation_median": (
+                statistics.median(
+                    south_asia_adjacent_year_refinery_profile_correlations
+                )
+            ),
+            "south_asia_overlay_correlation_abs_max": max(
+                abs(value) for value in per_seed_south_asia_overlay_correlation
+            ),
+            "maximum_south_asia_refinery_target_mbd": (
+                maximum_south_asia_refinery_target_mbd
+            ),
+            "maximum_south_asia_refinery_monthly_adjustment_mbd": (
+                maximum_south_asia_refinery_monthly_adjustment_mbd
+            ),
+            "europe_import_monthly_change_sd_mbd_min": min(
+                per_seed_europe_import_monthly_change_sd
+            ),
+            "europe_import_monthly_change_sd_mbd_median": statistics.median(
+                per_seed_europe_import_monthly_change_sd
+            ),
+            "europe_import_monthly_change_sd_mbd_max": max(
+                per_seed_europe_import_monthly_change_sd
+            ),
+            "europe_import_range_mbd_min": min(per_seed_europe_import_ranges),
+            "europe_maintenance_refinery_adjustment_mbd_mean": (
+                europe_maintenance_run_rate
+            ),
+            "europe_high_run_refinery_adjustment_mbd_mean": (
+                europe_high_run_rate
+            ),
+            "europe_adjacent_year_refinery_profile_correlation_median": (
+                statistics.median(
+                    europe_adjacent_year_refinery_profile_correlations
+                )
+            ),
+            "europe_overlay_correlation_abs_max": max(
+                abs(value) for value in per_seed_europe_overlay_correlation
+            ),
+            "maximum_europe_refinery_target_mbd": (
+                maximum_europe_refinery_target_mbd
+            ),
+            "maximum_europe_refinery_monthly_adjustment_mbd": (
+                maximum_europe_refinery_monthly_adjustment_mbd
+            ),
+            "north_america_import_monthly_change_sd_mbd_min": min(
+                per_seed_north_america_import_monthly_change_sd
+            ),
+            "north_america_import_monthly_change_sd_mbd_median": statistics.median(
+                per_seed_north_america_import_monthly_change_sd
+            ),
+            "north_america_import_monthly_change_sd_mbd_max": max(
+                per_seed_north_america_import_monthly_change_sd
+            ),
+            "north_america_import_range_mbd_min": min(
+                per_seed_north_america_import_ranges
+            ),
+            "north_america_import_maintenance_refinery_adjustment_mbd_mean": (
+                north_america_import_maintenance_run_rate
+            ),
+            "north_america_import_high_run_refinery_adjustment_mbd_mean": (
+                north_america_import_high_run_rate
+            ),
+            "north_america_import_adjacent_year_refinery_profile_correlation_median": (
+                statistics.median(
+                    north_america_import_adjacent_year_refinery_profile_correlations
+                )
+            ),
+            "north_america_import_overlay_correlation_abs_max": max(
+                abs(value)
+                for value in per_seed_north_america_import_overlay_correlation
+            ),
+            "maximum_north_america_import_refinery_target_mbd": (
+                maximum_north_america_import_refinery_target_mbd
+            ),
+            "maximum_north_america_import_refinery_monthly_adjustment_mbd": (
+                maximum_north_america_import_refinery_monthly_adjustment_mbd
+            ),
+            "rest_of_world_import_monthly_change_sd_mbd_min": min(
+                per_seed_rest_of_world_import_monthly_change_sd
+            ),
+            "rest_of_world_import_monthly_change_sd_mbd_median": statistics.median(
+                per_seed_rest_of_world_import_monthly_change_sd
+            ),
+            "rest_of_world_import_monthly_change_sd_mbd_max": max(
+                per_seed_rest_of_world_import_monthly_change_sd
+            ),
+            "rest_of_world_import_range_mbd_min": min(
+                per_seed_rest_of_world_import_ranges
+            ),
+            "rest_of_world_maintenance_refinery_adjustment_mbd_mean": (
+                rest_of_world_maintenance_run_rate
+            ),
+            "rest_of_world_high_run_refinery_adjustment_mbd_mean": (
+                rest_of_world_high_run_rate
+            ),
+            "rest_of_world_adjacent_year_refinery_profile_correlation_median": (
+                statistics.median(
+                    rest_of_world_adjacent_year_refinery_profile_correlations
+                )
+            ),
+            "rest_of_world_overlay_correlation_abs_max": max(
+                abs(value) for value in per_seed_rest_of_world_overlay_correlation
+            ),
+            "rest_of_world_us_gulf_correlation_abs_max": max(
+                abs(value) for value in per_seed_rest_of_world_us_gulf_correlation
+            ),
+            "maximum_rest_of_world_refinery_target_mbd": (
+                maximum_rest_of_world_refinery_target_mbd
+            ),
+            "maximum_rest_of_world_refinery_monthly_adjustment_mbd": (
+                maximum_rest_of_world_refinery_monthly_adjustment_mbd
+            ),
+            "other_export_monthly_change_sd_mbd_min": min(
+                per_seed_other_export_monthly_change_sd
+            ),
+            "other_export_monthly_change_sd_mbd_median": statistics.median(
+                per_seed_other_export_monthly_change_sd
+            ),
+            "other_export_monthly_change_sd_mbd_max": max(
+                per_seed_other_export_monthly_change_sd
+            ),
+            "other_export_range_mbd_min": min(per_seed_other_export_ranges),
+            "other_export_overlay_correlation_abs_max": max(
+                abs(value) for value in per_seed_other_export_overlay_correlation
+            ),
+            "other_export_gulf_correlation_abs_max": max(
+                abs(value) for value in per_seed_other_export_gulf_correlation
             ),
         },
     }

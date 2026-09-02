@@ -38,6 +38,34 @@ def initial_regional_state(config: Mapping[str, Any]) -> dict[str, dict[str, flo
             "project_deviation_mbd": 0.0,
             "operational_deviation_mbd": 0.0,
         },
+        "west_africa_cycle": {
+            "project_target_mbd": 0.0,
+            "project_deviation_mbd": 0.0,
+            "operational_deviation_mbd": 0.0,
+        },
+        "other_export_cycle": {
+            "operational_deviation_mbd": 0.0,
+        },
+        "east_asia_cycle": {
+            "refinery_operational_deviation_mbd": 0.0,
+            "refinery_deviation_mbd": 0.0,
+        },
+        "south_asia_cycle": {
+            "refinery_operational_deviation_mbd": 0.0,
+            "refinery_deviation_mbd": 0.0,
+        },
+        "europe_cycle": {
+            "refinery_operational_deviation_mbd": 0.0,
+            "refinery_deviation_mbd": 0.0,
+        },
+        "north_america_import_cycle": {
+            "refinery_operational_deviation_mbd": 0.0,
+            "refinery_deviation_mbd": 0.0,
+        },
+        "rest_of_world_cycle": {
+            "refinery_operational_deviation_mbd": 0.0,
+            "refinery_deviation_mbd": 0.0,
+        },
     }
 
 
@@ -127,6 +155,147 @@ def _apply_zero_sum_impulses(
     values[balancing_region_id] -= total_impulse
 
 
+def _project_to_global_total(
+    values: Mapping[str, float],
+    *,
+    global_total: float,
+    weights: Mapping[str, float],
+) -> dict[str, float]:
+    """Project regional targets onto the global total with share-weighted slack.
+
+    Larger production shares absorb more of the accounting residual. Named
+    regional cycles stay in the unconstrained target; this step only closes
+    `sum(regional production) = global production` without assigning the
+    whole residual to one visible export region.
+    """
+
+    projected = {region_id: float(value) for region_id, value in values.items()}
+    if not projected:
+        raise ValueError("production projection requires at least one region")
+    frozen: set[str] = set()
+    region_ids = list(projected)
+    for _ in range(len(region_ids) + 2):
+        free = [region_id for region_id in region_ids if region_id not in frozen]
+        if not free:
+            raise ValueError("production projection froze every region")
+        weight_sum = sum(max(float(weights[region_id]), 0.0) for region_id in free)
+        if weight_sum <= 0.0:
+            raise ValueError("production projection has no positive weight")
+        frozen_sum = sum(projected[region_id] for region_id in frozen)
+        free_excess = (
+            sum(float(values[region_id]) for region_id in free)
+            - (float(global_total) - frozen_sum)
+        )
+        blocked = False
+        next_projected = dict(projected)
+        for region_id in free:
+            candidate = float(values[region_id]) - free_excess * (
+                max(float(weights[region_id]), 0.0) / weight_sum
+            )
+            if candidate < 0.0:
+                next_projected[region_id] = 0.0
+                frozen.add(region_id)
+                blocked = True
+            else:
+                next_projected[region_id] = candidate
+        projected = next_projected
+        if blocked:
+            continue
+        residual = sum(projected.values()) - float(global_total)
+        if abs(residual) > 0.0:
+            anchor = max(free, key=lambda region_id: float(weights[region_id]))
+            projected[anchor] -= residual
+            if projected[anchor] < 0.0:
+                projected[anchor] = 0.0
+                frozen.add(anchor)
+                continue
+        return projected
+    raise ValueError("production projection failed to converge")
+
+
+def _advance_refinery_operating_cycle(
+    previous: Mapping[str, float],
+    *,
+    seed: int,
+    turn_index: int,
+    month: int,
+    refinery_config: Mapping[str, Any],
+    news_prefix: str,
+    profile_label: str,
+) -> tuple[dict[str, float], float]:
+    """Advance a regional refinery maintenance window and operating noise."""
+
+    monthly_profile = list(map(float, refinery_config["baseline_monthly_profile_mbd"]))
+    if len(monthly_profile) != 12:
+        raise ValueError(
+            f"{profile_label} refinery baseline monthly profile must contain 12 values"
+        )
+    year_index = turn_index // 12
+    maintenance_kernel = list(map(float, refinery_config["maintenance_kernel"]))
+    if not maintenance_kernel or any(value < 0.0 for value in maintenance_kernel):
+        raise ValueError(
+            f"{profile_label} refinery maintenance kernel must be nonnegative"
+        )
+    for season in ("spring", "fall"):
+        maintenance = refinery_config[f"{season}_maintenance"]
+        start_month = int(
+            round(
+                clamp(
+                    float(maintenance["start_center_month"])
+                    + float(maintenance["start_news_scale_months"])
+                    * normal(
+                        seed,
+                        f"{news_prefix}_{season}_maintenance_timing",
+                        year_index,
+                    ),
+                    *map(float, maintenance["start_bounds_month"]),
+                )
+            )
+        )
+        amplitude = clamp(
+            float(maintenance["amplitude_base_mbd"])
+            + float(maintenance["amplitude_news_scale_mbd"])
+            * normal(
+                seed,
+                f"{news_prefix}_{season}_maintenance_depth",
+                year_index,
+            ),
+            *map(float, maintenance["amplitude_bounds_mbd"]),
+        )
+        for offset, weight in enumerate(maintenance_kernel):
+            month_index = start_month - 1 + offset
+            if month_index < 12:
+                monthly_profile[month_index] -= amplitude * weight
+    annual_profile_mean = sum(monthly_profile) / 12.0
+    monthly_profile = [value - annual_profile_mean for value in monthly_profile]
+    previous_operations = float(previous["refinery_operational_deviation_mbd"])
+    operational_deviation = clamp(
+        float(refinery_config["operational_persistence"]) * previous_operations
+        + float(refinery_config["operational_news_scale_mbd"])
+        * normal(seed, f"{news_prefix}_refinery_operations", turn_index),
+        *map(float, refinery_config["operational_bounds_mbd"]),
+    )
+    refinery_target = clamp(
+        monthly_profile[month - 1] + operational_deviation,
+        *map(float, refinery_config["target_bounds_mbd"]),
+    )
+    previous_refinery = float(previous["refinery_deviation_mbd"])
+    refinery_change = clamp(
+        float(refinery_config["monthly_adjustment_speed"])
+        * (refinery_target - previous_refinery),
+        -float(refinery_config["maximum_monthly_adjustment_mbd"]),
+        float(refinery_config["maximum_monthly_adjustment_mbd"]),
+    )
+    refinery_deviation = previous_refinery + refinery_change
+    return (
+        {
+            "refinery_operational_deviation_mbd": operational_deviation,
+            "refinery_deviation_mbd": refinery_deviation,
+        },
+        refinery_target,
+    )
+
+
 def _advance_production_policy(
     previous: Mapping[str, float],
     crude_turn: Mapping[str, float],
@@ -213,75 +382,20 @@ def _advance_us_gulf_cycle(
     )
     production_deviation = previous_production + production_change
 
-    refinery_config = cycle["refinery"]
-    monthly_profile = list(
-        map(float, refinery_config["baseline_monthly_profile_mbd"])
+    refinery_state, refinery_target = _advance_refinery_operating_cycle(
+        previous,
+        seed=seed,
+        turn_index=turn_index,
+        month=month,
+        refinery_config=cycle["refinery"],
+        news_prefix="oil_region_us_gulf",
+        profile_label="US Gulf",
     )
-    if len(monthly_profile) != 12:
-        raise ValueError(
-            "US Gulf refinery baseline monthly profile must contain 12 values"
-        )
-    year_index = turn_index // 12
-    maintenance_kernel = list(map(float, refinery_config["maintenance_kernel"]))
-    if not maintenance_kernel or any(value < 0.0 for value in maintenance_kernel):
-        raise ValueError("US Gulf refinery maintenance kernel must be nonnegative")
-    for season in ("spring", "fall"):
-        maintenance = refinery_config[f"{season}_maintenance"]
-        start_month = int(
-            round(
-                clamp(
-                    float(maintenance["start_center_month"])
-                    + float(maintenance["start_news_scale_months"])
-                    * normal(
-                        seed,
-                        f"oil_region_us_gulf_{season}_maintenance_timing",
-                        year_index,
-                    ),
-                    *map(float, maintenance["start_bounds_month"]),
-                )
-            )
-        )
-        amplitude = clamp(
-            float(maintenance["amplitude_base_mbd"])
-            + float(maintenance["amplitude_news_scale_mbd"])
-            * normal(
-                seed,
-                f"oil_region_us_gulf_{season}_maintenance_depth",
-                year_index,
-            ),
-            *map(float, maintenance["amplitude_bounds_mbd"]),
-        )
-        for offset, weight in enumerate(maintenance_kernel):
-            month_index = start_month - 1 + offset
-            if month_index < 12:
-                monthly_profile[month_index] -= amplitude * weight
-    annual_profile_mean = sum(monthly_profile) / 12.0
-    monthly_profile = [value - annual_profile_mean for value in monthly_profile]
-    previous_operations = float(previous["refinery_operational_deviation_mbd"])
-    operational_deviation = clamp(
-        float(refinery_config["operational_persistence"]) * previous_operations
-        + float(refinery_config["operational_news_scale_mbd"])
-        * normal(seed, "oil_region_us_gulf_refinery_operations", turn_index),
-        *map(float, refinery_config["operational_bounds_mbd"]),
-    )
-    refinery_target = clamp(
-        monthly_profile[month - 1] + operational_deviation,
-        *map(float, refinery_config["target_bounds_mbd"]),
-    )
-    previous_refinery = float(previous["refinery_deviation_mbd"])
-    refinery_change = clamp(
-        float(refinery_config["monthly_adjustment_speed"])
-        * (refinery_target - previous_refinery),
-        -float(refinery_config["maximum_monthly_adjustment_mbd"]),
-        float(refinery_config["maximum_monthly_adjustment_mbd"]),
-    )
-    refinery_deviation = previous_refinery + refinery_change
     return (
         {
             "production_target_mbd": production_target,
             "production_deviation_mbd": production_deviation,
-            "refinery_operational_deviation_mbd": operational_deviation,
-            "refinery_deviation_mbd": refinery_deviation,
+            **refinery_state,
         },
         is_production_decision_month,
         refinery_target,
@@ -346,6 +460,232 @@ def _advance_brazil_guyana_cycle(
     }
 
 
+def _advance_west_africa_cycle(
+    previous: Mapping[str, float],
+    *,
+    seed: int,
+    turn_index: int,
+    month: int,
+) -> dict[str, float]:
+    """Advance terminal disruptions and slower Atlantic project timing.
+
+    The secular production-share bias owns long-run West African growth or
+    decline. This overlay is the ordinary basin cycle: sticky force-majeure
+    and export-terminal outages, plus slower FPSO/project timing around
+    Angola turnarounds and new Atlantic barrels.
+    """
+
+    project_target = float(previous["project_target_mbd"])
+    if month == 1:
+        year_index = turn_index // 12
+        project_target = clamp(
+            0.60 * project_target
+            + 0.26
+            * normal(
+                seed,
+                "oil_region_west_africa_project_timing",
+                year_index,
+            ),
+            -0.35,
+            0.40,
+        )
+
+    previous_project = float(previous["project_deviation_mbd"])
+    project_change = clamp(
+        0.30 * (project_target - previous_project),
+        -0.12,
+        0.12,
+    )
+    project_deviation = previous_project + project_change
+
+    previous_operations = float(previous["operational_deviation_mbd"])
+    operational_deviation = clamp(
+        0.64 * previous_operations
+        + 0.12
+        * normal(
+            seed,
+            "oil_region_west_africa_disruptions",
+            turn_index,
+        ),
+        -0.38,
+        0.22,
+    )
+
+    return {
+        "project_target_mbd": project_target,
+        "project_deviation_mbd": project_deviation,
+        "operational_deviation_mbd": operational_deviation,
+    }
+
+
+def _advance_other_export_cycle(
+    previous: Mapping[str, float],
+    *,
+    seed: int,
+    turn_index: int,
+    cycle: Mapping[str, Any],
+) -> dict[str, float]:
+    """Advance ordinary operating noise for the residual export basket.
+
+    Long-run other-export growth or decline stays in the production-share
+    bias. This overlay only represents mixed mature-basin uptime: North Sea
+    and Caspian maintenance, Russian operating variability, and similar
+    uncorrelated noise that a basket should keep after share allocation.
+    """
+
+    operational_deviation = clamp(
+        float(cycle["operational_persistence"])
+        * float(previous["operational_deviation_mbd"])
+        + float(cycle["operational_news_scale_mbd"])
+        * normal(seed, "oil_region_other_export_operations", turn_index),
+        *map(float, cycle["operational_bounds_mbd"]),
+    )
+    return {"operational_deviation_mbd": operational_deviation}
+
+
+def _advance_south_asia_cycle(
+    previous: Mapping[str, float],
+    *,
+    seed: int,
+    turn_index: int,
+    month: int,
+    cycle: Mapping[str, Any],
+) -> tuple[dict[str, float], float]:
+    """Advance South Asian pre-monsoon and post-monsoon turnarounds.
+
+    The crude-run share bias owns long-run South Asian refining growth, the
+    fastest import-basin expansion in the catalog. This overlay is the
+    ordinary operating cycle around that trend: April–May turnarounds before
+    the monsoon, a smaller September–October window, and persistent coastal
+    refinery operating noise.
+    """
+
+    return _advance_refinery_operating_cycle(
+        previous,
+        seed=seed,
+        turn_index=turn_index,
+        month=month,
+        refinery_config=cycle["refinery"],
+        news_prefix="oil_region_south_asia",
+        profile_label="South Asia",
+    )
+
+
+def _advance_europe_cycle(
+    previous: Mapping[str, float],
+    *,
+    seed: int,
+    turn_index: int,
+    month: int,
+    cycle: Mapping[str, Any],
+) -> tuple[dict[str, float], float]:
+    """Advance European spring and autumn turnarounds around winter heating.
+
+    The crude-run share bias owns long-run European refining contraction.
+    This overlay is the ordinary Atlantic-basin operating cycle: March–April
+    turnarounds after winter, an earlier August–September window before
+    heating demand, and persistent ARA/Mediterranean operating noise.
+    """
+
+    return _advance_refinery_operating_cycle(
+        previous,
+        seed=seed,
+        turn_index=turn_index,
+        month=month,
+        refinery_config=cycle["refinery"],
+        news_prefix="oil_region_europe",
+        profile_label="Europe",
+    )
+
+
+def _advance_north_america_import_cycle(
+    previous: Mapping[str, float],
+    *,
+    seed: int,
+    turn_index: int,
+    month: int,
+    cycle: Mapping[str, Any],
+) -> tuple[dict[str, float], float]:
+    """Advance East Coast/Midwest/Canada turnarounds away from the US Gulf.
+
+    US Gulf already owns the January–February PADD 3 window. This overlay is
+    the remaining North American import-basin cycle: May–June Midwest and
+    Canadian turnarounds, a later October–November window after driving
+    season, and persistent Atlantic/Great Lakes operating noise. Long-run
+    inland production growth and Atlantic refining contraction stay in the
+    share biases.
+    """
+
+    return _advance_refinery_operating_cycle(
+        previous,
+        seed=seed,
+        turn_index=turn_index,
+        month=month,
+        refinery_config=cycle["refinery"],
+        news_prefix="oil_region_north_america_import",
+        profile_label="North America import",
+    )
+
+
+def _advance_rest_of_world_cycle(
+    previous: Mapping[str, float],
+    *,
+    seed: int,
+    turn_index: int,
+    month: int,
+    cycle: Mapping[str, Any],
+) -> tuple[dict[str, float], float]:
+    """Advance mixed-latitude remaining-importer turnarounds and operating noise.
+
+    Rest of world is the leftover import basket — Southeast Asian hubs,
+    Oceania, Pacific Latin America, the Caribbean, and African importers —
+    not a single OECD calendar and not the mechanical inverse of US Gulf
+    maintenance. The crude-run share bias owns the slow refining drift.
+    This overlay is the ordinary basket cycle: February–March Southeast
+    Asian and southern-hemisphere turnarounds after the US Gulf window, a
+    July–August tropical mid-year window that no other basin owns, and
+    persistent independent-plant operating noise. The registered US Gulf
+    refinery pair is applied separately before this overlay.
+    """
+
+    return _advance_refinery_operating_cycle(
+        previous,
+        seed=seed,
+        turn_index=turn_index,
+        month=month,
+        refinery_config=cycle["refinery"],
+        news_prefix="oil_region_rest_of_world",
+        profile_label="Rest of world",
+    )
+
+
+def _advance_east_asia_cycle(
+    previous: Mapping[str, float],
+    *,
+    seed: int,
+    turn_index: int,
+    month: int,
+    cycle: Mapping[str, Any],
+) -> tuple[dict[str, float], float]:
+    """Advance Northeast Asian spring/autumn turnarounds and operating noise.
+
+    The crude-run share bias owns long-run East Asian refining growth. This
+    overlay is the ordinary import-basin cycle: later spring and autumn
+    maintenance than the US Gulf, plus persistent independent-refinery and
+    petrochemical operating variability.
+    """
+
+    return _advance_refinery_operating_cycle(
+        previous,
+        seed=seed,
+        turn_index=turn_index,
+        month=month,
+        refinery_config=cycle["refinery"],
+        news_prefix="oil_region_east_asia",
+        profile_label="East Asia",
+    )
+
+
 def advance_regional_balance(
     state: Mapping[str, Mapping[str, float]],
     crude_turn: Mapping[str, float],
@@ -364,6 +704,9 @@ def advance_regional_balance(
     regions = list(regional["regions"])
     known_region_ids = {str(region["region_id"]) for region in regions}
     balancing_region_id = str(regional["balancing_region_id"])
+    conservation = regional.get("production_conservation", {})
+    if str(conservation.get("weighting", "production_share")) != "production_share":
+        raise ValueError("only production-share conservation weighting is implemented")
 
     production_shares = _evolve_shares(
         state["production_shares"],
@@ -416,13 +759,8 @@ def advance_regional_balance(
 
     policy_config = regional["production_policy"]
     policy_region_id = str(policy_config["region_id"])
-    policy_balancing_region_id = str(policy_config["balancing_region_id"])
     if policy_region_id not in known_region_ids:
         raise KeyError(f"unknown production-policy region: {policy_region_id}")
-    if policy_balancing_region_id not in known_region_ids:
-        raise KeyError(
-            f"unknown production-policy balancing region: {policy_balancing_region_id}"
-        )
     production_policy, is_policy_decision_month = _advance_production_policy(
         state["production_policy"],
         crude_turn,
@@ -432,25 +770,13 @@ def advance_regional_balance(
     )
     policy_adjustments = {region_id: 0.0 for region_id in known_region_ids}
     policy_adjustments[policy_region_id] = production_policy["deviation_mbd"]
-    policy_adjustments[policy_balancing_region_id] = -production_policy[
-        "deviation_mbd"
-    ]
-    for region_id, adjustment in policy_adjustments.items():
-        production[region_id] += adjustment
 
     us_gulf_config = regional["us_gulf_cycle"]
     us_gulf_region_id = str(us_gulf_config["region_id"])
-    us_gulf_production_balancing_id = str(
-        us_gulf_config["production_balancing_region_id"]
-    )
     us_gulf_refinery_balancing_id = str(
         us_gulf_config["refinery_balancing_region_id"]
     )
-    for region_id in {
-        us_gulf_region_id,
-        us_gulf_production_balancing_id,
-        us_gulf_refinery_balancing_id,
-    }:
+    for region_id in {us_gulf_region_id, us_gulf_refinery_balancing_id}:
         if region_id not in known_region_ids:
             raise KeyError(f"unknown US Gulf cycle region: {region_id}")
     us_gulf_cycle, is_us_gulf_production_decision_month, refinery_cycle_target = (
@@ -469,9 +795,6 @@ def advance_regional_balance(
     production_cycle_adjustments[us_gulf_region_id] = us_gulf_cycle[
         "production_deviation_mbd"
     ]
-    production_cycle_adjustments[us_gulf_production_balancing_id] = -us_gulf_cycle[
-        "production_deviation_mbd"
-    ]
     refinery_cycle_adjustments = {region_id: 0.0 for region_id in known_region_ids}
     refinery_cycle_adjustments[us_gulf_region_id] = us_gulf_cycle[
         "refinery_deviation_mbd"
@@ -480,17 +803,124 @@ def advance_regional_balance(
         "refinery_deviation_mbd"
     ]
     for region_id in known_region_ids:
-        production[region_id] += production_cycle_adjustments[region_id]
         crude_runs[region_id] += refinery_cycle_adjustments[region_id]
 
+    east_asia_config = regional["east_asia_cycle"]
+    east_asia_region_id = str(east_asia_config["region_id"])
+    if east_asia_region_id not in known_region_ids:
+        raise KeyError(f"unknown East Asia cycle region: {east_asia_region_id}")
+    east_asia_cycle, east_asia_refinery_target = _advance_east_asia_cycle(
+        state["east_asia_cycle"],
+        seed=seed,
+        turn_index=turn_index,
+        month=month,
+        cycle=east_asia_config,
+    )
+    refinery_cycle_adjustments[east_asia_region_id] += east_asia_cycle[
+        "refinery_deviation_mbd"
+    ]
+    crude_runs[east_asia_region_id] += east_asia_cycle["refinery_deviation_mbd"]
+
+    south_asia_config = regional["south_asia_cycle"]
+    south_asia_region_id = str(south_asia_config["region_id"])
+    if south_asia_region_id not in known_region_ids:
+        raise KeyError(f"unknown South Asia cycle region: {south_asia_region_id}")
+    south_asia_cycle, south_asia_refinery_target = _advance_south_asia_cycle(
+        state["south_asia_cycle"],
+        seed=seed,
+        turn_index=turn_index,
+        month=month,
+        cycle=south_asia_config,
+    )
+    refinery_cycle_adjustments[south_asia_region_id] += south_asia_cycle[
+        "refinery_deviation_mbd"
+    ]
+    crude_runs[south_asia_region_id] += south_asia_cycle["refinery_deviation_mbd"]
+
+    europe_config = regional["europe_cycle"]
+    europe_region_id = str(europe_config["region_id"])
+    if europe_region_id not in known_region_ids:
+        raise KeyError(f"unknown Europe cycle region: {europe_region_id}")
+    europe_cycle, europe_refinery_target = _advance_europe_cycle(
+        state["europe_cycle"],
+        seed=seed,
+        turn_index=turn_index,
+        month=month,
+        cycle=europe_config,
+    )
+    refinery_cycle_adjustments[europe_region_id] += europe_cycle[
+        "refinery_deviation_mbd"
+    ]
+    crude_runs[europe_region_id] += europe_cycle["refinery_deviation_mbd"]
+
+    north_america_config = regional["north_america_import_cycle"]
+    north_america_region_id = str(north_america_config["region_id"])
+    if north_america_region_id not in known_region_ids:
+        raise KeyError(
+            f"unknown North America import cycle region: {north_america_region_id}"
+        )
+    north_america_import_cycle, north_america_refinery_target = (
+        _advance_north_america_import_cycle(
+            state["north_america_import_cycle"],
+            seed=seed,
+            turn_index=turn_index,
+            month=month,
+            cycle=north_america_config,
+        )
+    )
+    refinery_cycle_adjustments[north_america_region_id] += (
+        north_america_import_cycle["refinery_deviation_mbd"]
+    )
+    crude_runs[north_america_region_id] += north_america_import_cycle[
+        "refinery_deviation_mbd"
+    ]
+
+    rest_of_world_config = regional["rest_of_world_cycle"]
+    rest_of_world_region_id = str(rest_of_world_config["region_id"])
+    if rest_of_world_region_id not in known_region_ids:
+        raise KeyError(
+            f"unknown rest-of-world cycle region: {rest_of_world_region_id}"
+        )
+    if rest_of_world_region_id != us_gulf_refinery_balancing_id:
+        raise ValueError(
+            "rest-of-world cycle must stay on the US Gulf refinery balancing region"
+        )
+    rest_of_world_cycle, rest_of_world_refinery_target = (
+        _advance_rest_of_world_cycle(
+            state["rest_of_world_cycle"],
+            seed=seed,
+            turn_index=turn_index,
+            month=month,
+            cycle=rest_of_world_config,
+        )
+    )
+    refinery_cycle_adjustments[rest_of_world_region_id] += rest_of_world_cycle[
+        "refinery_deviation_mbd"
+    ]
+    crude_runs[rest_of_world_region_id] += rest_of_world_cycle[
+        "refinery_deviation_mbd"
+    ]
+    unconstrained_crude_runs = {
+        str(region["region_id"]): crude_runs[str(region["region_id"])]
+        for region in regions
+    }
+    crude_runs = _project_to_global_total(
+        unconstrained_crude_runs,
+        global_total=global_crude_runs,
+        weights=crude_run_shares,
+    )
+    refinery_conservation_adjustments = {
+        region_id: crude_runs[region_id] - unconstrained_crude_runs[region_id]
+        for region_id in known_region_ids
+    }
+    for region_id, value in refinery_cycle_adjustments.items():
+        refinery_cycle_adjustments[region_id] = round(value, 8)
+    for region_id, value in refinery_conservation_adjustments.items():
+        refinery_conservation_adjustments[region_id] = round(value, 8)
+
     brazil_guyana_region_id = "brazil_guyana"
-    brazil_guyana_balancing_id = "other_export_regions"
     if brazil_guyana_region_id not in known_region_ids:
         raise KeyError(f"unknown Brazil/Guyana cycle region: {brazil_guyana_region_id}")
-    if brazil_guyana_balancing_id not in known_region_ids:
-        raise KeyError(
-            f"unknown Brazil/Guyana balancing region: {brazil_guyana_balancing_id}"
-        )
     brazil_guyana_cycle = _advance_brazil_guyana_cycle(
         state["brazil_guyana_cycle"],
         seed=seed,
@@ -503,8 +933,60 @@ def advance_regional_balance(
         -0.55,
         0.65,
     )
-    production[brazil_guyana_region_id] += brazil_guyana_adjustment
-    production[brazil_guyana_balancing_id] -= brazil_guyana_adjustment
+    production_cycle_adjustments[brazil_guyana_region_id] += brazil_guyana_adjustment
+    is_brazil_guyana_decision_month = month == 1
+
+    west_africa_region_id = "west_africa"
+    if west_africa_region_id not in known_region_ids:
+        raise KeyError(f"unknown West Africa cycle region: {west_africa_region_id}")
+    west_africa_cycle = _advance_west_africa_cycle(
+        state["west_africa_cycle"],
+        seed=seed,
+        turn_index=turn_index,
+        month=month,
+    )
+    west_africa_adjustment = clamp(
+        west_africa_cycle["project_deviation_mbd"]
+        + west_africa_cycle["operational_deviation_mbd"],
+        -0.60,
+        0.50,
+    )
+    production_cycle_adjustments[west_africa_region_id] += west_africa_adjustment
+    is_west_africa_decision_month = month == 1
+
+    other_export_config = regional["other_export_cycle"]
+    other_export_region_id = str(other_export_config["region_id"])
+    if other_export_region_id not in known_region_ids:
+        raise KeyError(f"unknown other-export cycle region: {other_export_region_id}")
+    other_export_cycle = _advance_other_export_cycle(
+        state["other_export_cycle"],
+        seed=seed,
+        turn_index=turn_index,
+        cycle=other_export_config,
+    )
+    production_cycle_adjustments[other_export_region_id] += other_export_cycle[
+        "operational_deviation_mbd"
+    ]
+
+    unconstrained_production = {
+        str(region["region_id"]): production[str(region["region_id"])]
+        + policy_adjustments[str(region["region_id"])]
+        + production_cycle_adjustments[str(region["region_id"])]
+        for region in regions
+    }
+    production = _project_to_global_total(
+        unconstrained_production,
+        global_total=global_production,
+        weights=production_shares,
+    )
+    conservation_adjustments = {
+        region_id: production[region_id] - unconstrained_production[region_id]
+        for region_id in known_region_ids
+    }
+    for region_id, value in production_cycle_adjustments.items():
+        production_cycle_adjustments[region_id] = round(value, 8)
+    for region_id, value in conservation_adjustments.items():
+        conservation_adjustments[region_id] = round(value, 8)
 
     _apply_zero_sum_impulses(
         production,
@@ -551,6 +1033,14 @@ def advance_regional_balance(
                 "region_id": region_id,
                 "region_name": str(region["region_name"]),
                 "crude_production_mbd": round(production[region_id], 8),
+                "unconstrained_crude_production_mbd": round(
+                    unconstrained_production[region_id],
+                    8,
+                ),
+                "conservation_adjustment_mbd": round(
+                    conservation_adjustments[region_id],
+                    8,
+                ),
                 "production_policy_adjustment_mbd": round(
                     policy_adjustments[region_id],
                     8,
@@ -558,45 +1048,98 @@ def advance_regional_balance(
                 "production_policy_target_mbd": round(
                     production_policy["target_mbd"]
                     if region_id == policy_region_id
-                    else (
-                        -production_policy["target_mbd"]
-                        if region_id == policy_balancing_region_id
-                        else 0.0
-                    ),
+                    else 0.0,
                     8,
                 ),
                 "production_policy_decision_month": bool(
-                    is_policy_decision_month
-                    and region_id in {policy_region_id, policy_balancing_region_id}
+                    is_policy_decision_month and region_id == policy_region_id
                 ),
                 "production_cycle_adjustment_mbd": round(
                     production_cycle_adjustments[region_id],
                     8,
                 ),
                 "production_cycle_target_mbd": round(
-                    us_gulf_cycle["production_target_mbd"]
-                    if region_id == us_gulf_region_id
-                    else (
-                        -us_gulf_cycle["production_target_mbd"]
-                        if region_id == us_gulf_production_balancing_id
+                    (
+                        us_gulf_cycle["production_target_mbd"]
+                        if region_id == us_gulf_region_id
+                        else 0.0
+                    )
+                    + (
+                        brazil_guyana_cycle["project_target_mbd"]
+                        if region_id == brazil_guyana_region_id
+                        else 0.0
+                    )
+                    + (
+                        west_africa_cycle["project_target_mbd"]
+                        if region_id == west_africa_region_id
+                        else 0.0
+                    )
+                    + (
+                        other_export_cycle["operational_deviation_mbd"]
+                        if region_id == other_export_region_id
                         else 0.0
                     ),
                     8,
                 ),
                 "production_cycle_decision_month": bool(
-                    is_us_gulf_production_decision_month
-                    and region_id
-                    in {us_gulf_region_id, us_gulf_production_balancing_id}
+                    (
+                        is_us_gulf_production_decision_month
+                        and region_id == us_gulf_region_id
+                    )
+                    or (
+                        is_brazil_guyana_decision_month
+                        and region_id == brazil_guyana_region_id
+                    )
+                    or (
+                        is_west_africa_decision_month
+                        and region_id == west_africa_region_id
+                    )
                 ),
                 "crude_refinery_runs_mbd": round(crude_runs[region_id], 8),
+                "unconstrained_crude_refinery_runs_mbd": round(
+                    unconstrained_crude_runs[region_id],
+                    8,
+                ),
                 "refinery_cycle_adjustment_mbd": round(
                     refinery_cycle_adjustments[region_id],
                     8,
                 ),
+                "refinery_conservation_adjustment_mbd": round(
+                    refinery_conservation_adjustments[region_id],
+                    8,
+                ),
                 "refinery_cycle_target_mbd": round(
-                    refinery_cycle_target
-                    if region_id == us_gulf_region_id
-                    else (
+                    (
+                        refinery_cycle_target
+                        if region_id == us_gulf_region_id
+                        else 0.0
+                    )
+                    + (
+                        east_asia_refinery_target
+                        if region_id == east_asia_region_id
+                        else 0.0
+                    )
+                    + (
+                        south_asia_refinery_target
+                        if region_id == south_asia_region_id
+                        else 0.0
+                    )
+                    + (
+                        europe_refinery_target
+                        if region_id == europe_region_id
+                        else 0.0
+                    )
+                    + (
+                        north_america_refinery_target
+                        if region_id == north_america_region_id
+                        else 0.0
+                    )
+                    + (
+                        rest_of_world_refinery_target
+                        if region_id == rest_of_world_region_id
+                        else 0.0
+                    )
+                    + (
                         -refinery_cycle_target
                         if region_id == us_gulf_refinery_balancing_id
                         else 0.0
@@ -640,6 +1183,17 @@ def advance_regional_balance(
             sum(float(region["net_seaborne_balance_mbd"]) for region in balances),
             8,
         ),
+        "regional_production_conservation_residual_mbd": round(
+            sum(conservation_adjustments.values())
+            + sum(policy_adjustments.values())
+            + sum(production_cycle_adjustments.values()),
+            8,
+        ),
+        "regional_refinery_conservation_residual_mbd": round(
+            sum(refinery_cycle_adjustments.values())
+            + sum(refinery_conservation_adjustments.values()),
+            8,
+        ),
     }
     next_state = {
         "production_shares": production_shares,
@@ -648,5 +1202,12 @@ def advance_regional_balance(
         "production_policy": production_policy,
         "us_gulf_cycle": us_gulf_cycle,
         "brazil_guyana_cycle": brazil_guyana_cycle,
+        "west_africa_cycle": west_africa_cycle,
+        "other_export_cycle": other_export_cycle,
+        "east_asia_cycle": east_asia_cycle,
+        "south_asia_cycle": south_asia_cycle,
+        "europe_cycle": europe_cycle,
+        "north_america_import_cycle": north_america_import_cycle,
+        "rest_of_world_cycle": rest_of_world_cycle,
     }
     return next_state, record

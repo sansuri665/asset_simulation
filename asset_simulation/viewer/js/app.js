@@ -115,7 +115,7 @@ function activeDefinition(rows) {
     const selected = regionFor(selectedRow());
     if (state.regionView === "fundamentals") {
       return {
-        eyebrow: "REGIONAL CRUDE PRODUCTION / RUNS · MONTHLY", title: `${selected.region_name} · 原油产量与炼厂原油加工`, unit: "百万桶/日", digits: 1, zeroBased: true,
+        eyebrow: "REGIONAL CRUDE PRODUCTION / RUNS · MONTHLY", title: `${selected.region_name} · 原油产量与炼厂原油加工`, unit: "百万桶/日", digits: 2, zeroBased: false,
         series: [
           { label: "区域原油产量", color: "#41d39a", fill: false, values: rows.map((row) => Number(regionFor(row).crude_production_mbd)) },
           { label: "炼厂原油加工量", color: "#f3a357", fill: false, values: rows.map((row) => Number(regionFor(row).crude_refinery_runs_mbd)) },
@@ -123,7 +123,7 @@ function activeDefinition(rows) {
       };
     }
     return {
-      eyebrow: "NET SEABORNE BALANCE · MONTHLY", title: `${selected.region_name} · 海运净平衡`, unit: "百万桶/日（正值出口／负值进口）", digits: 1, zeroBased: false, includeZero: true,
+      eyebrow: "NET SEABORNE BALANCE · MONTHLY", title: `${selected.region_name} · 海运净平衡`, unit: "百万桶/日（正值出口／负值进口）", digits: 2, zeroBased: false, includeZero: false,
       series: [{ label: "海运净平衡", color: "#53d4dd", fill: true, values: rows.map((row) => Number(regionFor(row).net_seaborne_balance_mbd)) }],
     };
   }
@@ -166,7 +166,11 @@ function renderChart(rows, definition, selectedLocalIndex) {
   let minimum = definition.zeroBased ? 0 : Math.min(...allValues);
   let maximum = Math.max(...allValues);
   if (definition.includeZero) { minimum = Math.min(0, minimum); maximum = Math.max(0, maximum); }
-  const padding = Math.max((maximum - minimum) * 0.12, Math.abs(maximum) * 0.012, 0.25);
+  const padding = Math.max(
+    (maximum - minimum) * 0.12,
+    Math.abs(maximum) * 0.012,
+    definition.includeZero || definition.zeroBased ? 0.25 : 0.04,
+  );
   if (!definition.zeroBased) minimum -= padding;
   maximum += padding;
   const plotWidth = PLOT.right - PLOT.left;
@@ -177,7 +181,7 @@ function renderChart(rows, definition, selectedLocalIndex) {
   const yTicks = Array.from({ length: 6 }, (_, index) => minimum + (maximum - minimum) * index / 5);
   const xIndexes = [...new Set(Array.from({ length: 7 }, (_, index) => Math.round((rows.length - 1) * index / 6)))];
   const grid = yTicks.map((value) => `<line class="chart-grid" x1="${PLOT.left}" x2="${PLOT.right}" y1="${y(value)}" y2="${y(value)}"/><text class="chart-tick" x="${PLOT.left - 10}" y="${y(value) + 4}" text-anchor="end">${fmt(value, definition.digits)}</text>`).join("");
-  const zeroLine = definition.includeZero && minimum < 0 && maximum > 0 ? `<line class="chart-zero" x1="${PLOT.left}" x2="${PLOT.right}" y1="${y(0)}" y2="${y(0)}"/>` : "";
+  const zeroLine = minimum < 0 && maximum > 0 ? `<line class="chart-zero" x1="${PLOT.left}" x2="${PLOT.right}" y1="${y(0)}" y2="${y(0)}"/>` : "";
   const ticks = xIndexes.map((index) => `<text class="chart-tick" x="${x(index)}" y="${SVG_HEIGHT - 16}" text-anchor="middle">${rows[index].label}</text>`).join("");
   const paths = definition.series.map((series) => {
     const path = pathFor(series.values);
@@ -236,8 +240,8 @@ function updateDetails() {
     $("detailEyebrow").textContent = "REGIONAL PHYSICAL BALANCE";
     setBadge(exporter ? "海运盈余" : "海运缺口", exporter ? "up" : "down");
     $("focusPrimary").innerHTML = `<span>${region.region_name} · 海运净平衡</span><strong>${signed(region.net_seaborne_balance_mbd, 2, " 百万桶/日")}</strong><small class="${directionClass(change)}">${change == null ? "月度路径起点" : `环比变化 ${signed(change, 2, " 百万桶/日")}`}</small>`;
-    $("focusDetails").innerHTML = [detailItem("原油产量", fmt(region.crude_production_mbd, 2, " 百万桶/日")), detailItem("炼厂原油加工", fmt(region.crude_refinery_runs_mbd, 2, " 百万桶/日")), detailItem("原油库存变化", signed(region.crude_inventory_change_mmbbl, 2, " 百万桶")), detailItem("库存日率", signed(region.crude_inventory_change_mbd, 3, " 百万桶/日")), detailItem("原油管道净出口", signed(region.crude_pipeline_net_exports_mbd, 2, " 百万桶/日")), detailItem("贸易角色", exporter ? "海运出口区" : "海运进口区")].join("");
-    $("detailNote").textContent = "海运净平衡 = 区域原油产量 − 炼厂原油加工量 − 原油库存变化（日率）− 原油管道净出口。所有输入均来自独立 crude-only 物理层。";
+    $("focusDetails").innerHTML = [detailItem("原油产量", fmt(region.crude_production_mbd, 2, " 百万桶/日")), detailItem("无约束产量", fmt(region.unconstrained_crude_production_mbd, 2, " 百万桶/日")), detailItem("守恒调整", signed(region.conservation_adjustment_mbd, 2, " 百万桶/日")), detailItem("产量周期覆盖", signed(region.production_cycle_adjustment_mbd, 2, " 百万桶/日")), detailItem("炼厂原油加工", fmt(region.crude_refinery_runs_mbd, 2, " 百万桶/日")), detailItem("无约束加工", fmt(region.unconstrained_crude_refinery_runs_mbd, 2, " 百万桶/日")), detailItem("炼厂周期覆盖", signed(region.refinery_cycle_adjustment_mbd, 2, " 百万桶/日")), detailItem("炼厂守恒调整", signed(region.refinery_conservation_adjustment_mbd, 2, " 百万桶/日")), detailItem("原油库存变化", signed(region.crude_inventory_change_mmbbl, 2, " 百万桶")), detailItem("原油管道净出口", signed(region.crude_pipeline_net_exports_mbd, 2, " 百万桶/日")), detailItem("贸易角色", exporter ? "海运出口区" : "海运进口区")].join("");
+    $("detailNote").textContent = "海运净平衡 = 区域原油产量 − 炼厂原油加工量 − 原油库存变化（日率）− 原油管道净出口。纵轴按当前窗口自动缩放，不强制从 0 起画，以免把出口区的月度周期压成一条平线。";
     return;
   }
   if (state.mode === "routes") {

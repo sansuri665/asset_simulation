@@ -1,7 +1,7 @@
 {
   "schema_version": "asset-simulation-oil-shipping-demand-config-v6",
-  "config_id": "asset-simulation-crude-physical-route-network-v0.6.0",
-  "model_version": "asset-simulation-oil-shipping-demand-v0.6.0",
+  "config_id": "asset-simulation-crude-physical-route-network-v0.6.6",
+  "model_version": "asset-simulation-oil-shipping-demand-v0.6.6",
   "time": {
     "turns_per_month": 1,
     "game_start_year": 2030
@@ -178,9 +178,11 @@
     "crude_production_impulse_balancing_region_id": "other_export_regions",
     "crude_runs_impulse_balancing_region_id": "rest_of_world",
     "crude_inventory_impulse_balancing_region_id": "rest_of_world",
+    "production_conservation": {
+      "weighting": "production_share"
+    },
     "production_policy": {
       "region_id": "gulf",
-      "balancing_region_id": "other_export_regions",
       "decision_interval_months": 3,
       "target_persistence": 0.72,
       "decision_news_scale_mbd": 0.45,
@@ -189,9 +191,159 @@
       "monthly_adjustment_speed": 0.50,
       "maximum_monthly_adjustment_mbd": 0.40
     },
+    "other_export_cycle": {
+      "region_id": "other_export_regions",
+      "operational_persistence": 0.72,
+      "operational_news_scale_mbd": 0.08,
+      "operational_bounds_mbd": [-0.30, 0.30]
+    },
+    "east_asia_cycle": {
+      "region_id": "east_asia",
+      "refinery": {
+        "baseline_monthly_profile_mbd": [0.04, 0.0, -0.04, -0.02, 0.03, 0.05, 0.06, 0.05, -0.02, -0.05, 0.0, 0.04],
+        "spring_maintenance": {
+          "start_center_month": 3.0,
+          "start_news_scale_months": 0.55,
+          "start_bounds_month": [3, 4],
+          "amplitude_base_mbd": 0.42,
+          "amplitude_news_scale_mbd": 0.10,
+          "amplitude_bounds_mbd": [0.20, 0.70]
+        },
+        "fall_maintenance": {
+          "start_center_month": 10.0,
+          "start_news_scale_months": 0.55,
+          "start_bounds_month": [9, 10],
+          "amplitude_base_mbd": 0.32,
+          "amplitude_news_scale_mbd": 0.08,
+          "amplitude_bounds_mbd": [0.15, 0.55]
+        },
+        "maintenance_kernel": [0.45, 1.0, 0.35],
+        "operational_persistence": 0.70,
+        "operational_news_scale_mbd": 0.10,
+        "operational_bounds_mbd": [-0.35, 0.35],
+        "target_bounds_mbd": [-0.85, 0.50],
+        "monthly_adjustment_speed": 0.40,
+        "maximum_monthly_adjustment_mbd": 0.22
+      }
+    },
+    "south_asia_cycle": {
+      "region_id": "south_asia",
+      "refinery": {
+        "baseline_monthly_profile_mbd": [0.03, 0.02, -0.01, -0.03, -0.02, 0.04, 0.05, 0.04, -0.02, -0.04, 0.02, 0.04],
+        "spring_maintenance": {
+          "start_center_month": 4.0,
+          "start_news_scale_months": 0.45,
+          "start_bounds_month": [4, 5],
+          "amplitude_base_mbd": 0.16,
+          "amplitude_news_scale_mbd": 0.05,
+          "amplitude_bounds_mbd": [0.08, 0.28]
+        },
+        "fall_maintenance": {
+          "start_center_month": 9.0,
+          "start_news_scale_months": 0.50,
+          "start_bounds_month": [9, 10],
+          "amplitude_base_mbd": 0.12,
+          "amplitude_news_scale_mbd": 0.04,
+          "amplitude_bounds_mbd": [0.05, 0.22]
+        },
+        "maintenance_kernel": [0.45, 1.0, 0.35],
+        "operational_persistence": 0.68,
+        "operational_news_scale_mbd": 0.05,
+        "operational_bounds_mbd": [-0.18, 0.18],
+        "target_bounds_mbd": [-0.38, 0.22],
+        "monthly_adjustment_speed": 0.42,
+        "maximum_monthly_adjustment_mbd": 0.12
+      }
+    },
+    "europe_cycle": {
+      "region_id": "europe",
+      "refinery": {
+        "baseline_monthly_profile_mbd": [0.04, 0.01, -0.04, -0.03, 0.03, 0.05, 0.05, 0.03, -0.02, -0.04, 0.02, 0.04],
+        "spring_maintenance": {
+          "start_center_month": 3.0,
+          "start_news_scale_months": 0.50,
+          "start_bounds_month": [3, 4],
+          "amplitude_base_mbd": 0.32,
+          "amplitude_news_scale_mbd": 0.08,
+          "amplitude_bounds_mbd": [0.14, 0.52]
+        },
+        "fall_maintenance": {
+          "start_center_month": 9.0,
+          "start_news_scale_months": 0.50,
+          "start_bounds_month": [8, 9],
+          "amplitude_base_mbd": 0.24,
+          "amplitude_news_scale_mbd": 0.07,
+          "amplitude_bounds_mbd": [0.10, 0.40]
+        },
+        "maintenance_kernel": [0.45, 1.0, 0.35],
+        "operational_persistence": 0.72,
+        "operational_news_scale_mbd": 0.08,
+        "operational_bounds_mbd": [-0.25, 0.25],
+        "target_bounds_mbd": [-0.60, 0.35],
+        "monthly_adjustment_speed": 0.40,
+        "maximum_monthly_adjustment_mbd": 0.16
+      }
+    },
+    "north_america_import_cycle": {
+      "region_id": "north_america_import",
+      "refinery": {
+        "baseline_monthly_profile_mbd": [0.03, 0.02, 0.01, 0.0, -0.03, -0.02, 0.04, 0.04, 0.02, -0.03, -0.02, 0.04],
+        "spring_maintenance": {
+          "start_center_month": 5.0,
+          "start_news_scale_months": 0.45,
+          "start_bounds_month": [5, 6],
+          "amplitude_base_mbd": 0.24,
+          "amplitude_news_scale_mbd": 0.06,
+          "amplitude_bounds_mbd": [0.10, 0.40]
+        },
+        "fall_maintenance": {
+          "start_center_month": 10.0,
+          "start_news_scale_months": 0.45,
+          "start_bounds_month": [10, 11],
+          "amplitude_base_mbd": 0.18,
+          "amplitude_news_scale_mbd": 0.05,
+          "amplitude_bounds_mbd": [0.08, 0.32]
+        },
+        "maintenance_kernel": [0.45, 1.0, 0.35],
+        "operational_persistence": 0.70,
+        "operational_news_scale_mbd": 0.07,
+        "operational_bounds_mbd": [-0.22, 0.22],
+        "target_bounds_mbd": [-0.50, 0.28],
+        "monthly_adjustment_speed": 0.40,
+        "maximum_monthly_adjustment_mbd": 0.14
+      }
+    },
+    "rest_of_world_cycle": {
+      "region_id": "rest_of_world",
+      "refinery": {
+        "baseline_monthly_profile_mbd": [0.02, -0.02, -0.02, 0.02, 0.03, 0.02, -0.02, -0.03, 0.02, 0.03, 0.02, 0.03],
+        "spring_maintenance": {
+          "start_center_month": 2.0,
+          "start_news_scale_months": 0.45,
+          "start_bounds_month": [2, 3],
+          "amplitude_base_mbd": 0.16,
+          "amplitude_news_scale_mbd": 0.05,
+          "amplitude_bounds_mbd": [0.08, 0.28]
+        },
+        "fall_maintenance": {
+          "start_center_month": 7.0,
+          "start_news_scale_months": 0.45,
+          "start_bounds_month": [7, 8],
+          "amplitude_base_mbd": 0.14,
+          "amplitude_news_scale_mbd": 0.04,
+          "amplitude_bounds_mbd": [0.06, 0.24]
+        },
+        "maintenance_kernel": [0.45, 1.0, 0.35],
+        "operational_persistence": 0.68,
+        "operational_news_scale_mbd": 0.08,
+        "operational_bounds_mbd": [-0.24, 0.24],
+        "target_bounds_mbd": [-0.42, 0.24],
+        "monthly_adjustment_speed": 0.42,
+        "maximum_monthly_adjustment_mbd": 0.13
+      }
+    },
     "us_gulf_cycle": {
       "region_id": "us_gulf",
-      "production_balancing_region_id": "other_export_regions",
       "refinery_balancing_region_id": "rest_of_world",
       "production": {
         "target_persistence": 0.65,
@@ -294,10 +446,10 @@
         "region_name": "东亚",
         "initial_production_share": 0.058,
         "production_share_bounds": [0.04, 0.08],
-        "production_share_annual_bias_pct": 0.0,
+        "production_share_annual_bias_pct": -0.35,
         "initial_crude_run_share": 0.235,
-        "crude_run_share_bounds": [0.20, 0.28],
-        "crude_run_share_annual_bias_pct": 0.25,
+        "crude_run_share_bounds": [0.20, 0.30],
+        "crude_run_share_annual_bias_pct": 0.65,
         "inventory_change_share": 0.25,
         "pipeline_net_exports_mbd": -0.10
       },
@@ -308,7 +460,7 @@
         "production_share_bounds": [0.003, 0.015],
         "production_share_annual_bias_pct": -1.0,
         "initial_crude_run_share": 0.065,
-        "crude_run_share_bounds": [0.05, 0.085],
+        "crude_run_share_bounds": [0.05, 0.10],
         "crude_run_share_annual_bias_pct": 1.4,
         "inventory_change_share": 0.10,
         "pipeline_net_exports_mbd": -0.10
@@ -320,7 +472,7 @@
         "production_share_bounds": [0.025, 0.055],
         "production_share_annual_bias_pct": -0.6,
         "initial_crude_run_share": 0.151,
-        "crude_run_share_bounds": [0.12, 0.18],
+        "crude_run_share_bounds": [0.10, 0.18],
         "crude_run_share_annual_bias_pct": -0.8,
         "inventory_change_share": 0.16,
         "pipeline_net_exports_mbd": -0.30

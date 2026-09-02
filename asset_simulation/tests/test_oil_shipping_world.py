@@ -215,12 +215,20 @@ class OilShippingWorldTests(unittest.TestCase):
                 for region in turn["regional_balances"]
                 if region["region_id"] == region_id
             )
+            allocated = float(region[field])
+            if field == "crude_refinery_runs_mbd":
+                allocated -= float(region["refinery_cycle_adjustment_mbd"])
+                allocated -= float(region["refinery_conservation_adjustment_mbd"])
+            else:
+                allocated -= float(region["production_policy_adjustment_mbd"])
+                allocated -= float(region["production_cycle_adjustment_mbd"])
+                allocated -= float(region["conservation_adjustment_mbd"])
             total_field = (
                 "crude_refinery_runs_mbd"
                 if field == "crude_refinery_runs_mbd"
                 else "crude_production_mbd"
             )
-            return float(region[field]) / float(turn[total_field])
+            return allocated / float(turn[total_field])
 
         first = long_world.turns[0]
         last = long_world.turns[-1]
@@ -432,7 +440,7 @@ class OilShippingWorldTests(unittest.TestCase):
                 places=6,
             )
 
-    def test_gulf_production_policy_is_sticky_bounded_and_zero_sum(self) -> None:
+    def test_gulf_production_policy_is_sticky_bounded_and_conserved(self) -> None:
         gulf_exports: list[float] = []
         gulf_adjustments: list[float] = []
         for turn in self.short_world.turns:
@@ -441,24 +449,39 @@ class OilShippingWorldTests(unittest.TestCase):
                 for region in turn["regional_balances"]
             }
             gulf = regions["gulf"]
-            balancing = regions["other_export_regions"]
+            other_export = regions["other_export_regions"]
             gulf_exports.append(float(gulf["net_seaborne_balance_mbd"]))
             gulf_adjustments.append(
                 float(gulf["production_policy_adjustment_mbd"])
             )
             self.assertAlmostEqual(
                 0.0,
-                sum(
-                    float(region["production_policy_adjustment_mbd"])
-                    for region in regions.values()
-                ),
+                float(other_export["production_policy_adjustment_mbd"]),
                 places=8,
             )
             self.assertAlmostEqual(
-                -float(gulf["production_policy_adjustment_mbd"]),
-                float(balancing["production_policy_adjustment_mbd"]),
-                places=8,
+                0.0,
+                sum(
+                    float(region["production_policy_adjustment_mbd"])
+                    + float(region["production_cycle_adjustment_mbd"])
+                    + float(region["conservation_adjustment_mbd"])
+                    for region in regions.values()
+                ),
+                places=6,
             )
+            total_overlay = sum(
+                float(region["production_policy_adjustment_mbd"])
+                + float(region["production_cycle_adjustment_mbd"])
+                for region in regions.values()
+            )
+            if abs(total_overlay) > 0.05:
+                self.assertLess(
+                    abs(
+                        float(other_export["conservation_adjustment_mbd"])
+                        / total_overlay
+                    ),
+                    0.40,
+                )
             self.assertLessEqual(
                 abs(float(gulf["production_policy_target_mbd"])),
                 2.2,
@@ -467,6 +490,7 @@ class OilShippingWorldTests(unittest.TestCase):
                 int(turn["turn_index"]) % 3 == 0,
                 bool(gulf["production_policy_decision_month"]),
             )
+            self.assertFalse(other_export["production_policy_decision_month"])
 
         monthly_policy_changes = [
             current - previous
@@ -516,18 +540,40 @@ class OilShippingWorldTests(unittest.TestCase):
             self.assertAlmostEqual(
                 0.0,
                 sum(
-                    float(region["production_cycle_adjustment_mbd"])
+                    float(region["production_policy_adjustment_mbd"])
+                    + float(region["production_cycle_adjustment_mbd"])
+                    + float(region["conservation_adjustment_mbd"])
                     for region in regions.values()
                 ),
-                places=8,
+                places=6,
+            )
+            self.assertLessEqual(
+                abs(
+                    float(us_gulf["refinery_cycle_adjustment_mbd"])
+                    + float(
+                        regions["rest_of_world"]["refinery_cycle_adjustment_mbd"]
+                    )
+                ),
+                0.42 + 1e-8,
             )
             self.assertAlmostEqual(
                 0.0,
                 sum(
                     float(region["refinery_cycle_adjustment_mbd"])
+                    + float(region["refinery_conservation_adjustment_mbd"])
                     for region in regions.values()
                 ),
+                places=6,
+            )
+            self.assertAlmostEqual(
+                0.0,
+                float(turn["regional_crude_runs_residual_mbd"]),
                 places=8,
+            )
+            self.assertAlmostEqual(
+                0.0,
+                float(turn["regional_refinery_conservation_residual_mbd"]),
+                places=6,
             )
             self.assertLessEqual(
                 abs(float(us_gulf["production_cycle_target_mbd"])),
