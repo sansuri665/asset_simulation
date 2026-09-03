@@ -1,0 +1,37 @@
+{
+  "schema_version": "asset-simulation-vlcc-spot-market-config-v1",
+  "model_version": "asset-simulation-vlcc-spot-market-prototype-v0.1.0",
+  "route_id": "gulf_east_asia",
+  "shipping_turns_per_month": 3,
+  "reference_turn_days": 10.1388888889,
+  "reference_route_cargo_mbd": 9.3,
+  "vlcc_cargo_mmbbl": 1.971,
+  "cycle_turns": 5,
+  "cargo_arrival_lag_turns": 3,
+  "reference_route_fleet_vlcc": 239,
+  "inventory": {
+    "clearance_fraction_per_turn": 0.35,
+    "maximum_correction_fraction_of_structural_flow": 0.22
+  },
+  "repositioning": {
+    "lag_turns": 2,
+    "inventory_gap_gain_vlcc_per_day": 1.8,
+    "prompt_shortage_gain_vlcc_per_fixture": 0.55,
+    "maximum_net_reposition_vlcc_per_turn": 7,
+    "maximum_external_pool_vlcc": 120,
+    "deadband_inventory_gap_days": 0.15
+  },
+  "freight": {
+    "baseline_real_tce_2025_usd_per_day": 35000.0,
+    "prompt_shortage_log_sensitivity": 4.0,
+    "inventory_gap_day_log_sensitivity": 0.09,
+    "minimum_real_tce_multiple": 0.45,
+    "maximum_real_tce_multiple": 3.5
+  },
+  "notes": {
+    "market_scope": "single-route VLCC-only reduced-form spot market",
+    "supply_scope": "route-positioned VLCC-equivalent fleet can borrow from or return ships to an external flexible pool; the external pool is not yet an explicit set of competing routes",
+    "inventory_scope": "Gulf, in-transit and East Asia values are deviations from a normal reference pipeline and may be positive or negative",
+    "price_scope": "freight tightness is calibrated in constant 2025 dollars and converted to nominal dollars using the seed CPI price-level index"
+  }
+}
