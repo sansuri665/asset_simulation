@@ -104,7 +104,7 @@ async function loadWorld() {
     state.windowStart = clamp(state.selectedIndex - MONTHLY_WINDOW + 12, 0, Math.max(0, rows.length - MONTHLY_WINDOW));
     render();
     $("identityText").textContent = `Seed ${state.seed} · ${state.payload.identity.model_version} · 区域物理差额生成货量`;
-    $("statusText").textContent = `${rows.length.toLocaleString("zh-CN")} 个月度状态 · 10个区域 · 9条主要航线 + 其他航线池 · 尚无运价`;
+    $("statusText").textContent = `${rows.length.toLocaleString("zh-CN")} 个月度状态 · 10个区域 · 14条航线状况参考 + 其他航线池 · 尚无运价`;
   } catch (error) {
     $("statusText").textContent = `加载失败：${error.message}`;
   }
@@ -240,8 +240,8 @@ function updateDetails() {
     $("detailEyebrow").textContent = "REGIONAL PHYSICAL BALANCE";
     setBadge(exporter ? "海运盈余" : "海运缺口", exporter ? "up" : "down");
     $("focusPrimary").innerHTML = `<span>${region.region_name} · 海运净平衡</span><strong>${signed(region.net_seaborne_balance_mbd, 2, " 百万桶/日")}</strong><small class="${directionClass(change)}">${change == null ? "月度路径起点" : `环比变化 ${signed(change, 2, " 百万桶/日")}`}</small>`;
-    $("focusDetails").innerHTML = [detailItem("原油产量", fmt(region.crude_production_mbd, 2, " 百万桶/日")), detailItem("无约束产量", fmt(region.unconstrained_crude_production_mbd, 2, " 百万桶/日")), detailItem("守恒调整", signed(region.conservation_adjustment_mbd, 2, " 百万桶/日")), detailItem("产量周期覆盖", signed(region.production_cycle_adjustment_mbd, 2, " 百万桶/日")), detailItem("炼厂原油加工", fmt(region.crude_refinery_runs_mbd, 2, " 百万桶/日")), detailItem("无约束加工", fmt(region.unconstrained_crude_refinery_runs_mbd, 2, " 百万桶/日")), detailItem("炼厂周期覆盖", signed(region.refinery_cycle_adjustment_mbd, 2, " 百万桶/日")), detailItem("炼厂守恒调整", signed(region.refinery_conservation_adjustment_mbd, 2, " 百万桶/日")), detailItem("原油库存变化", signed(region.crude_inventory_change_mmbbl, 2, " 百万桶")), detailItem("原油管道净出口", signed(region.crude_pipeline_net_exports_mbd, 2, " 百万桶/日")), detailItem("贸易角色", exporter ? "海运出口区" : "海运进口区")].join("");
-    $("detailNote").textContent = "海运净平衡 = 区域原油产量 − 炼厂原油加工量 − 原油库存变化（日率）− 原油管道净出口。纵轴按当前窗口自动缩放，不强制从 0 起画，以免把出口区的月度周期压成一条平线。";
+    $("focusDetails").innerHTML = [detailItem("基础原油产量", fmt(region.base_crude_production_mbd, 2, " 百万桶/日")), detailItem("自身政策覆盖", signed(region.production_policy_adjustment_mbd, 2, " 百万桶/日")), detailItem("自身生产周期", signed(region.production_cycle_adjustment_mbd, 2, " 百万桶/日")), detailItem("无约束产量", fmt(region.unconstrained_crude_production_mbd, 2, " 百万桶/日")), detailItem("跨区守恒调整", signed(region.conservation_adjustment_mbd, 2, " 百万桶/日")), detailItem("最终原油产量", fmt(region.crude_production_mbd, 2, " 百万桶/日")), detailItem("产量有效总调整", signed(region.effective_production_adjustment_mbd, 2, " 百万桶/日")), detailItem("基础炼厂加工", fmt(region.base_crude_refinery_runs_mbd, 2, " 百万桶/日")), detailItem("自身炼厂周期", signed(region.refinery_cycle_adjustment_mbd, 2, " 百万桶/日")), detailItem("炼厂跨区守恒", signed(region.refinery_conservation_adjustment_mbd, 2, " 百万桶/日")), detailItem("最终炼厂加工", fmt(region.crude_refinery_runs_mbd, 2, " 百万桶/日")), detailItem("炼厂有效总调整", signed(region.effective_refinery_adjustment_mbd, 2, " 百万桶/日")), detailItem("原油库存变化", signed(region.crude_inventory_change_mmbbl, 2, " 百万桶")), detailItem("原油管道净出口", signed(region.crude_pipeline_net_exports_mbd, 2, " 百万桶/日")), detailItem("贸易角色", exporter ? "海运出口区" : "海运进口区")].join("");
+    $("detailNote").textContent = "自身政策或运营覆盖完整进入本区无约束目标；反向守恒量只按物理份额分散给其他区域，航线与吨海里不回写上游。海运净平衡仍等于最终原油产量 − 最终炼厂加工 − 原油库存变化（日率）− 原油管道净出口。";
     return;
   }
   if (state.mode === "routes") {
@@ -252,11 +252,11 @@ function updateDetails() {
     const digits = state.metric === "cargo" ? 2 : 0;
     const value = Number(route[fields[state.metric]]);
     const change = previousRoute ? pctChange(value, previousRoute[fields[state.metric]]) : null;
-    $("detailEyebrow").textContent = "SELECTED ROUTE";
+    $("detailEyebrow").textContent = "ROUTE STATUS REFERENCE";
     setBadge(route.route_status === "rerouted" ? "绕行" : route.route_status === "shortened" ? "航程缩短" : "正常航线", route.route_status === "rerouted" ? "down" : "");
     $("focusPrimary").innerHTML = `<span>${route.route_name}</span><strong>${fmt(value, digits, suffixes[state.metric])}</strong><small class="${directionClass(change)}">${change == null ? "月度路径起点" : `环比 ${signed(change, 2, "%")}`}</small>`;
-    $("focusDetails").innerHTML = [detailItem("全球份额", fmt(Number(route.market_share) * 100, 2, "%")), detailItem("本月货物", fmt(route.cargo_million_tonnes, 2, " 百万吨")), detailItem("基准航程", fmt(route.baseline_haul_nm, 0, " 海里")), detailItem("有效航程", fmt(route.effective_haul_nm, 0, " 海里")), detailItem("本月吨海里", fmt(route.tonne_nautical_miles_billion, 1, " 十亿吨海里")), detailItem("经过节点", route.chokepoints.join(" · "))].join("");
-    $("detailNote").textContent = route.is_other_pool ? "其他航线池聚合未单独展示的区域组合；它仍参与相同的货量与吨海里守恒。" : "区域出口供给和进口需求约束航线货量，贸易偏好决定矩阵内部的流向组合。";
+    $("focusDetails").innerHTML = [detailItem("全球份额", fmt(Number(route.market_share) * 100, 2, "%")), detailItem(`${route.reference_year}参考货量`, fmt(route.reference_cargo_mbd, 2, " 百万桶/日")), detailItem("边际缩放参考", fmt(route.margin_scaled_reference_mbd, 2, " 百万桶/日")), detailItem("相对参考", signed(route.cargo_vs_reference_pct, 1, "%")), detailItem("本月货物", fmt(route.cargo_million_tonnes, 2, " 百万吨")), detailItem("基准航程", fmt(route.baseline_haul_nm, 0, " 海里")), detailItem("有效航程", fmt(route.effective_haul_nm, 0, " 海里")), detailItem("本月吨海里", fmt(route.tonne_nautical_miles_billion, 1, " 十亿吨海里")), detailItem("经过节点", route.chokepoints.join(" · "))].join("");
+    $("detailNote").textContent = route.is_other_pool ? "其他航线池聚合11条未单列的小额区域联系；它仍参与相同的货量、航程与吨海里守恒。" : "2024参考货量校准IPF内部流向，但不会覆盖当月区域出口与进口边际；基准航程和吨海里公式保持不变。";
     return;
   }
   const fields = { cargo: "seaborne_cargo_mbd", tonneMiles: "annualized_tonne_nautical_miles_billion", haul: "average_haul_nm" };
@@ -268,7 +268,7 @@ function updateDetails() {
   $("detailEyebrow").textContent = "GLOBAL OVERVIEW";
   setBadge(change == null ? "月度起点" : change >= 0 ? "指标上升" : "指标下降", change == null ? "" : change >= 0 ? "up" : "down");
   $("focusPrimary").innerHTML = `<span>${labels[state.metric]}</span><strong>${fmt(value, digits, suffixes[state.metric])}</strong><small class="${directionClass(change)}">${change == null ? "月度路径起点" : `环比 ${signed(change, 2, "%")}`}</small>`;
-  $("focusDetails").innerHTML = [detailItem("出口供给", fmt(row.regional_export_supply_mbd, 2, " 百万桶/日")), detailItem("进口需求", fmt(row.regional_import_requirement_mbd, 2, " 百万桶/日")), detailItem("本月货物", fmt(row.cargo_million_tonnes, 2, " 百万吨")), detailItem("平均航程", fmt(row.average_haul_nm, 0, " 海里")), detailItem("年化吨海里", fmt(row.annualized_tonne_nautical_miles_billion, 0, " 十亿吨海里/年")), detailItem("航线网络", `${row.explicit_route_count} 条主要 + 其他池`)].join("");
+  $("focusDetails").innerHTML = [detailItem("出口供给", fmt(row.regional_export_supply_mbd, 2, " 百万桶/日")), detailItem("进口需求", fmt(row.regional_import_requirement_mbd, 2, " 百万桶/日")), detailItem("本月货物", fmt(row.cargo_million_tonnes, 2, " 百万吨")), detailItem("平均航程", fmt(row.average_haul_nm, 0, " 海里")), detailItem("年化吨海里", fmt(row.annualized_tonne_nautical_miles_billion, 0, " 十亿吨海里/年")), detailItem("航线网络", `${row.explicit_route_count} 条状况参考 + 其他池`)].join("");
   $("detailNote").textContent = "海运货量来自 crude-only 区域物理盈余与缺口，不使用固定海运比例，也不把全球总液体消费按地区拆成原油进口需求。";
 }
 

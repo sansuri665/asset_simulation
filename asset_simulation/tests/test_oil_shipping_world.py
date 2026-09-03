@@ -350,8 +350,8 @@ class OilShippingWorldTests(unittest.TestCase):
             "modeled_conventional_crude_tanker_market",
             self.short_world.identity["shipping_market_scope"],
         )
-        self.assertEqual(9, self.short_world.identity["explicit_route_count"])
-        self.assertEqual(10, len(self.short_world.identity["route_ids"]))
+        self.assertEqual(14, self.short_world.identity["explicit_route_count"])
+        self.assertEqual(15, len(self.short_world.identity["route_ids"]))
         self.assertEqual(
             "regional_crude_surplus_and_deficit",
             self.short_world.identity["cargo_generation"],
@@ -359,8 +359,8 @@ class OilShippingWorldTests(unittest.TestCase):
 
         for turn in self.short_world.turns[::13]:
             routes = turn["routes"]
-            self.assertEqual(10, len(routes))
-            self.assertEqual(9, sum(not route["is_other_pool"] for route in routes))
+            self.assertEqual(15, len(routes))
+            self.assertEqual(14, sum(not route["is_other_pool"] for route in routes))
             self.assertEqual(1, sum(route["is_other_pool"] for route in routes))
             self.assertAlmostEqual(
                 1.0,
@@ -469,16 +469,18 @@ class OilShippingWorldTests(unittest.TestCase):
                 ),
                 places=6,
             )
-            total_overlay = sum(
-                float(region["production_policy_adjustment_mbd"])
-                + float(region["production_cycle_adjustment_mbd"])
+            gross_overlay = sum(
+                abs(
+                    float(region["production_policy_adjustment_mbd"])
+                    + float(region["production_cycle_adjustment_mbd"])
+                )
                 for region in regions.values()
             )
-            if abs(total_overlay) > 0.05:
+            if gross_overlay > 0.05:
                 self.assertLess(
                     abs(
                         float(other_export["conservation_adjustment_mbd"])
-                        / total_overlay
+                        / gross_overlay
                     ),
                     0.40,
                 )
@@ -509,6 +511,47 @@ class OilShippingWorldTests(unittest.TestCase):
         )
         self.assertGreater(statistics.stdev(monthly_export_changes), 0.08)
         self.assertGreater(max(gulf_exports) - min(gulf_exports), 1.0)
+
+    def test_regional_overlay_decomposition_is_exact(self) -> None:
+        for turn in self.short_world.turns:
+            for region in turn["regional_balances"]:
+                self.assertAlmostEqual(
+                    float(region["unconstrained_crude_production_mbd"]),
+                    float(region["base_crude_production_mbd"])
+                    + float(region["production_policy_adjustment_mbd"])
+                    + float(region["production_cycle_adjustment_mbd"]),
+                    places=7,
+                )
+                self.assertAlmostEqual(
+                    float(region["crude_production_mbd"]),
+                    float(region["unconstrained_crude_production_mbd"])
+                    + float(region["conservation_adjustment_mbd"]),
+                    places=7,
+                )
+                self.assertAlmostEqual(
+                    float(region["effective_production_adjustment_mbd"]),
+                    float(region["crude_production_mbd"])
+                    - float(region["base_crude_production_mbd"]),
+                    places=7,
+                )
+                self.assertAlmostEqual(
+                    float(region["unconstrained_crude_refinery_runs_mbd"]),
+                    float(region["base_crude_refinery_runs_mbd"])
+                    + float(region["refinery_cycle_adjustment_mbd"]),
+                    places=7,
+                )
+                self.assertAlmostEqual(
+                    float(region["crude_refinery_runs_mbd"]),
+                    float(region["unconstrained_crude_refinery_runs_mbd"])
+                    + float(region["refinery_conservation_adjustment_mbd"]),
+                    places=7,
+                )
+                self.assertAlmostEqual(
+                    float(region["effective_refinery_adjustment_mbd"]),
+                    float(region["crude_refinery_runs_mbd"])
+                    - float(region["base_crude_refinery_runs_mbd"]),
+                    places=7,
+                )
 
     def test_us_gulf_net_balance_has_shale_and_refinery_cycles(self) -> None:
         exports: list[float] = []

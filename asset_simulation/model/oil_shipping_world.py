@@ -25,7 +25,7 @@ from .performance_cache import deterministic_projection_cache
 from .registry import load_registered_assets, sha256_json
 
 
-OIL_SHIPPING_DEMAND_MODEL_VERSION = "asset-simulation-oil-shipping-demand-v0.6.6"
+OIL_SHIPPING_DEMAND_MODEL_VERSION = "asset-simulation-oil-shipping-demand-v0.6.8"
 OIL_SHIPPING_DEMAND_SCHEMA_VERSION = "asset-simulation-oil-shipping-demand-response-v6"
 SCALAR_SCENARIO_FIELDS = frozenset(
     {

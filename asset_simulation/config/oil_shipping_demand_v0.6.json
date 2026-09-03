@@ -1,7 +1,7 @@
 {
   "schema_version": "asset-simulation-oil-shipping-demand-config-v6",
-  "config_id": "asset-simulation-crude-physical-route-network-v0.6.6",
-  "model_version": "asset-simulation-oil-shipping-demand-v0.6.6",
+  "config_id": "asset-simulation-crude-physical-route-network-v0.6.8",
+  "model_version": "asset-simulation-oil-shipping-demand-v0.6.8",
   "time": {
     "turns_per_month": 1,
     "game_start_year": 2030
@@ -179,6 +179,7 @@
     "crude_runs_impulse_balancing_region_id": "rest_of_world",
     "crude_inventory_impulse_balancing_region_id": "rest_of_world",
     "production_conservation": {
+      "method": "owner_excluded_share_weighted_offsets",
       "weighting": "production_share"
     },
     "production_policy": {
@@ -190,6 +191,32 @@
       "target_bounds_mbd": [-2.2, 2.2],
       "monthly_adjustment_speed": 0.50,
       "maximum_monthly_adjustment_mbd": 0.40
+    },
+    "brazil_guyana_cycle": {
+      "region_id": "brazil_guyana",
+      "decision_month": 1,
+      "project_target_persistence": 0.55,
+      "annual_project_news_scale_mbd": 0.30,
+      "project_target_bounds_mbd": [-0.40, 0.55],
+      "project_adjustment_speed": 0.35,
+      "maximum_monthly_project_adjustment_mbd": 0.13,
+      "operational_persistence": 0.70,
+      "operational_news_scale_mbd": 0.09,
+      "operational_bounds_mbd": [-0.20, 0.20],
+      "combined_adjustment_bounds_mbd": [-0.55, 0.65]
+    },
+    "west_africa_cycle": {
+      "region_id": "west_africa",
+      "decision_month": 1,
+      "project_target_persistence": 0.60,
+      "annual_project_news_scale_mbd": 0.26,
+      "project_target_bounds_mbd": [-0.35, 0.40],
+      "project_adjustment_speed": 0.30,
+      "maximum_monthly_project_adjustment_mbd": 0.12,
+      "operational_persistence": 0.64,
+      "operational_news_scale_mbd": 0.12,
+      "operational_bounds_mbd": [-0.38, 0.22],
+      "combined_adjustment_bounds_mbd": [-0.60, 0.50]
     },
     "other_export_cycle": {
       "region_id": "other_export_regions",
@@ -558,6 +585,67 @@
         "rest_of_world": 1.0
       }
     },
+    "volume_calibration": {
+      "reference_year": 2024,
+      "reference_seaborne_cargo_mbd": 39.8,
+      "major_route_count": 14,
+      "residual_pair_count": 11,
+      "source_label": "Energy Institute Statistical Review of World Energy 2025 crude inter-area movements, cross-checked with EIA destination data",
+      "source_url": "https://www.energyinst.org/__data/assets/pdf_file/0007/1658077/Statistical-Review-of-World-Energy.pdf",
+      "confirmation_url": "https://www.eia.gov/todayinenergy/detail.php?id=64964",
+      "normalization_note": "The 39.8 mbd matrix is a model-consistent seaborne crude center after broad-basin mapping and pipeline exclusions; it is not a directly reported EI total. All 25 cells remain positive and are rebalanced to simulated monthly regional margins.",
+      "reference_export_margins_mbd": {
+        "gulf": 17.9,
+        "us_gulf": 4.2,
+        "brazil_guyana": 2.6,
+        "west_africa": 3.1,
+        "other_export_regions": 12.0
+      },
+      "reference_import_margins_mbd": {
+        "east_asia": 14.7,
+        "south_asia": 4.8,
+        "europe": 9.2,
+        "north_america_import": 3.6,
+        "rest_of_world": 7.5
+      },
+      "reference_pair_cargo_mbd": {
+        "gulf": {
+          "east_asia": 9.3,
+          "south_asia": 2.4,
+          "europe": 1.6,
+          "north_america_import": 0.4,
+          "rest_of_world": 4.2
+        },
+        "us_gulf": {
+          "east_asia": 0.9,
+          "south_asia": 0.2,
+          "europe": 1.9,
+          "north_america_import": 0.2,
+          "rest_of_world": 1.0
+        },
+        "brazil_guyana": {
+          "east_asia": 1.1,
+          "south_asia": 0.2,
+          "europe": 0.8,
+          "north_america_import": 0.4,
+          "rest_of_world": 0.1
+        },
+        "west_africa": {
+          "east_asia": 1.2,
+          "south_asia": 0.3,
+          "europe": 1.1,
+          "north_america_import": 0.3,
+          "rest_of_world": 0.2
+        },
+        "other_export_regions": {
+          "east_asia": 2.2,
+          "south_asia": 1.7,
+          "europe": 3.8,
+          "north_america_import": 2.3,
+          "rest_of_world": 2.0
+        }
+      }
+    },
     "pair_distances_nm": {
       "gulf": {
         "east_asia": 6200.0,
@@ -667,6 +755,46 @@
         "destination_id": "europe",
         "dislocation_sensitivity": 0.20,
         "chokepoints": ["东大西洋"]
+      },
+      {
+        "route_id": "brazil_guyana_north_america_import",
+        "route_name": "巴西／圭亚那 → 北美进口区",
+        "origin_id": "brazil_guyana",
+        "destination_id": "north_america_import",
+        "dislocation_sensitivity": 0.15,
+        "chokepoints": ["南大西洋", "加勒比／北美沿岸"]
+      },
+      {
+        "route_id": "west_africa_south_asia",
+        "route_name": "西非 → 南亚",
+        "origin_id": "west_africa",
+        "destination_id": "south_asia",
+        "dislocation_sensitivity": 0.55,
+        "chokepoints": ["好望角", "印度洋"]
+      },
+      {
+        "route_id": "other_export_regions_east_asia",
+        "route_name": "其他出口区 → 东亚",
+        "origin_id": "other_export_regions",
+        "destination_id": "east_asia",
+        "dislocation_sensitivity": 0.65,
+        "chokepoints": ["俄罗斯远东／北极／苏伊士混合"]
+      },
+      {
+        "route_id": "other_export_regions_south_asia",
+        "route_name": "其他出口区 → 南亚",
+        "origin_id": "other_export_regions",
+        "destination_id": "south_asia",
+        "dislocation_sensitivity": 0.70,
+        "chokepoints": ["黑海／波罗的海／里海", "苏伊士／好望角"]
+      },
+      {
+        "route_id": "other_export_regions_europe",
+        "route_name": "其他出口区 → 欧洲",
+        "origin_id": "other_export_regions",
+        "destination_id": "europe",
+        "dislocation_sensitivity": 0.35,
+        "chokepoints": ["北海／波罗的海／黑海／地中海"]
       }
     ],
     "other_pool": {

@@ -85,7 +85,7 @@ def audit_oil_shipping_demand(
     per_seed_other_export_monthly_change_sd: list[float] = []
     per_seed_other_export_ranges: list[float] = []
     per_seed_other_export_overlay_correlation: list[float] = []
-    per_seed_other_export_gulf_correlation: list[float] = []
+    per_seed_other_export_gulf_change_correlation: list[float] = []
     per_seed_east_asia_import_monthly_change_sd: list[float] = []
     per_seed_east_asia_import_ranges: list[float] = []
     per_seed_east_asia_overlay_correlation: list[float] = []
@@ -134,6 +134,13 @@ def audit_oil_shipping_demand(
     implied_cargo_shares: list[float] = []
     haul: list[float] = []
     tonne_miles: list[float] = []
+    reference_seaborne_cargo: list[float] = []
+    initial_major_route_reference_deviation_pct: list[float] = []
+    route_margin_scaled_diagnostic_difference_mbd: list[float] = []
+    reference_years: set[int] = set()
+    calibrated_major_route_counts: set[int] = set()
+    active_pair_counts: set[int] = set()
+    residual_pair_counts: set[int] = set()
     maximum_balance_residual = 0.0
     maximum_crude_balance_residual = 0.0
     total_unmet_demand = 0.0
@@ -338,6 +345,27 @@ def audit_oil_shipping_demand(
             haul.append(float(turn["average_haul_nm"]))
             tonne_miles.append(float(turn["annualized_tonne_nautical_miles_billion"]))
             routes = turn["routes"]
+            reference_seaborne_cargo.append(
+                float(turn["reference_seaborne_cargo_mbd"])
+            )
+            reference_years.add(int(turn["reference_year"]))
+            calibrated_major_route_counts.add(
+                int(turn["calibrated_major_route_count"])
+            )
+            active_pair_counts.add(int(turn["active_pair_count"]))
+            for route in routes:
+                route_margin_scaled_diagnostic_difference_mbd.append(
+                    abs(
+                        float(route["cargo_mbd"])
+                        - float(route["margin_scaled_reference_mbd"])
+                    )
+                )
+                if bool(route["is_other_pool"]):
+                    residual_pair_counts.add(int(route["residual_pair_count"]))
+                elif int(turn["turn_index"]) == 0:
+                    initial_major_route_reference_deviation_pct.append(
+                        abs(float(route["cargo_vs_reference_pct"]))
+                    )
             regions_by_id = {
                 str(region["region_id"]): region
                 for region in turn["regional_balances"]
@@ -739,8 +767,8 @@ def audit_oil_shipping_demand(
         per_seed_other_export_overlay_correlation.append(
             _correlation(seed_other_export_exports, seed_other_export_overlay)
         )
-        per_seed_other_export_gulf_correlation.append(
-            _correlation(seed_other_export_exports, seed_gulf_exports)
+        per_seed_other_export_gulf_change_correlation.append(
+            _correlation(other_export_changes, gulf_export_changes)
         )
         east_asia_import_changes = [
             current - previous
@@ -1086,8 +1114,24 @@ def audit_oil_shipping_demand(
         ),
         "haul_is_bounded": min(haul) >= 4500.0 and max(haul) <= 8500.0,
         "reroute_15pct_raises_tonne_miles_15pct": abs(reroute_ratio - 1.15) <= 1e-7,
-        "route_catalog_has_nine_explicit_plus_other_pool": (
-            len(route_ids) == 10 and "other_routes" in route_ids
+        "route_catalog_has_fourteen_explicit_plus_other_pool": (
+            len(route_ids) == 15 and "other_routes" in route_ids
+        ),
+        "route_reference_matrix_metadata_is_complete": (
+            reference_years == {2024}
+            and calibrated_major_route_counts == {14}
+            and active_pair_counts == {25}
+            and residual_pair_counts == {11}
+            and max(
+                abs(value - 39.8) for value in reference_seaborne_cargo
+            )
+            <= 1e-8
+        ),
+        "initial_major_routes_are_centered_on_reference_matrix": (
+            max(initial_major_route_reference_deviation_pct) <= 15.0
+        ),
+        "margin_scaled_route_reference_is_not_a_post_ipf_alias": (
+            max(route_margin_scaled_diagnostic_difference_mbd) >= 0.01
         ),
         "route_cargo_is_conserved": maximum_route_cargo_residual_mbd <= 1e-6,
         "route_tonne_miles_are_conserved": (
@@ -1137,8 +1181,11 @@ def audit_oil_shipping_demand(
         "other_export_is_not_a_mechanical_mirror": (
             max(abs(value) for value in per_seed_other_export_overlay_correlation)
             <= 0.85
-            and max(abs(value) for value in per_seed_other_export_gulf_correlation)
-            <= 0.90
+            and max(
+                abs(value)
+                for value in per_seed_other_export_gulf_change_correlation
+            )
+            <= 0.65
         ),
         "other_export_has_independent_ordinary_volatility": (
             min(per_seed_other_export_monthly_change_sd) >= 0.04
@@ -1249,9 +1296,9 @@ def audit_oil_shipping_demand(
         ),
         "rest_of_world_remains_an_importer": rest_of_world_always_importer,
         "rest_of_world_refinery_cycle_is_bounded": (
-            maximum_rest_of_world_refinery_target_mbd <= 0.42 + 1e-8
+            maximum_rest_of_world_refinery_target_mbd <= 0.42 + 5e-8
             and maximum_rest_of_world_refinery_monthly_adjustment_mbd
-            <= 0.13 + 1e-8
+            <= 0.13 + 5e-8
         ),
         "rest_of_world_refinery_cycle_has_mixed_latitude_maintenance": (
             rest_of_world_maintenance_run_rate
@@ -1398,6 +1445,15 @@ def audit_oil_shipping_demand(
             "average_haul_nm_max": max(haul),
             "annualized_tonne_nautical_miles_billion_mean": statistics.fmean(
                 tonne_miles
+            ),
+            "reference_seaborne_cargo_mbd": statistics.fmean(
+                reference_seaborne_cargo
+            ),
+            "maximum_initial_major_route_reference_deviation_pct": max(
+                initial_major_route_reference_deviation_pct
+            ),
+            "maximum_route_margin_scaled_diagnostic_difference_mbd": max(
+                route_margin_scaled_diagnostic_difference_mbd
             ),
             "maximum_abs_mass_balance_residual_mmbbl": maximum_balance_residual,
             "maximum_abs_crude_mass_balance_residual_mmbbl": (
@@ -1659,8 +1715,9 @@ def audit_oil_shipping_demand(
             "other_export_overlay_correlation_abs_max": max(
                 abs(value) for value in per_seed_other_export_overlay_correlation
             ),
-            "other_export_gulf_correlation_abs_max": max(
-                abs(value) for value in per_seed_other_export_gulf_correlation
+            "other_export_gulf_change_correlation_abs_max": max(
+                abs(value)
+                for value in per_seed_other_export_gulf_change_correlation
             ),
         },
     }

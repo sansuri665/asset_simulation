@@ -155,62 +155,58 @@ def _apply_zero_sum_impulses(
     values[balancing_region_id] -= total_impulse
 
 
-def _project_to_global_total(
-    values: Mapping[str, float],
+def _apply_owner_excluded_overlay(
+    values: dict[str, float],
+    conservation_adjustments: dict[str, float],
+    *,
+    owner_region_id: str,
+    overlay_mbd: float,
+    weights: Mapping[str, float],
+) -> None:
+    """Apply one named regional overlay without attenuating its owner.
+
+    The complete policy or operating overlay lands in its originating region.
+    Its zero-sum counterpart is distributed across every *other* region using
+    the registered physical shares.  This keeps the causal direction inside
+    the regional allocation stage while preventing one visible basin from
+    becoming the exclusive accounting absorber.
+    """
+
+    if owner_region_id not in values:
+        raise KeyError(f"unknown overlay owner: {owner_region_id}")
+    recipients = [region_id for region_id in values if region_id != owner_region_id]
+    weight_sum = sum(max(float(weights[region_id]), 0.0) for region_id in recipients)
+    if weight_sum <= 0.0:
+        raise ValueError("owner-excluded conservation has no positive recipient weight")
+    overlay = float(overlay_mbd)
+    values[owner_region_id] += overlay
+    distributed = 0.0
+    for region_id in recipients:
+        offset = -overlay * max(float(weights[region_id]), 0.0) / weight_sum
+        values[region_id] += offset
+        conservation_adjustments[region_id] += offset
+        distributed += offset
+    rounding_residual = overlay + distributed
+    if rounding_residual:
+        anchor = max(recipients, key=lambda region_id: float(weights[region_id]))
+        values[anchor] -= rounding_residual
+        conservation_adjustments[anchor] -= rounding_residual
+
+
+def _close_conservation_rounding(
+    values: dict[str, float],
+    conservation_adjustments: dict[str, float],
     *,
     global_total: float,
     weights: Mapping[str, float],
-) -> dict[str, float]:
-    """Project regional targets onto the global total with share-weighted slack.
+) -> None:
+    """Put only floating-point closure dust on the largest physical region."""
 
-    Larger production shares absorb more of the accounting residual. Named
-    regional cycles stay in the unconstrained target; this step only closes
-    `sum(regional production) = global production` without assigning the
-    whole residual to one visible export region.
-    """
-
-    projected = {region_id: float(value) for region_id, value in values.items()}
-    if not projected:
-        raise ValueError("production projection requires at least one region")
-    frozen: set[str] = set()
-    region_ids = list(projected)
-    for _ in range(len(region_ids) + 2):
-        free = [region_id for region_id in region_ids if region_id not in frozen]
-        if not free:
-            raise ValueError("production projection froze every region")
-        weight_sum = sum(max(float(weights[region_id]), 0.0) for region_id in free)
-        if weight_sum <= 0.0:
-            raise ValueError("production projection has no positive weight")
-        frozen_sum = sum(projected[region_id] for region_id in frozen)
-        free_excess = (
-            sum(float(values[region_id]) for region_id in free)
-            - (float(global_total) - frozen_sum)
-        )
-        blocked = False
-        next_projected = dict(projected)
-        for region_id in free:
-            candidate = float(values[region_id]) - free_excess * (
-                max(float(weights[region_id]), 0.0) / weight_sum
-            )
-            if candidate < 0.0:
-                next_projected[region_id] = 0.0
-                frozen.add(region_id)
-                blocked = True
-            else:
-                next_projected[region_id] = candidate
-        projected = next_projected
-        if blocked:
-            continue
-        residual = sum(projected.values()) - float(global_total)
-        if abs(residual) > 0.0:
-            anchor = max(free, key=lambda region_id: float(weights[region_id]))
-            projected[anchor] -= residual
-            if projected[anchor] < 0.0:
-                projected[anchor] = 0.0
-                frozen.add(anchor)
-                continue
-        return projected
-    raise ValueError("production projection failed to converge")
+    residual = float(global_total) - sum(values.values())
+    if residual:
+        anchor = max(values, key=lambda region_id: float(weights[region_id]))
+        values[anchor] += residual
+        conservation_adjustments[anchor] += residual
 
 
 def _advance_refinery_operating_cycle(
@@ -408,6 +404,7 @@ def _advance_brazil_guyana_cycle(
     seed: int,
     turn_index: int,
     month: int,
+    cycle: Mapping[str, Any],
 ) -> dict[str, float]:
     """Advance offshore project timing and persistent operating variability.
 
@@ -418,39 +415,38 @@ def _advance_brazil_guyana_cycle(
     """
 
     project_target = float(previous["project_target_mbd"])
-    if month == 1:
+    if month == int(cycle["decision_month"]):
         year_index = turn_index // 12
         project_target = clamp(
-            0.55 * project_target
-            + 0.30
+            float(cycle["project_target_persistence"]) * project_target
+            + float(cycle["annual_project_news_scale_mbd"])
             * normal(
                 seed,
                 "oil_region_brazil_guyana_project_timing",
                 year_index,
             ),
-            -0.40,
-            0.55,
+            *map(float, cycle["project_target_bounds_mbd"]),
         )
 
     previous_project = float(previous["project_deviation_mbd"])
     project_change = clamp(
-        0.35 * (project_target - previous_project),
-        -0.13,
-        0.13,
+        float(cycle["project_adjustment_speed"])
+        * (project_target - previous_project),
+        -float(cycle["maximum_monthly_project_adjustment_mbd"]),
+        float(cycle["maximum_monthly_project_adjustment_mbd"]),
     )
     project_deviation = previous_project + project_change
 
     previous_operations = float(previous["operational_deviation_mbd"])
     operational_deviation = clamp(
-        0.70 * previous_operations
-        + 0.09
+        float(cycle["operational_persistence"]) * previous_operations
+        + float(cycle["operational_news_scale_mbd"])
         * normal(
             seed,
             "oil_region_brazil_guyana_offshore_operations",
             turn_index,
         ),
-        -0.20,
-        0.20,
+        *map(float, cycle["operational_bounds_mbd"]),
     )
 
     return {
@@ -466,6 +462,7 @@ def _advance_west_africa_cycle(
     seed: int,
     turn_index: int,
     month: int,
+    cycle: Mapping[str, Any],
 ) -> dict[str, float]:
     """Advance terminal disruptions and slower Atlantic project timing.
 
@@ -476,39 +473,38 @@ def _advance_west_africa_cycle(
     """
 
     project_target = float(previous["project_target_mbd"])
-    if month == 1:
+    if month == int(cycle["decision_month"]):
         year_index = turn_index // 12
         project_target = clamp(
-            0.60 * project_target
-            + 0.26
+            float(cycle["project_target_persistence"]) * project_target
+            + float(cycle["annual_project_news_scale_mbd"])
             * normal(
                 seed,
                 "oil_region_west_africa_project_timing",
                 year_index,
             ),
-            -0.35,
-            0.40,
+            *map(float, cycle["project_target_bounds_mbd"]),
         )
 
     previous_project = float(previous["project_deviation_mbd"])
     project_change = clamp(
-        0.30 * (project_target - previous_project),
-        -0.12,
-        0.12,
+        float(cycle["project_adjustment_speed"])
+        * (project_target - previous_project),
+        -float(cycle["maximum_monthly_project_adjustment_mbd"]),
+        float(cycle["maximum_monthly_project_adjustment_mbd"]),
     )
     project_deviation = previous_project + project_change
 
     previous_operations = float(previous["operational_deviation_mbd"])
     operational_deviation = clamp(
-        0.64 * previous_operations
-        + 0.12
+        float(cycle["operational_persistence"]) * previous_operations
+        + float(cycle["operational_news_scale_mbd"])
         * normal(
             seed,
             "oil_region_west_africa_disruptions",
             turn_index,
         ),
-        -0.38,
-        0.22,
+        *map(float, cycle["operational_bounds_mbd"]),
     )
 
     return {
@@ -705,6 +701,8 @@ def advance_regional_balance(
     known_region_ids = {str(region["region_id"]) for region in regions}
     balancing_region_id = str(regional["balancing_region_id"])
     conservation = regional.get("production_conservation", {})
+    if str(conservation.get("method", "")) != "owner_excluded_share_weighted_offsets":
+        raise ValueError("unsupported regional production conservation method")
     if str(conservation.get("weighting", "production_share")) != "production_share":
         raise ValueError("only production-share conservation weighting is implemented")
 
@@ -750,6 +748,8 @@ def advance_regional_balance(
         region_id: global_crude_runs * share
         for region_id, share in crude_run_shares.items()
     }
+    base_production = dict(production)
+    base_crude_runs = dict(crude_runs)
     inventory = {
         str(region["region_id"]): global_inventory_change
         * float(region["inventory_change_share"])
@@ -796,6 +796,9 @@ def advance_regional_balance(
         "production_deviation_mbd"
     ]
     refinery_cycle_adjustments = {region_id: 0.0 for region_id in known_region_ids}
+    refinery_conservation_adjustments = {
+        region_id: 0.0 for region_id in known_region_ids
+    }
     refinery_cycle_adjustments[us_gulf_region_id] = us_gulf_cycle[
         "refinery_deviation_mbd"
     ]
@@ -819,7 +822,13 @@ def advance_regional_balance(
     refinery_cycle_adjustments[east_asia_region_id] += east_asia_cycle[
         "refinery_deviation_mbd"
     ]
-    crude_runs[east_asia_region_id] += east_asia_cycle["refinery_deviation_mbd"]
+    _apply_owner_excluded_overlay(
+        crude_runs,
+        refinery_conservation_adjustments,
+        owner_region_id=east_asia_region_id,
+        overlay_mbd=east_asia_cycle["refinery_deviation_mbd"],
+        weights=crude_run_shares,
+    )
 
     south_asia_config = regional["south_asia_cycle"]
     south_asia_region_id = str(south_asia_config["region_id"])
@@ -835,7 +844,13 @@ def advance_regional_balance(
     refinery_cycle_adjustments[south_asia_region_id] += south_asia_cycle[
         "refinery_deviation_mbd"
     ]
-    crude_runs[south_asia_region_id] += south_asia_cycle["refinery_deviation_mbd"]
+    _apply_owner_excluded_overlay(
+        crude_runs,
+        refinery_conservation_adjustments,
+        owner_region_id=south_asia_region_id,
+        overlay_mbd=south_asia_cycle["refinery_deviation_mbd"],
+        weights=crude_run_shares,
+    )
 
     europe_config = regional["europe_cycle"]
     europe_region_id = str(europe_config["region_id"])
@@ -851,7 +866,13 @@ def advance_regional_balance(
     refinery_cycle_adjustments[europe_region_id] += europe_cycle[
         "refinery_deviation_mbd"
     ]
-    crude_runs[europe_region_id] += europe_cycle["refinery_deviation_mbd"]
+    _apply_owner_excluded_overlay(
+        crude_runs,
+        refinery_conservation_adjustments,
+        owner_region_id=europe_region_id,
+        overlay_mbd=europe_cycle["refinery_deviation_mbd"],
+        weights=crude_run_shares,
+    )
 
     north_america_config = regional["north_america_import_cycle"]
     north_america_region_id = str(north_america_config["region_id"])
@@ -871,9 +892,13 @@ def advance_regional_balance(
     refinery_cycle_adjustments[north_america_region_id] += (
         north_america_import_cycle["refinery_deviation_mbd"]
     )
-    crude_runs[north_america_region_id] += north_america_import_cycle[
-        "refinery_deviation_mbd"
-    ]
+    _apply_owner_excluded_overlay(
+        crude_runs,
+        refinery_conservation_adjustments,
+        owner_region_id=north_america_region_id,
+        overlay_mbd=north_america_import_cycle["refinery_deviation_mbd"],
+        weights=crude_run_shares,
+    )
 
     rest_of_world_config = regional["rest_of_world_cycle"]
     rest_of_world_region_id = str(rest_of_world_config["region_id"])
@@ -897,28 +922,31 @@ def advance_regional_balance(
     refinery_cycle_adjustments[rest_of_world_region_id] += rest_of_world_cycle[
         "refinery_deviation_mbd"
     ]
-    crude_runs[rest_of_world_region_id] += rest_of_world_cycle[
-        "refinery_deviation_mbd"
-    ]
+    _apply_owner_excluded_overlay(
+        crude_runs,
+        refinery_conservation_adjustments,
+        owner_region_id=rest_of_world_region_id,
+        overlay_mbd=rest_of_world_cycle["refinery_deviation_mbd"],
+        weights=crude_run_shares,
+    )
     unconstrained_crude_runs = {
-        str(region["region_id"]): crude_runs[str(region["region_id"])]
+        str(region["region_id"]): base_crude_runs[str(region["region_id"])]
+        + refinery_cycle_adjustments[str(region["region_id"])]
         for region in regions
     }
-    crude_runs = _project_to_global_total(
-        unconstrained_crude_runs,
+    _close_conservation_rounding(
+        crude_runs,
+        refinery_conservation_adjustments,
         global_total=global_crude_runs,
         weights=crude_run_shares,
     )
-    refinery_conservation_adjustments = {
-        region_id: crude_runs[region_id] - unconstrained_crude_runs[region_id]
-        for region_id in known_region_ids
-    }
     for region_id, value in refinery_cycle_adjustments.items():
         refinery_cycle_adjustments[region_id] = round(value, 8)
     for region_id, value in refinery_conservation_adjustments.items():
         refinery_conservation_adjustments[region_id] = round(value, 8)
 
-    brazil_guyana_region_id = "brazil_guyana"
+    brazil_guyana_config = regional["brazil_guyana_cycle"]
+    brazil_guyana_region_id = str(brazil_guyana_config["region_id"])
     if brazil_guyana_region_id not in known_region_ids:
         raise KeyError(f"unknown Brazil/Guyana cycle region: {brazil_guyana_region_id}")
     brazil_guyana_cycle = _advance_brazil_guyana_cycle(
@@ -926,17 +954,20 @@ def advance_regional_balance(
         seed=seed,
         turn_index=turn_index,
         month=month,
+        cycle=brazil_guyana_config,
     )
     brazil_guyana_adjustment = clamp(
         brazil_guyana_cycle["project_deviation_mbd"]
         + brazil_guyana_cycle["operational_deviation_mbd"],
-        -0.55,
-        0.65,
+        *map(float, brazil_guyana_config["combined_adjustment_bounds_mbd"]),
     )
     production_cycle_adjustments[brazil_guyana_region_id] += brazil_guyana_adjustment
-    is_brazil_guyana_decision_month = month == 1
+    is_brazil_guyana_decision_month = month == int(
+        brazil_guyana_config["decision_month"]
+    )
 
-    west_africa_region_id = "west_africa"
+    west_africa_config = regional["west_africa_cycle"]
+    west_africa_region_id = str(west_africa_config["region_id"])
     if west_africa_region_id not in known_region_ids:
         raise KeyError(f"unknown West Africa cycle region: {west_africa_region_id}")
     west_africa_cycle = _advance_west_africa_cycle(
@@ -944,15 +975,17 @@ def advance_regional_balance(
         seed=seed,
         turn_index=turn_index,
         month=month,
+        cycle=west_africa_config,
     )
     west_africa_adjustment = clamp(
         west_africa_cycle["project_deviation_mbd"]
         + west_africa_cycle["operational_deviation_mbd"],
-        -0.60,
-        0.50,
+        *map(float, west_africa_config["combined_adjustment_bounds_mbd"]),
     )
     production_cycle_adjustments[west_africa_region_id] += west_africa_adjustment
-    is_west_africa_decision_month = month == 1
+    is_west_africa_decision_month = month == int(
+        west_africa_config["decision_month"]
+    )
 
     other_export_config = regional["other_export_cycle"]
     other_export_region_id = str(other_export_config["region_id"])
@@ -969,20 +1002,39 @@ def advance_regional_balance(
     ]
 
     unconstrained_production = {
-        str(region["region_id"]): production[str(region["region_id"])]
+        str(region["region_id"]): base_production[str(region["region_id"])]
         + policy_adjustments[str(region["region_id"])]
         + production_cycle_adjustments[str(region["region_id"])]
         for region in regions
     }
-    production = _project_to_global_total(
-        unconstrained_production,
+    production = dict(base_production)
+    conservation_adjustments = {
+        region_id: 0.0 for region_id in known_region_ids
+    }
+    for region_id, adjustment in policy_adjustments.items():
+        if adjustment:
+            _apply_owner_excluded_overlay(
+                production,
+                conservation_adjustments,
+                owner_region_id=region_id,
+                overlay_mbd=adjustment,
+                weights=production_shares,
+            )
+    for region_id, adjustment in production_cycle_adjustments.items():
+        if adjustment:
+            _apply_owner_excluded_overlay(
+                production,
+                conservation_adjustments,
+                owner_region_id=region_id,
+                overlay_mbd=adjustment,
+                weights=production_shares,
+            )
+    _close_conservation_rounding(
+        production,
+        conservation_adjustments,
         global_total=global_production,
         weights=production_shares,
     )
-    conservation_adjustments = {
-        region_id: production[region_id] - unconstrained_production[region_id]
-        for region_id in known_region_ids
-    }
     for region_id, value in production_cycle_adjustments.items():
         production_cycle_adjustments[region_id] = round(value, 8)
     for region_id, value in conservation_adjustments.items():
@@ -1032,6 +1084,10 @@ def advance_regional_balance(
             {
                 "region_id": region_id,
                 "region_name": str(region["region_name"]),
+                "base_crude_production_mbd": round(
+                    base_production[region_id],
+                    8,
+                ),
                 "crude_production_mbd": round(production[region_id], 8),
                 "unconstrained_crude_production_mbd": round(
                     unconstrained_production[region_id],
@@ -1039,6 +1095,10 @@ def advance_regional_balance(
                 ),
                 "conservation_adjustment_mbd": round(
                     conservation_adjustments[region_id],
+                    8,
+                ),
+                "effective_production_adjustment_mbd": round(
+                    production[region_id] - base_production[region_id],
                     8,
                 ),
                 "production_policy_adjustment_mbd": round(
@@ -1095,6 +1155,10 @@ def advance_regional_balance(
                         and region_id == west_africa_region_id
                     )
                 ),
+                "base_crude_refinery_runs_mbd": round(
+                    base_crude_runs[region_id],
+                    8,
+                ),
                 "crude_refinery_runs_mbd": round(crude_runs[region_id], 8),
                 "unconstrained_crude_refinery_runs_mbd": round(
                     unconstrained_crude_runs[region_id],
@@ -1106,6 +1170,10 @@ def advance_regional_balance(
                 ),
                 "refinery_conservation_adjustment_mbd": round(
                     refinery_conservation_adjustments[region_id],
+                    8,
+                ),
+                "effective_refinery_adjustment_mbd": round(
+                    crude_runs[region_id] - base_crude_runs[region_id],
                     8,
                 ),
                 "refinery_cycle_target_mbd": round(

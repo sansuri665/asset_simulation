@@ -4,24 +4,12 @@ import statistics
 import unittest
 
 from asset_simulation.model.engine import run_global_macro
-from asset_simulation.model.oil_shipping_regions import _project_to_global_total
+from asset_simulation.model.oil_shipping_regions import _apply_owner_excluded_overlay
 from asset_simulation.model.oil_shipping_world import run_oil_shipping_world
 
 
 class OtherExportConservationTests(unittest.TestCase):
-    def test_share_weighted_projection_closes_the_global_total(self) -> None:
-        values = {
-            "gulf": 27.0,
-            "us_gulf": 14.0,
-            "brazil_guyana": 5.0,
-            "west_africa": 4.0,
-            "other_export_regions": 19.5,
-            "east_asia": 5.0,
-            "south_asia": 0.6,
-            "europe": 3.2,
-            "north_america_import": 6.3,
-            "rest_of_world": 1.4,
-        }
+    def test_owner_excluded_weighting_preserves_named_overlay_and_total(self) -> None:
         weights = {
             "gulf": 0.317,
             "us_gulf": 0.165,
@@ -34,21 +22,25 @@ class OtherExportConservationTests(unittest.TestCase):
             "north_america_import": 0.075,
             "rest_of_world": 0.016,
         }
-        projected = _project_to_global_total(
+        values = {
+            region_id: 83.8 * weight for region_id, weight in weights.items()
+        }
+        conservation = {region_id: 0.0 for region_id in values}
+        original = dict(values)
+        _apply_owner_excluded_overlay(
             values,
-            global_total=83.8,
+            conservation,
+            owner_region_id="gulf",
+            overlay_mbd=1.0,
             weights=weights,
         )
-        excess = sum(values.values()) - 83.8
-        self.assertAlmostEqual(sum(projected.values()), 83.8, places=9)
+        self.assertAlmostEqual(sum(values.values()), 83.8, places=9)
+        self.assertAlmostEqual(values["gulf"] - original["gulf"], 1.0, places=9)
+        self.assertAlmostEqual(conservation["gulf"], 0.0, places=9)
         self.assertAlmostEqual(
-            values["other_export_regions"] - projected["other_export_regions"],
-            excess * weights["other_export_regions"],
+            original["other_export_regions"] - values["other_export_regions"],
+            weights["other_export_regions"] / (1.0 - weights["gulf"]),
             places=8,
-        )
-        self.assertLess(
-            abs(projected["other_export_regions"] - values["other_export_regions"]),
-            abs(excess) * 0.40,
         )
 
     def test_other_export_is_not_a_mechanical_mirror(self) -> None:
@@ -114,6 +106,10 @@ class OtherExportConservationTests(unittest.TestCase):
             statistics.stdev(oer_conservation) * 0.35,
         )
         self.assertLess(abs(statistics.correlation(oer_exports, overlay)), 0.85)
+        self.assertLess(
+            abs(statistics.correlation(monthly_changes, gulf_changes)),
+            0.65,
+        )
         self.assertTrue(all(value == 0.0 for value in oer_policy))
 
 
