@@ -18,3 +18,11 @@ jobs:
         run: python -m unittest asset_simulation.tests.test_vlcc_spot_market_prototype -v
       - name: Audit actual seeded route demand
         run: python -m asset_simulation.audit_vlcc_spot_market --seeds 0,1,5,7,42 --years 20
+      - name: Inspect seed42 sixty-year window
+        run: |
+          python - <<'PY'
+          import json
+          from asset_simulation.model.vlcc_spot_market import run_seeded_gulf_east_asia_vlcc_spot_market
+          result = run_seeded_gulf_east_asia_vlcc_spot_market(42, 60)
+          print(json.dumps(result["summary"], indent=2, sort_keys=True))
+          PY
