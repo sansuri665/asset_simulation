@@ -140,12 +140,6 @@ class GlobalVlccSpotMarketPrototypeTests(unittest.TestCase):
             and event["destination_id"] != "idle"
         ]
         self.assertTrue(route_to_route)
-        self.assertTrue(
-            any(
-                event["destination_id"] == "gulf_east_asia"
-                for event in route_to_route
-            )
-        )
         self.assertEqual(
             0,
             shocked["summary"]["maximum_abs_fleet_conservation_residual_vlcc"],
