@@ -107,13 +107,16 @@ class GlobalVlccSpotMarketPrototypeTests(unittest.TestCase):
             for row in self.macro.rows
         }
         constrained_config = copy.deepcopy(load_global_vlcc_market_config())
+        idle_to_reassign = int(
+            constrained_config["fleet"]["initial_idle_vlcc"]
+        )
         constrained_config["fleet"]["initial_idle_vlcc"] = 0
         residual = next(
             route
             for route in constrained_config["routes"]
             if route["route_id"] == "other_vlcc_market"
         )
-        residual["reference_route_fleet_vlcc"] += 90
+        residual["reference_route_fleet_vlcc"] += idle_to_reassign
         shocked = simulate_global_vlcc_spot_market(
             months,
             seed=42,
