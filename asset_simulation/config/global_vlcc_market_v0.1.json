@@ -7,7 +7,7 @@
   "fleet": {
     "total_vlcc": 900,
     "unavailable_vlcc": 70,
-    "initial_idle_vlcc": 90,
+    "initial_idle_vlcc": 130,
     "maximum_global_reposition_vlcc_per_turn": 18,
     "maximum_route_reposition_vlcc_per_turn": 7,
     "route_to_route_lag_turns": 2,
@@ -84,13 +84,14 @@
       "source_mode": "residual_tonne_mile_index",
       "cycle_turns": 8,
       "cargo_arrival_lag_turns": 4,
-      "reference_route_fleet_vlcc": 380
+      "reference_route_fleet_vlcc": 340
     }
   ],
   "notes": {
     "market_scope": "one globally fixed numbered VLCC pool allocated across five named route buckets plus one residual VLCC market",
     "supply_scope": "900 numbered vessels are conserved; 70 are structurally unavailable, while 830 are divided among route pools, idle ships and vessels in repositioning",
-    "calibration_scope": "named-route cargo is multiplied by a representative VLCC share rather than assuming every barrel on every long-haul route uses a VLCC; the residual bucket is calibrated to leave ordinary worlds with a meaningful prompt idle cushion",
+    "calibration_scope": "named-route cargo is multiplied by a representative VLCC share rather than assuming every barrel on every long-haul route uses a VLCC; the residual bucket is calibrated to leave ordinary worlds with a meaningful prompt/open-tonnage cushion",
+    "idle_scope": "idle represents globally open or uncommitted prompt tonnage, not necessarily commercially laid-up vessels",
     "route_scope": "the five named buckets read actual seeded route cargo; the residual bucket scales with tonne-mile demand from all remaining crude routes",
     "price_scope": "tightness is priced in constant 2025 dollars and converted to nominal dollars using the seed CPI price-level index",
     "limitations": "route pools are vessel-equivalent commercial circuits; individual loading, laden, discharge and ballast phases are not yet tracked per ship"
