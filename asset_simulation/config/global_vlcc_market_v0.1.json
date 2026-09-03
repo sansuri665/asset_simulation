@@ -7,7 +7,7 @@
   "fleet": {
     "total_vlcc": 900,
     "unavailable_vlcc": 70,
-    "initial_idle_vlcc": 30,
+    "initial_idle_vlcc": 90,
     "maximum_global_reposition_vlcc_per_turn": 18,
     "maximum_route_reposition_vlcc_per_turn": 7,
     "route_to_route_lag_turns": 2,
@@ -46,37 +46,37 @@
       "route_id": "west_africa_east_asia",
       "route_name": "西非 → 东亚",
       "source_route_id": "west_africa_east_asia",
-      "vlcc_share": 1.0,
+      "vlcc_share": 0.8,
       "cycle_turns": 8,
       "cargo_arrival_lag_turns": 5,
-      "reference_route_fleet_vlcc": 49
+      "reference_route_fleet_vlcc": 40
     },
     {
       "route_id": "brazil_guyana_east_asia",
       "route_name": "巴西／圭亚那 → 东亚",
       "source_route_id": "brazil_guyana_east_asia",
-      "vlcc_share": 1.0,
+      "vlcc_share": 0.8,
       "cycle_turns": 8,
       "cargo_arrival_lag_turns": 5,
-      "reference_route_fleet_vlcc": 45
+      "reference_route_fleet_vlcc": 36
     },
     {
       "route_id": "us_gulf_east_asia",
       "route_name": "美国湾岸 → 东亚",
       "source_route_id": "us_gulf_east_asia",
-      "vlcc_share": 1.0,
+      "vlcc_share": 0.65,
       "cycle_turns": 11,
       "cargo_arrival_lag_turns": 6,
-      "reference_route_fleet_vlcc": 51
+      "reference_route_fleet_vlcc": 33
     },
     {
       "route_id": "gulf_europe_vlcc",
       "route_name": "中东出口区 → 欧洲（VLCC份额）",
       "source_route_id": "gulf_europe",
-      "vlcc_share": 0.35,
+      "vlcc_share": 0.25,
       "cycle_turns": 6,
       "cargo_arrival_lag_turns": 4,
-      "reference_route_fleet_vlcc": 17
+      "reference_route_fleet_vlcc": 12
     },
     {
       "route_id": "other_vlcc_market",
@@ -84,12 +84,13 @@
       "source_mode": "residual_tonne_mile_index",
       "cycle_turns": 8,
       "cargo_arrival_lag_turns": 4,
-      "reference_route_fleet_vlcc": 399
+      "reference_route_fleet_vlcc": 380
     }
   ],
   "notes": {
     "market_scope": "one globally fixed numbered VLCC pool allocated across five named route buckets plus one residual VLCC market",
     "supply_scope": "900 numbered vessels are conserved; 70 are structurally unavailable, while 830 are divided among route pools, idle ships and vessels in repositioning",
+    "calibration_scope": "named-route cargo is multiplied by a representative VLCC share rather than assuming every barrel on every long-haul route uses a VLCC; the residual bucket is calibrated to leave ordinary worlds with a meaningful prompt idle cushion",
     "route_scope": "the five named buckets read actual seeded route cargo; the residual bucket scales with tonne-mile demand from all remaining crude routes",
     "price_scope": "tightness is priced in constant 2025 dollars and converted to nominal dollars using the seed CPI price-level index",
     "limitations": "route pools are vessel-equivalent commercial circuits; individual loading, laden, discharge and ballast phases are not yet tracked per ship"
