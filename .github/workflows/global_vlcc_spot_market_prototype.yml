@@ -1,0 +1,28 @@
+name: Global VLCC Spot Market Prototype
+
+on:
+  push:
+    branches:
+      - global-vlcc-spot-market-prototype
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Run global VLCC market unit tests
+        run: python -m unittest asset_simulation.tests.test_global_vlcc_market_prototype -v
+      - name: Audit globally fixed VLCC pool on actual seeded demand
+        run: python -m asset_simulation.audit_global_vlcc_market --seeds 0,1,5,7,42 --years 20
+      - name: Inspect seed42 sixty-year global market
+        run: |
+          python - <<'PY'
+          import json
+          from asset_simulation.model.global_vlcc_market import run_seeded_global_vlcc_spot_market
+          result = run_seeded_global_vlcc_spot_market(42, 60)
+          print(json.dumps(result["summary"], indent=2, sort_keys=True))
+          PY
