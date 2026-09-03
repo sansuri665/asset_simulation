@@ -1,0 +1,20 @@
+name: VLCC Spot Market Prototype
+
+on:
+  push:
+    branches:
+      - seed42-vlcc-spot-market-prototype
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Run prototype unit tests
+        run: python -m unittest asset_simulation.tests.test_vlcc_spot_market_prototype -v
+      - name: Audit actual seeded route demand
+        run: python -m asset_simulation.audit_vlcc_spot_market --seeds 0,1,5,7,42 --years 20
