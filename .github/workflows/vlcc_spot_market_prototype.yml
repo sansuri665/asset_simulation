@@ -18,6 +18,33 @@ jobs:
         run: python -m unittest asset_simulation.tests.test_vlcc_spot_market_prototype -v
       - name: Audit actual seeded route demand
         run: python -m asset_simulation.audit_vlcc_spot_market --seeds 0,1,5,7,42 --years 20
+      - name: Compare seed42 flexible and fixed route supply
+        run: |
+          python - <<'PY'
+          import copy
+          import json
+          from asset_simulation.model.engine import run_global_macro
+          from asset_simulation.model.oil_shipping_world import run_oil_shipping_world
+          from asset_simulation.model.vlcc_spot_market import (
+              load_vlcc_spot_market_config,
+              run_gulf_east_asia_vlcc_spot_market,
+          )
+          macro = run_global_macro(42, 20)
+          shipping = run_oil_shipping_world(macro)
+          flexible = run_gulf_east_asia_vlcc_spot_market(macro, shipping)
+          fixed_config = copy.deepcopy(load_vlcc_spot_market_config())
+          fixed_config["repositioning"]["maximum_external_pool_vlcc"] = 0
+          fixed_config["repositioning"]["maximum_net_reposition_vlcc_per_turn"] = 0
+          fixed = run_gulf_east_asia_vlcc_spot_market(
+              macro,
+              shipping,
+              config=fixed_config,
+          )
+          print(json.dumps({
+              "flexible": flexible["summary"],
+              "fixed": fixed["summary"],
+          }, indent=2, sort_keys=True))
+          PY
       - name: Inspect seed42 sixty-year window
         run: |
           python - <<'PY'
