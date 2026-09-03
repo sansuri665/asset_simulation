@@ -1,15 +1,15 @@
 """Experimental single-route VLCC spot-market execution prototype.
 
 This module deliberately sits downstream of the existing monthly crude-shipping
-world.  It does not change structural route demand.  Instead it asks how a
-fixed reference trade can be executed when locally positioned VLCC-equivalent
-supply is allowed to move in and out of the route with a lag.
+world. It does not change structural route demand. Instead it asks how a fixed
+reference trade can be executed when locally positioned VLCC-equivalent supply
+is allowed to move in and out of the route with a lag.
 
 The virtual inventories are *deviations from a normal pipeline*, not absolute
-physical stocks.  A value of zero means that the route is exactly on its
-normal transport schedule.  Positive Gulf deviation means cargo has piled up
-relative to normal; negative East Asia deviation means the destination is
-short relative to normal.
+physical stocks. A value of zero means that the route is exactly on its normal
+transport schedule. Positive Gulf deviation means cargo has piled up relative
+to normal; negative East Asia deviation means the destination is short relative
+to normal.
 """
 
 from __future__ import annotations
@@ -172,14 +172,12 @@ def simulate_vlcc_spot_route(
     inventory_reposition_gain = float(
         reposition_cfg["inventory_gap_gain_vlcc_per_day"]
     )
-    shortage_reposition_gain = float(
-        reposition_cfg["prompt_shortage_gain_vlcc_per_fixture"]
+    fixture_gap_reposition_gain = float(
+        reposition_cfg["prompt_fixture_gap_gain_vlcc_per_fixture"]
     )
     max_reposition = int(reposition_cfg["maximum_net_reposition_vlcc_per_turn"])
     external_pool_limit = int(reposition_cfg["maximum_external_pool_vlcc"])
-    reposition_deadband = float(
-        reposition_cfg["deadband_inventory_gap_days"]
-    )
+    reposition_deadband = float(reposition_cfg["deadband_inventory_gap_days"])
 
     freight_cfg = market["freight"]
     base_real_tce = float(freight_cfg["baseline_real_tce_2025_usd_per_day"])
@@ -258,8 +256,12 @@ def simulate_vlcc_spot_route(
                 / reference_turn_days
                 + fixture_capacity_carry
             )
-            available_fixtures = max(0, int(math.floor(raw_fixture_capacity + 1e-12)))
+            available_fixtures = max(
+                0,
+                int(math.floor(raw_fixture_capacity + 1e-12)),
+            )
             fixture_capacity_carry = raw_fixture_capacity - available_fixtures
+            fixture_gap = desired_fixtures - available_fixtures
             loaded_fixtures = min(desired_fixtures, available_fixtures)
             loaded_cargo = loaded_fixtures * cargo_capacity
             load_deviation = loaded_cargo - structural_cargo
@@ -274,7 +276,7 @@ def simulate_vlcc_spot_route(
                 gulf_deviation - east_asia_deviation
             )
             closing_inventory_gap_days = closing_inventory_gap / route_cargo_mbd
-            unfilled_fixtures = max(0, desired_fixtures - loaded_fixtures)
+            unfilled_fixtures = max(0, fixture_gap)
 
             reference_fixture_capacity = (
                 float(base_fleet)
@@ -282,9 +284,9 @@ def simulate_vlcc_spot_route(
                 * float(turn_days)
                 / reference_turn_days
             )
-            prompt_shortage_ratio = (
-                float(desired_fixtures - available_fixtures)
-                / max(reference_fixture_capacity, 1.0)
+            prompt_shortage_ratio = float(fixture_gap) / max(
+                reference_fixture_capacity,
+                1.0,
             )
             freight_log_multiplier = (
                 shortage_tce_sensitivity * prompt_shortage_ratio
@@ -300,11 +302,11 @@ def simulate_vlcc_spot_route(
 
             raw_reposition_request = (
                 inventory_reposition_gain * closing_inventory_gap_days
-                + shortage_reposition_gain * unfilled_fixtures
+                + fixture_gap_reposition_gain * fixture_gap
             )
             if (
                 abs(closing_inventory_gap_days) <= reposition_deadband
-                and unfilled_fixtures == 0
+                and fixture_gap == 0
             ):
                 reposition_request = 0
             else:
@@ -345,6 +347,7 @@ def simulate_vlcc_spot_route(
                     "desired_load_mmbbl": round(desired_load, 8),
                     "desired_fixture_vlcc": desired_fixtures,
                     "available_fixture_vlcc": available_fixtures,
+                    "prompt_fixture_gap_vlcc": fixture_gap,
                     "loaded_fixture_vlcc": loaded_fixtures,
                     "unfilled_fixture_vlcc": unfilled_fixtures,
                     "loaded_cargo_mmbbl": round(loaded_cargo, 8),
@@ -395,17 +398,35 @@ def simulate_vlcc_spot_route(
             )
             shipping_turn_index += 1
 
-    cargo_rates = [float(record["structural_route_cargo_mbd"]) for record in records]
-    real_tce_values = [float(record["real_tce_2025_usd_per_day"]) for record in records]
-    nominal_tce_values = [float(record["nominal_tce_usd_per_day"]) for record in records]
-    inventory_gap_days = [abs(float(record["inventory_gap_days"])) for record in records]
+    cargo_rates = [
+        float(record["structural_route_cargo_mbd"])
+        for record in records
+    ]
+    real_tce_values = [
+        float(record["real_tce_2025_usd_per_day"])
+        for record in records
+    ]
+    nominal_tce_values = [
+        float(record["nominal_tce_usd_per_day"])
+        for record in records
+    ]
+    inventory_gap_days = [
+        abs(float(record["inventory_gap_days"]))
+        for record in records
+    ]
     route_fleets = [int(record["route_fleet_vlcc"]) for record in records]
     unfilled = [int(record["unfilled_fixture_vlcc"]) for record in records]
-    cpi_values = [float(record["cpi_price_level_index_2025_100"]) for record in records]
+    cpi_values = [
+        float(record["cpi_price_level_index_2025_100"])
+        for record in records
+    ]
 
     summary = {
         "turn_count": len(records),
-        "structural_route_cargo_mbd_mean": round(statistics.fmean(cargo_rates), 6),
+        "structural_route_cargo_mbd_mean": round(
+            statistics.fmean(cargo_rates),
+            6,
+        ),
         "structural_route_cargo_mbd_min": round(min(cargo_rates), 6),
         "structural_route_cargo_mbd_max": round(max(cargo_rates), 6),
         "structural_route_cargo_peak_to_trough_pct": round(
@@ -416,16 +437,37 @@ def simulate_vlcc_spot_route(
         "route_fleet_vlcc_min": min(route_fleets),
         "route_fleet_vlcc_max": max(route_fleets),
         "maximum_abs_inventory_gap_days": round(max(inventory_gap_days), 6),
-        "p95_abs_inventory_gap_days": round(_percentile(inventory_gap_days, 0.95), 6),
+        "p95_abs_inventory_gap_days": round(
+            _percentile(inventory_gap_days, 0.95),
+            6,
+        ),
         "total_unfilled_fixture_vlcc": sum(unfilled),
-        "real_tce_2025_usd_per_day_p05": round(_percentile(real_tce_values, 0.05), 2),
-        "real_tce_2025_usd_per_day_median": round(_percentile(real_tce_values, 0.50), 2),
-        "real_tce_2025_usd_per_day_p95": round(_percentile(real_tce_values, 0.95), 2),
+        "real_tce_2025_usd_per_day_p05": round(
+            _percentile(real_tce_values, 0.05),
+            2,
+        ),
+        "real_tce_2025_usd_per_day_median": round(
+            _percentile(real_tce_values, 0.50),
+            2,
+        ),
+        "real_tce_2025_usd_per_day_p95": round(
+            _percentile(real_tce_values, 0.95),
+            2,
+        ),
         "real_tce_2025_usd_per_day_min": round(min(real_tce_values), 2),
         "real_tce_2025_usd_per_day_max": round(max(real_tce_values), 2),
-        "nominal_tce_usd_per_day_p05": round(_percentile(nominal_tce_values, 0.05), 2),
-        "nominal_tce_usd_per_day_median": round(_percentile(nominal_tce_values, 0.50), 2),
-        "nominal_tce_usd_per_day_p95": round(_percentile(nominal_tce_values, 0.95), 2),
+        "nominal_tce_usd_per_day_p05": round(
+            _percentile(nominal_tce_values, 0.05),
+            2,
+        ),
+        "nominal_tce_usd_per_day_median": round(
+            _percentile(nominal_tce_values, 0.50),
+            2,
+        ),
+        "nominal_tce_usd_per_day_p95": round(
+            _percentile(nominal_tce_values, 0.95),
+            2,
+        ),
         "nominal_tce_usd_per_day_max": round(max(nominal_tce_values), 2),
         "cargo_tce_same_turn_correlation": round(
             _correlation(cargo_rates, real_tce_values),
@@ -433,7 +475,10 @@ def simulate_vlcc_spot_route(
         ),
         "cpi_price_level_start": round(cpi_values[0], 6),
         "cpi_price_level_end": round(cpi_values[-1], 6),
-        "nominal_to_real_price_factor_end": round(cpi_values[-1] / 100.0, 6),
+        "nominal_to_real_price_factor_end": round(
+            cpi_values[-1] / 100.0,
+            6,
+        ),
     }
     return {
         "identity": {
