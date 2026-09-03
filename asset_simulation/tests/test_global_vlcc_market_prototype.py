@@ -24,18 +24,24 @@ class GlobalVlccSpotMarketPrototypeTests(unittest.TestCase):
         cls.result = run_global_vlcc_spot_market(cls.macro, cls.shipping)
 
     def test_reads_actual_seeded_named_and_residual_demand(self) -> None:
+        config = load_global_vlcc_market_config()
+        route_config = {
+            str(route["route_id"]): route for route in config["routes"]
+        }
         first_shipping_routes = {
             str(route["route_id"]): route
             for route in self.shipping.turns[0]["routes"]
         }
         first_inputs = self.inputs[0]["route_cargo_mbd"]
         self.assertAlmostEqual(
-            float(first_shipping_routes["gulf_east_asia"]["cargo_mbd"]),
+            float(first_shipping_routes["gulf_east_asia"]["cargo_mbd"])
+            * float(route_config["gulf_east_asia"]["vlcc_share"]),
             float(first_inputs["gulf_east_asia"]),
             places=8,
         )
         self.assertAlmostEqual(
-            float(first_shipping_routes["gulf_europe"]["cargo_mbd"]) * 0.35,
+            float(first_shipping_routes["gulf_europe"]["cargo_mbd"])
+            * float(route_config["gulf_europe_vlcc"]["vlcc_share"]),
             float(first_inputs["gulf_europe_vlcc"]),
             places=8,
         )
@@ -100,10 +106,19 @@ class GlobalVlccSpotMarketPrototypeTests(unittest.TestCase):
             int(row["year"]): float(row["cpi_price_level_index_2025_100"])
             for row in self.macro.rows
         }
+        constrained_config = copy.deepcopy(load_global_vlcc_market_config())
+        constrained_config["fleet"]["initial_idle_vlcc"] = 0
+        residual = next(
+            route
+            for route in constrained_config["routes"]
+            if route["route_id"] == "other_vlcc_market"
+        )
+        residual["reference_route_fleet_vlcc"] += 90
         shocked = simulate_global_vlcc_spot_market(
             months,
             seed=42,
             cpi_by_year=cpi,
+            config=constrained_config,
         )
         gulf_fleet = [
             next(
