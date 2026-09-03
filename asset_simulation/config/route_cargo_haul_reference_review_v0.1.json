@@ -1,0 +1,153 @@
+{
+  "review_id": "route-cargo-haul-reference-review-v0.1",
+  "status": "review_only_not_runtime_registered",
+  "reference_year": 2024,
+  "planning_speed_knots": 13.0,
+  "reference_seaborne_cargo_mbd": 39.8,
+  "cargo_conclusion": "keep_existing_2024_reference_matrix",
+  "current_reference_weighted_haul_nm": 5468.59,
+  "reviewed_reference_weighted_haul_nm": 5390.95,
+  "weighted_haul_change_pct": -1.42,
+  "major_routes": [
+    {
+      "route_id": "gulf_east_asia",
+      "reference_cargo_mbd": 9.3,
+      "current_haul_nm": 6200.0,
+      "reviewed_haul_nm": 6200.0,
+      "sea_days_at_13kn": 19.87,
+      "haul_action": "keep",
+      "confidence": "high",
+      "note": "Ras Tanura-Ningbo benchmark is about 5.84k nm, while Japan/Korea destinations are longer; 6.2k nm remains a good East Asia basin average."
+    },
+    {
+      "route_id": "gulf_south_asia",
+      "reference_cargo_mbd": 2.4,
+      "current_haul_nm": 2600.0,
+      "reviewed_haul_nm": 1800.0,
+      "sea_days_at_13kn": 5.77,
+      "haul_action": "reduce",
+      "confidence": "high",
+      "note": "Ras Tanura-Jamnagar benchmark is about 1.18k nm. A basin average above that is appropriate for other Indian ports, but 2.6k nm overstates the west-coast-heavy trade."
+    },
+    {
+      "route_id": "gulf_europe",
+      "reference_cargo_mbd": 1.6,
+      "current_haul_nm": 6100.0,
+      "reviewed_haul_nm": 6100.0,
+      "sea_days_at_13kn": 19.55,
+      "haul_action": "keep",
+      "confidence": "medium_high",
+      "note": "Northwest Europe is roughly 6.4-6.8k nm from Ras Tanura via Suez while Mediterranean destinations are shorter; 6.1k nm is a reasonable basin blend."
+    },
+    {
+      "route_id": "us_gulf_europe",
+      "reference_cargo_mbd": 1.9,
+      "current_haul_nm": 4700.0,
+      "reviewed_haul_nm": 5000.0,
+      "sea_days_at_13kn": 16.03,
+      "haul_action": "increase",
+      "confidence": "high",
+      "note": "Houston/Corpus Christi-Rotterdam route references cluster near 5.0k nm."
+    },
+    {
+      "route_id": "us_gulf_east_asia",
+      "reference_cargo_mbd": 0.9,
+      "current_haul_nm": 14000.0,
+      "reviewed_haul_nm": 14500.0,
+      "sea_days_at_13kn": 46.47,
+      "haul_action": "increase_slightly",
+      "confidence": "medium_high",
+      "note": "Galveston/US Gulf-Ningbo long-haul tanker references are around the mid-14k nm range."
+    },
+    {
+      "route_id": "brazil_guyana_east_asia",
+      "reference_cargo_mbd": 1.1,
+      "current_haul_nm": 11000.0,
+      "reviewed_haul_nm": 11000.0,
+      "sea_days_at_13kn": 35.26,
+      "haul_action": "keep",
+      "confidence": "high",
+      "note": "Brazil-Qingdao planning distances are around 11.1k nm; Guyana is of the same long-haul Atlantic-to-Asia order."
+    },
+    {
+      "route_id": "brazil_guyana_europe",
+      "reference_cargo_mbd": 0.8,
+      "current_haul_nm": 5000.0,
+      "reviewed_haul_nm": 5000.0,
+      "sea_days_at_13kn": 16.03,
+      "haul_action": "keep",
+      "confidence": "medium_high",
+      "note": "Guyana/Rotterdam and Brazil/Northwest Europe are both close to this planning range."
+    },
+    {
+      "route_id": "brazil_guyana_north_america_import",
+      "reference_cargo_mbd": 0.4,
+      "current_haul_nm": 3500.0,
+      "reviewed_haul_nm": 3500.0,
+      "sea_days_at_13kn": 11.22,
+      "haul_action": "keep",
+      "confidence": "medium",
+      "note": "The basin mixes shorter Guyana-US and longer Brazil-US/Canada movements; 3.5k nm is acceptable as a broad average."
+    },
+    {
+      "route_id": "west_africa_east_asia",
+      "reference_cargo_mbd": 1.2,
+      "current_haul_nm": 10500.0,
+      "reviewed_haul_nm": 10200.0,
+      "sea_days_at_13kn": 32.69,
+      "haul_action": "reduce_slightly",
+      "confidence": "high",
+      "note": "Bonny-Ningbo tanker reference is about 10.2k nm; the current value is only modestly high."
+    },
+    {
+      "route_id": "west_africa_europe",
+      "reference_cargo_mbd": 1.1,
+      "current_haul_nm": 3500.0,
+      "reviewed_haul_nm": 4200.0,
+      "sea_days_at_13kn": 13.46,
+      "haul_action": "increase",
+      "confidence": "high",
+      "note": "Bonny/Lagos-Rotterdam references are roughly 4.3-4.5k nm; southern West Africa to southern Europe is nearer 4.0k nm."
+    },
+    {
+      "route_id": "west_africa_south_asia",
+      "reference_cargo_mbd": 0.3,
+      "current_haul_nm": 7500.0,
+      "reviewed_haul_nm": 6800.0,
+      "sea_days_at_13kn": 21.79,
+      "haul_action": "reduce",
+      "confidence": "high",
+      "note": "Bonny-Jamnagar tanker reference is about 7.08k nm; Angola/India can be somewhat shorter, so 6.8k nm is a reasonable basin mean."
+    },
+    {
+      "route_id": "other_export_regions_east_asia",
+      "reference_cargo_mbd": 2.2,
+      "current_haul_nm": 6500.0,
+      "reviewed_haul_nm": 6500.0,
+      "sea_days_at_13kn": 20.83,
+      "haul_action": "keep_low_confidence",
+      "confidence": "low",
+      "note": "This basket mixes Russian Far East, Baltic/Arctic, Caspian and other exporters. One average is necessarily coarse; keep 6.5k nm until the basket is split."
+    },
+    {
+      "route_id": "other_export_regions_south_asia",
+      "reference_cargo_mbd": 1.7,
+      "current_haul_nm": 4500.0,
+      "reviewed_haul_nm": 6000.0,
+      "sea_days_at_13kn": 19.23,
+      "haul_action": "increase",
+      "confidence": "medium",
+      "note": "Russian Baltic crude to India is roughly 6.8-7.0k nm via Suez, while Black Sea/Caspian and North African origins are shorter; 6.0k nm better reflects the mixed basket."
+    },
+    {
+      "route_id": "other_export_regions_europe",
+      "reference_cargo_mbd": 3.8,
+      "current_haul_nm": 3500.0,
+      "reviewed_haul_nm": 2200.0,
+      "sea_days_at_13kn": 7.05,
+      "haul_action": "reduce",
+      "confidence": "medium",
+      "note": "The reference cargo is dominated by Other CIS, North Africa, residual Russian and North Sea supply to Europe; most of these are short/medium regional hauls rather than 3.5k nm voyages."
+    }
+  ]
+}
