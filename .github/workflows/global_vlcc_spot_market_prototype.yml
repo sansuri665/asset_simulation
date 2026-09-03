@@ -18,6 +18,54 @@ jobs:
         run: python -m unittest asset_simulation.tests.test_global_vlcc_market_prototype -v
       - name: Audit globally fixed VLCC pool on actual seeded demand
         run: python -m asset_simulation.audit_global_vlcc_market --seeds 0,1,5,7,42 --years 20
+      - name: Compare seed42 baseline and eight-percent market-wide demand step
+        run: |
+          python - <<'PY'
+          import copy
+          import json
+          from asset_simulation.model.engine import run_global_macro
+          from asset_simulation.model.global_vlcc_market import (
+              monthly_global_vlcc_inputs,
+              run_global_vlcc_spot_market,
+              simulate_global_vlcc_spot_market,
+          )
+          from asset_simulation.model.oil_shipping_world import run_oil_shipping_world
+
+          macro = run_global_macro(42, 20)
+          shipping = run_oil_shipping_world(macro)
+          baseline = run_global_vlcc_spot_market(macro, shipping)
+          shocked_months = [copy.deepcopy(month) for month in monthly_global_vlcc_inputs(shipping)]
+          for month in shocked_months:
+              for route_id in month["route_cargo_mbd"]:
+                  month["route_cargo_mbd"][route_id] *= 1.08
+          cpi = {
+              int(row["year"]): float(row["cpi_price_level_index_2025_100"])
+              for row in macro.rows
+          }
+          shocked = simulate_global_vlcc_spot_market(
+              shocked_months,
+              seed=42,
+              cpi_by_year=cpi,
+          )
+          fields = (
+              "global_real_tce_2025_usd_per_day_p05",
+              "global_real_tce_2025_usd_per_day_median",
+              "global_real_tce_2025_usd_per_day_p95",
+              "global_real_tce_2025_usd_per_day_max",
+              "global_idle_fleet_vlcc_min",
+              "global_idle_fleet_vlcc_mean",
+              "global_structural_required_fleet_vlcc_mean",
+              "global_structural_required_fleet_vlcc_max",
+              "global_tightness_ratio_mean",
+              "global_tightness_ratio_max",
+              "total_unfilled_fixture_vlcc",
+              "total_repositioned_vlcc",
+          )
+          print(json.dumps({
+              "baseline": {field: baseline["summary"][field] for field in fields},
+              "market_wide_plus_8pct": {field: shocked["summary"][field] for field in fields},
+          }, indent=2, sort_keys=True))
+          PY
       - name: Inspect seed42 sixty-year global market
         run: |
           python - <<'PY'
