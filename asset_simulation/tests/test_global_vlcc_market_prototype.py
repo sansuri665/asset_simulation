@@ -40,9 +40,9 @@ class GlobalVlccSpotMarketPrototypeTests(unittest.TestCase):
             places=8,
         )
         self.assertAlmostEqual(
-            float(first_shipping_routes["gulf_europe"]["cargo_mbd"])
-            * float(route_config["gulf_europe_vlcc"]["vlcc_share"]),
-            float(first_inputs["gulf_europe_vlcc"]),
+            float(first_shipping_routes["us_gulf_east_asia"]["cargo_mbd"])
+            * float(route_config["us_gulf_east_asia"]["vlcc_share"]),
+            float(first_inputs["us_gulf_east_asia"]),
             places=8,
         )
         self.assertGreater(float(first_inputs["other_vlcc_market"]), 0.0)
