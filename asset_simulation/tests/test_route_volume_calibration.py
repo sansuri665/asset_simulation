@@ -99,6 +99,12 @@ class RouteVolumeCalibrationTests(unittest.TestCase):
                         float(route["baseline_haul_nm"]),
                         places=8,
                     )
+                self.assertAlmostEqual(13.0, float(route["planning_speed_knots"]))
+                self.assertAlmostEqual(
+                    float(route["baseline_haul_nm"]) / (13.0 * 24.0),
+                    float(route["baseline_sea_days"]),
+                    places=7,
+                )
                 if route["route_id"] == "gulf_east_asia":
                     gulf_east_asia_cargo.append(float(route["cargo_mbd"]))
 

@@ -1,7 +1,7 @@
 # 总液体宏观、原油物理平衡与海运需求
 
 > 状态：阶段4已实现
-> 模型：`asset-simulation-oil-shipping-demand-v0.6.8`
+> 模型：`asset-simulation-oil-shipping-demand-v0.6.9`
 > 最近核对：2026-09-03
 
 ## 模型回答的问题

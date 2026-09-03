@@ -1,7 +1,7 @@
 {
   "schema_version": "asset-simulation-oil-shipping-demand-contract-v6",
   "contract_id": "oil_shipping_demand_v6",
-  "model_version": "asset-simulation-oil-shipping-demand-v0.6.8",
+  "model_version": "asset-simulation-oil-shipping-demand-v0.6.9",
   "time_scale": "month",
   "identity_fields": ["seed", "turn_index", "year", "month", "label"],
   "total_liquids_physical_fields": {
@@ -87,6 +87,8 @@
     "cargo_mbd": "million_barrels_per_day",
     "cargo_million_tonnes": "million_metric_tonnes_per_turn",
     "baseline_haul_nm": "nautical_miles",
+    "planning_speed_knots": "nautical_miles_per_hour_reference_speed",
+    "baseline_sea_days": "pure_sea_days_at_planning_speed_excluding_port_and_waiting_time",
     "effective_haul_nm": "nautical_miles",
     "tonne_nautical_miles_billion": "billion_tonne_nautical_miles_per_turn",
     "annualized_tonne_nautical_miles_billion": "billion_tonne_nautical_miles_per_year",

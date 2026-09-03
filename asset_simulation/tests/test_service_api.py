@@ -55,6 +55,8 @@ class ServiceApiTests(unittest.TestCase):
         self.assertIn("reference_cargo_mbd", first_route)
         self.assertIn("margin_scaled_reference_mbd", first_route)
         self.assertIn("cargo_vs_reference_pct", first_route)
+        self.assertEqual(13.0, first_route["planning_speed_knots"])
+        self.assertIn("baseline_sea_days", first_route)
         self.assertEqual(10, len(shipping_payload["current"]["regional_balances"]))
         first_region = shipping_payload["current"]["regional_balances"][0]
         self.assertIn("base_crude_production_mbd", first_region)
@@ -85,6 +87,8 @@ class ServiceApiTests(unittest.TestCase):
         self.assertIn("regional_balances", app)
         self.assertIn("regional_export_supply_mbd", app)
         self.assertIn("is_other_pool", app)
+        self.assertIn("基准／有效航程", app)
+        self.assertIn("baseline_sea_days", app)
         self.assertNotIn("seaborne_share", app)
         self.assertNotIn("production_outage_mbd", app)
         self.assertNotIn("regional_production_impulse_mbd", app)

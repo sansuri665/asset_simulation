@@ -340,6 +340,9 @@ def advance_route_network(
         )
 
     barrels_per_tonne = float(config["units"]["barrels_per_metric_tonne"])
+    planning_speed_knots = float(network["planning_speed_knots"])
+    if planning_speed_knots <= 0.0:
+        raise ValueError("planning_speed_knots must be positive")
     global_haul_multiplier = 1.0 + float(
         impulse.get("average_haul_impulse_pct", 0.0)
     ) / 100.0
@@ -449,6 +452,11 @@ def advance_route_network(
                 "cargo_mbd": round(values["cargo_mbd"], 8),
                 "cargo_million_tonnes": round(values["cargo_tonnes"], 8),
                 "baseline_haul_nm": round(values["baseline_haul_nm"], 8),
+                "planning_speed_knots": round(planning_speed_knots, 8),
+                "baseline_sea_days": round(
+                    values["baseline_haul_nm"] / (planning_speed_knots * 24.0),
+                    8,
+                ),
                 "effective_haul_nm": round(values["effective_haul_nm"], 8),
                 "tonne_nautical_miles_billion": round(values["tonne_miles"], 8),
                 "annualized_tonne_nautical_miles_billion": round(
@@ -515,6 +523,11 @@ def advance_route_network(
             "cargo_mbd": round(other_accumulator["cargo_mbd"], 8),
             "cargo_million_tonnes": round(other_accumulator["cargo_tonnes"], 8),
             "baseline_haul_nm": round(other_baseline_haul, 8),
+            "planning_speed_knots": round(planning_speed_knots, 8),
+            "baseline_sea_days": round(
+                other_baseline_haul / (planning_speed_knots * 24.0),
+                8,
+            ),
             "effective_haul_nm": round(other_effective_haul, 8),
             "tonne_nautical_miles_billion": round(
                 other_accumulator["tonne_miles"],

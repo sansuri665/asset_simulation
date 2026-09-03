@@ -1,6 +1,6 @@
 {
   "review_id": "route-cargo-haul-reference-review-v0.1",
-  "status": "review_only_not_runtime_registered",
+  "status": "applied_to_runtime_v0.6.9",
   "reference_year": 2024,
   "planning_speed_knots": 13.0,
   "reference_seaborne_cargo_mbd": 39.8,

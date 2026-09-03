@@ -4,6 +4,8 @@ import json
 from pathlib import Path
 import unittest
 
+from asset_simulation.model.registry import load_registered_assets
+
 
 REVIEW_PATH = (
     Path(__file__).resolve().parents[1]
@@ -16,6 +18,13 @@ class RouteCargoHaulReferenceReviewTests(unittest.TestCase):
     def setUp(self) -> None:
         self.review = json.loads(REVIEW_PATH.read_text(encoding="utf-8"))
         self.routes = list(self.review["major_routes"])
+        self.runtime_network = load_registered_assets()[
+            "oil_shipping_demand_config"
+        ]["route_network"]
+        self.runtime_routes_by_id = {
+            route["route_id"]: route
+            for route in self.runtime_network["explicit_routes"]
+        }
 
     def test_fourteen_major_route_cargo_anchors_are_preserved(self) -> None:
         self.assertEqual(14, len(self.routes))
@@ -49,6 +58,19 @@ class RouteCargoHaulReferenceReviewTests(unittest.TestCase):
         change_pct = 100.0 * (reviewed / current - 1.0)
         self.assertAlmostEqual(-1.42, change_pct, places=2)
         self.assertLess(abs(change_pct), 2.0)
+
+    def test_reviewed_haul_references_are_registered_in_runtime(self) -> None:
+        self.assertEqual("applied_to_runtime_v0.6.9", self.review["status"])
+        self.assertAlmostEqual(
+            float(self.review["planning_speed_knots"]),
+            float(self.runtime_network["planning_speed_knots"]),
+        )
+        for route in self.routes:
+            runtime_route = self.runtime_routes_by_id[route["route_id"]]
+            runtime_haul = self.runtime_network["pair_distances_nm"][
+                runtime_route["origin_id"]
+            ][runtime_route["destination_id"]]
+            self.assertAlmostEqual(float(route["reviewed_haul_nm"]), runtime_haul)
 
 
 if __name__ == "__main__":

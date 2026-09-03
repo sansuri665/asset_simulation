@@ -104,7 +104,7 @@ async function loadWorld() {
     state.windowStart = clamp(state.selectedIndex - MONTHLY_WINDOW + 12, 0, Math.max(0, rows.length - MONTHLY_WINDOW));
     render();
     $("identityText").textContent = `Seed ${state.seed} · ${state.payload.identity.model_version} · 区域物理差额生成货量`;
-    $("statusText").textContent = `${rows.length.toLocaleString("zh-CN")} 个月度状态 · 10个区域 · 14条航线状况参考 + 其他航线池 · 尚无运价`;
+    $("statusText").textContent = `${rows.length.toLocaleString("zh-CN")} 个月度状态 · 10个区域 · 14条航线状况参考 + 其他航线池 · 13节基准航程 · 尚无运价`;
   } catch (error) {
     $("statusText").textContent = `加载失败：${error.message}`;
   }
@@ -219,7 +219,7 @@ function renderChain(row) {
 
 function renderRouteList() {
   if (state.mode !== "routes") return;
-  $("routeList").innerHTML = `<div class="route-row route-row-labels"><span>航线</span><span>货量（百万桶/日）</span><span>份额</span><span>有效航程（海里）</span><span>年化吨海里（十亿）</span><span>状态</span></div>${selectedRow().routes.map((route) => `<button type="button" class="route-row ${route.route_id === state.selectedRouteId ? "is-selected" : ""}" data-route-id="${route.route_id}"><strong>${route.route_name}</strong><span>${fmt(route.cargo_mbd, 2, " 百万桶/日")}</span><span>${fmt(Number(route.market_share) * 100, 1, "%")}</span><span>${fmt(route.effective_haul_nm, 0, " 海里")}</span><span>${fmt(route.annualized_tonne_nautical_miles_billion, 0)}</span><em>${route.route_status === "rerouted" ? "绕行" : route.route_status === "shortened" ? "缩短" : "正常"}</em></button>`).join("")}`;
+  $("routeList").innerHTML = `<div class="route-row route-row-labels"><span>航线</span><span>货量（百万桶/日）</span><span>份额</span><span>基准／有效航程（海里）</span><span>年化吨海里（十亿）</span><span>状态</span></div>${selectedRow().routes.map((route) => `<button type="button" class="route-row ${route.route_id === state.selectedRouteId ? "is-selected" : ""}" data-route-id="${route.route_id}"><strong>${route.route_name}</strong><span>${fmt(route.cargo_mbd, 2, " 百万桶/日")}</span><span>${fmt(Number(route.market_share) * 100, 1, "%")}</span><span>${fmt(route.baseline_haul_nm, 0)} / ${fmt(route.effective_haul_nm, 0)}</span><span>${fmt(route.annualized_tonne_nautical_miles_billion, 0)}</span><em>${route.route_status === "rerouted" ? "绕行" : route.route_status === "shortened" ? "缩短" : "正常"}</em></button>`).join("")}`;
 }
 
 function renderRegionList() {
@@ -255,8 +255,8 @@ function updateDetails() {
     $("detailEyebrow").textContent = "ROUTE STATUS REFERENCE";
     setBadge(route.route_status === "rerouted" ? "绕行" : route.route_status === "shortened" ? "航程缩短" : "正常航线", route.route_status === "rerouted" ? "down" : "");
     $("focusPrimary").innerHTML = `<span>${route.route_name}</span><strong>${fmt(value, digits, suffixes[state.metric])}</strong><small class="${directionClass(change)}">${change == null ? "月度路径起点" : `环比 ${signed(change, 2, "%")}`}</small>`;
-    $("focusDetails").innerHTML = [detailItem("全球份额", fmt(Number(route.market_share) * 100, 2, "%")), detailItem(`${route.reference_year}参考货量`, fmt(route.reference_cargo_mbd, 2, " 百万桶/日")), detailItem("边际缩放参考", fmt(route.margin_scaled_reference_mbd, 2, " 百万桶/日")), detailItem("相对参考", signed(route.cargo_vs_reference_pct, 1, "%")), detailItem("本月货物", fmt(route.cargo_million_tonnes, 2, " 百万吨")), detailItem("基准航程", fmt(route.baseline_haul_nm, 0, " 海里")), detailItem("有效航程", fmt(route.effective_haul_nm, 0, " 海里")), detailItem("本月吨海里", fmt(route.tonne_nautical_miles_billion, 1, " 十亿吨海里")), detailItem("经过节点", route.chokepoints.join(" · "))].join("");
-    $("detailNote").textContent = route.is_other_pool ? "其他航线池聚合11条未单列的小额区域联系；它仍参与相同的货量、航程与吨海里守恒。" : "2024参考货量校准IPF内部流向，但不会覆盖当月区域出口与进口边际；基准航程和吨海里公式保持不变。";
+    $("focusDetails").innerHTML = [detailItem("全球份额", fmt(Number(route.market_share) * 100, 2, "%")), detailItem(`${route.reference_year}参考货量`, fmt(route.reference_cargo_mbd, 2, " 百万桶/日")), detailItem("边际缩放参考", fmt(route.margin_scaled_reference_mbd, 2, " 百万桶/日")), detailItem("相对参考", signed(route.cargo_vs_reference_pct, 1, "%")), detailItem("本月货物", fmt(route.cargo_million_tonnes, 2, " 百万吨")), detailItem("基准航程", fmt(route.baseline_haul_nm, 0, " 海里")), detailItem(`${fmt(route.planning_speed_knots, 0)}节纯海上天数`, fmt(route.baseline_sea_days, 1, " 天")), detailItem("有效航程", fmt(route.effective_haul_nm, 0, " 海里")), detailItem("本月吨海里", fmt(route.tonne_nautical_miles_billion, 1, " 十亿吨海里")), detailItem("经过节点", route.chokepoints.join(" · "))].join("");
+    $("detailNote").textContent = route.is_other_pool ? "其他航线池聚合11条未单列的小额区域联系；它仍参与相同的货量、航程与吨海里守恒。13节天数仅为纯海上航行参考，不含港口、排队和装卸。" : "2024参考货量校准IPF内部流向，但不会覆盖当月区域出口与进口边际；基准航程采用盆地平均海里，13节天数不含港口、排队和装卸。";
     return;
   }
   const fields = { cargo: "seaborne_cargo_mbd", tonneMiles: "annualized_tonne_nautical_miles_billion", haul: "average_haul_nm" };

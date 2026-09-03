@@ -1,7 +1,7 @@
 {
   "schema_version": "asset-simulation-oil-shipping-demand-config-v6",
-  "config_id": "asset-simulation-crude-physical-route-network-v0.6.8",
-  "model_version": "asset-simulation-oil-shipping-demand-v0.6.8",
+  "config_id": "asset-simulation-crude-physical-route-network-v0.6.9",
+  "model_version": "asset-simulation-oil-shipping-demand-v0.6.9",
   "time": {
     "turns_per_month": 1,
     "game_start_year": 2030
@@ -531,6 +531,7 @@
     ]
   },
   "route_network": {
+    "planning_speed_knots": 13.0,
     "market_scope": "modeled_conventional_crude_tanker_market",
     "preference_persistence": 0.985,
     "preference_news_scale": 0.025,
@@ -649,15 +650,15 @@
     "pair_distances_nm": {
       "gulf": {
         "east_asia": 6200.0,
-        "south_asia": 2600.0,
+        "south_asia": 1800.0,
         "europe": 6100.0,
         "north_america_import": 8500.0,
         "rest_of_world": 4500.0
       },
       "us_gulf": {
-        "east_asia": 14000.0,
+        "east_asia": 14500.0,
         "south_asia": 12000.0,
-        "europe": 4700.0,
+        "europe": 5000.0,
         "north_america_import": 1800.0,
         "rest_of_world": 5500.0
       },
@@ -669,16 +670,16 @@
         "rest_of_world": 4500.0
       },
       "west_africa": {
-        "east_asia": 10500.0,
-        "south_asia": 7500.0,
-        "europe": 3500.0,
+        "east_asia": 10200.0,
+        "south_asia": 6800.0,
+        "europe": 4200.0,
         "north_america_import": 5500.0,
         "rest_of_world": 3000.0
       },
       "other_export_regions": {
         "east_asia": 6500.0,
-        "south_asia": 4500.0,
-        "europe": 3500.0,
+        "south_asia": 6000.0,
+        "europe": 2200.0,
         "north_america_import": 4500.0,
         "rest_of_world": 2800.0
       }
