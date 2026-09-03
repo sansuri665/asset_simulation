@@ -70,29 +70,20 @@
       "reference_route_fleet_vlcc": 33
     },
     {
-      "route_id": "gulf_europe_vlcc",
-      "route_name": "中东出口区 → 欧洲（VLCC份额）",
-      "source_route_id": "gulf_europe",
-      "vlcc_share": 0.25,
-      "cycle_turns": 6,
-      "cargo_arrival_lag_turns": 4,
-      "reference_route_fleet_vlcc": 12
-    },
-    {
       "route_id": "other_vlcc_market",
       "route_name": "其他VLCC市场",
       "source_mode": "residual_tonne_mile_index",
       "cycle_turns": 8,
       "cargo_arrival_lag_turns": 4,
-      "reference_route_fleet_vlcc": 340
+      "reference_route_fleet_vlcc": 352
     }
   ],
   "notes": {
-    "market_scope": "one globally fixed numbered VLCC pool allocated across five named route buckets plus one residual VLCC market",
+    "market_scope": "one globally fixed numbered VLCC pool allocated across four named route buckets plus one residual VLCC market",
     "supply_scope": "900 numbered vessels are conserved; 70 are structurally unavailable, while 830 are divided among route pools, idle ships and vessels in repositioning",
     "calibration_scope": "named-route cargo is multiplied by a representative VLCC share rather than assuming every barrel on every long-haul route uses a VLCC; the residual bucket is calibrated to leave ordinary worlds with a meaningful prompt/open-tonnage cushion",
     "idle_scope": "idle represents globally open or uncommitted prompt tonnage, not necessarily commercially laid-up vessels",
-    "route_scope": "the five named buckets read actual seeded route cargo; the residual bucket scales with tonne-mile demand from all remaining crude routes",
+    "route_scope": "the four named buckets read actual seeded route cargo; the residual bucket scales with tonne-mile demand from all remaining crude routes, including sparse Gulf-to-Europe VLCC liftings",
     "price_scope": "tightness is priced in constant 2025 dollars and converted to nominal dollars using the seed CPI price-level index",
     "limitations": "route pools are vessel-equivalent commercial circuits; individual loading, laden, discharge and ballast phases are not yet tracked per ship"
   }
