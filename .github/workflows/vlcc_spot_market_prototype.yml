@@ -46,10 +46,4 @@ jobs:
           }, indent=2, sort_keys=True))
           PY
       - name: Inspect seed42 sixty-year window
-        run: |
-          python - <<'PY'
-          import json
-          from asset_simulation.model.vlcc_spot_market import run_seeded_gulf_east_asia_vlcc_spot_market
-          result = run_seeded_gulf_east_asia_vlcc_spot_market(42, 60)
-          print(json.dumps(result["summary"], indent=2, sort_keys=True))
-          PY
+        run: python -m asset_simulation.report_vlcc_spot_seed --seed 42 --years 60 --stride 5
