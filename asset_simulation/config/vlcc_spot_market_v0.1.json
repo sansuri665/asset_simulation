@@ -1,6 +1,6 @@
 {
   "schema_version": "asset-simulation-vlcc-spot-market-config-v1",
-  "model_version": "asset-simulation-vlcc-spot-market-prototype-v0.1.0",
+  "model_version": "asset-simulation-vlcc-spot-market-prototype-v0.1.1",
   "route_id": "gulf_east_asia",
   "shipping_turns_per_month": 3,
   "reference_turn_days": 10.1388888889,
@@ -16,7 +16,7 @@
   "repositioning": {
     "lag_turns": 2,
     "inventory_gap_gain_vlcc_per_day": 1.8,
-    "prompt_shortage_gain_vlcc_per_fixture": 0.55,
+    "prompt_fixture_gap_gain_vlcc_per_fixture": 0.55,
     "maximum_net_reposition_vlcc_per_turn": 7,
     "maximum_external_pool_vlcc": 120,
     "deadband_inventory_gap_days": 0.15
@@ -30,7 +30,7 @@
   },
   "notes": {
     "market_scope": "single-route VLCC-only reduced-form spot market",
-    "supply_scope": "route-positioned VLCC-equivalent fleet can borrow from or return ships to an external flexible pool; the external pool is not yet an explicit set of competing routes",
+    "supply_scope": "route-positioned VLCC-equivalent fleet can borrow from or return ships to an external flexible pool; both shortage and surplus prompt tonnage drive repositioning",
     "inventory_scope": "Gulf, in-transit and East Asia values are deviations from a normal reference pipeline and may be positive or negative",
     "price_scope": "freight tightness is calibrated in constant 2025 dollars and converted to nominal dollars using the seed CPI price-level index"
   }
