@@ -18,7 +18,7 @@ jobs:
         run: python -m unittest asset_simulation.tests.test_gulf_east_asia_monopoly -v
       - name: Audit actual seeded demand paths
         run: python -m asset_simulation.audit_gulf_east_asia_monopoly --seeds 0,1,5,7,42 --years 20
-      - name: Inspect seed42 baseline and deliberate withholding
+      - name: Compare seed42 monopoly policy, full dispatch and deliberate shutdown
         run: |
           python - <<'PY'
           import json
@@ -32,27 +32,38 @@ jobs:
 
           macro = run_global_macro(42, 20)
           shipping = run_oil_shipping_world(macro)
-          baseline = run_gulf_east_asia_monopoly_operations(macro, shipping)
+          policy = run_gulf_east_asia_monopoly_operations(macro, shipping)
           months = monthly_gulf_east_asia_inputs(shipping)
           cpi = {
               int(row["year"]): float(row["cpi_price_level_index_2025_100"])
               for row in macro.rows
           }
-          controls = {
-              turn: {"dispatch_override_vlcc": 0}
-              for turn in range(36, 39)
+          full_dispatch_controls = {
+              turn: {"dispatch_override_vlcc": 999}
+              for turn in range(len(months) * 3)
           }
-          stress = simulate_gulf_east_asia_monopoly_operations(
+          full_dispatch = simulate_gulf_east_asia_monopoly_operations(
               months,
               seed=42,
               cpi_by_year=cpi,
-              control_by_turn=controls,
+              control_by_turn=full_dispatch_controls,
+          )
+          shutdown_controls = {
+              turn: {"dispatch_override_vlcc": 0}
+              for turn in range(36, 39)
+          }
+          shutdown = simulate_gulf_east_asia_monopoly_operations(
+              months,
+              seed=42,
+              cpi_by_year=cpi,
+              control_by_turn=shutdown_controls,
           )
           fields = (
               "real_tce_2025_usd_per_day_p05",
               "real_tce_2025_usd_per_day_median",
               "real_tce_2025_usd_per_day_p95",
               "real_tce_2025_usd_per_day_max",
+              "dispatch_vlcc_mean",
               "gulf_idle_vlcc_mean",
               "gulf_idle_vlcc_max",
               "strategically_withheld_vlcc_total",
@@ -61,12 +72,21 @@ jobs:
               "maximum_abs_inventory_gap_days",
               "cumulative_real_operating_cashflow_2025_usd",
           )
-          print(json.dumps({
-              "baseline": {
-                  field: baseline["summary"][field] for field in fields
+          comparison = {
+              "monopoly_policy": {
+                  field: policy["summary"][field] for field in fields
               },
-              "three_turn_full_withholding": {
-                  field: stress["summary"][field] for field in fields
+              "dispatch_all_available_demand": {
+                  field: full_dispatch["summary"][field] for field in fields
               },
-          }, indent=2, sort_keys=True))
+              "three_turn_full_shutdown": {
+                  field: shutdown["summary"][field] for field in fields
+              },
+          }
+          comparison["policy_minus_full_dispatch_real_cashflow_usd"] = round(
+              policy["summary"]["cumulative_real_operating_cashflow_2025_usd"]
+              - full_dispatch["summary"]["cumulative_real_operating_cashflow_2025_usd"],
+              2,
+          )
+          print(json.dumps(comparison, indent=2, sort_keys=True))
           PY
