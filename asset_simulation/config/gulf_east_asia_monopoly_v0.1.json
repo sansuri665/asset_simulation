@@ -6,7 +6,7 @@
   "reference_turn_days": 10.1388888889,
   "reference_route_cargo_mbd": 9.3,
   "fleet": {
-    "total_vlcc": 250,
+    "total_vlcc": 280,
     "reference_active_vlcc": 239,
     "reference_prompt_dispatch_vlcc": 48,
     "opening_departure_cohorts_vlcc": [47, 48, 48, 48],
@@ -52,7 +52,8 @@
   },
   "notes": {
     "owner_scope": "one operator owns the entire fixed fleet and can leave Gulf-positioned ships idle",
-    "fleet_scope": "250 numbered VLCCs; no newbuildings, scrapping, purchases or sales",
+    "fleet_scope": "280 numbered VLCCs; no newbuildings, scrapping, purchases or sales",
+    "fleet_calibration": "239 active vessels support the 9.3 mb/d reference trade while 41 vessels provide a normal operating and strategic reserve; 280 is close to the route requirement at the upper end of tested seeded demand",
     "operations_scope": "five-turn round voyage with four opening pipeline cohorts and prompt Gulf idle ships",
     "cost_scope": "gross freight, commission, bunker, port/other voyage costs, all-fleet OPEX and idle bunker",
     "excluded_scope": "depreciation, debt, interest, ship values, taxes and corporate G&A",
