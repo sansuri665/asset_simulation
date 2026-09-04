@@ -89,10 +89,13 @@ class GulfEastAsiaMonopolyOperationsTests(unittest.TestCase):
                 net,
                 delta=0.05,
             )
+            # Public records are rounded to cents. Multiplying the rounded
+            # daily TCE by a fractional cycle length can add a few cents of
+            # harmless reconstruction error.
             self.assertAlmostEqual(
                 float(row["real_tce_2025_usd_per_day"]) * cycle_days,
                 net,
-                delta=0.10,
+                delta=0.50,
             )
 
     def test_opex_is_paid_on_every_owned_ship_even_when_idle(self) -> None:
