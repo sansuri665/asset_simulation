@@ -1,0 +1,78 @@
+name: Gulf East Asia Single Route Pricing Engine
+
+on:
+  push:
+    branches:
+      - gulf-east-asia-single-route-pricing-engine
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Run pure pricing engine unit tests
+        run: python -m unittest asset_simulation.tests.test_single_route_pricing -v
+      - name: Audit actual seeded demand and exogenous prompt supply
+        run: python -m asset_simulation.audit_single_route_pricing --seeds 0,1,5,7,42 --years 20
+      - name: Inspect seed42 neutral, tight and loose prompt-supply windows
+        run: |
+          python - <<'PY'
+          import json
+          from asset_simulation.model.engine import run_global_macro
+          from asset_simulation.model.oil_shipping_world import run_oil_shipping_world
+          from asset_simulation.model.single_route_pricing import (
+              run_seeded_gulf_east_asia_pricing,
+          )
+
+          macro = run_global_macro(42, 20)
+          shipping = run_oil_shipping_world(macro)
+          neutral = run_seeded_gulf_east_asia_pricing(
+              macro,
+              shipping,
+              supply_lag_turns=2,
+          )
+          tight = run_seeded_gulf_east_asia_pricing(
+              macro,
+              shipping,
+              supply_lag_turns=2,
+              temporary_supply_delta_by_turn={
+                  turn: -6 for turn in range(36, 45)
+              },
+          )
+          loose = run_seeded_gulf_east_asia_pricing(
+              macro,
+              shipping,
+              supply_lag_turns=2,
+              temporary_supply_delta_by_turn={
+                  turn: 6 for turn in range(36, 45)
+              },
+          )
+          fields = (
+              "real_tce_2025_usd_per_day_p05",
+              "real_tce_2025_usd_per_day_median",
+              "real_tce_2025_usd_per_day_p95",
+              "real_tce_2025_usd_per_day_min",
+              "real_tce_2025_usd_per_day_max",
+              "prompt_supply_vlcc_mean",
+              "total_unfilled_fixture_vlcc",
+              "total_unused_prompt_vlcc",
+              "p95_abs_inventory_gap_days",
+              "maximum_abs_inventory_gap_days",
+              "maximum_price_guard_hit_turns",
+          )
+          print(json.dumps({
+              "neutral": {
+                  field: neutral["summary"][field] for field in fields
+              },
+              "temporary_minus_6_prompt_vlcc": {
+                  field: tight["summary"][field] for field in fields
+              },
+              "temporary_plus_6_prompt_vlcc": {
+                  field: loose["summary"][field] for field in fields
+              },
+          }, indent=2, sort_keys=True))
+          PY
