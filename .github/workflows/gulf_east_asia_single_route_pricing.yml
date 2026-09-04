@@ -6,6 +6,7 @@ on:
       - gulf-east-asia-single-route-pricing-engine
   workflow_dispatch:
 
+# This branch is intentionally a clean one-commit derivative of main.
 jobs:
   validate:
     runs-on: ubuntu-latest
