@@ -53,12 +53,13 @@ class GulfEastAsiaMonopolyOperationsTests(unittest.TestCase):
         )
 
     def test_fixed_numbered_fleet_is_strictly_conserved(self) -> None:
+        total_fleet = int(self.config["fleet"]["total_vlcc"])
         self.assertEqual(MODEL_VERSION, self.result["identity"]["model_version"])
-        self.assertEqual(250, self.result["identity"]["fixed_fleet_vlcc"])
+        self.assertEqual(total_fleet, self.result["identity"]["fixed_fleet_vlcc"])
         for row in self.result["turns"]:
-            self.assertEqual(250, int(row["fixed_fleet_vlcc"]))
+            self.assertEqual(total_fleet, int(row["fixed_fleet_vlcc"]))
             self.assertEqual(
-                250,
+                total_fleet,
                 int(row["active_voyage_vlcc"]) + int(row["gulf_idle_vlcc"]),
             )
             self.assertEqual(0, int(row["fleet_conservation_residual_vlcc"]))
