@@ -1,0 +1,72 @@
+name: Gulf East Asia Monopoly Operations Prototype
+
+on:
+  push:
+    branches:
+      - gulf-east-asia-monopoly-operations-prototype
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Run monopoly operations unit tests
+        run: python -m unittest asset_simulation.tests.test_gulf_east_asia_monopoly -v
+      - name: Audit actual seeded demand paths
+        run: python -m asset_simulation.audit_gulf_east_asia_monopoly --seeds 0,1,5,7,42 --years 20
+      - name: Inspect seed42 baseline and deliberate withholding
+        run: |
+          python - <<'PY'
+          import json
+          from asset_simulation.model.engine import run_global_macro
+          from asset_simulation.model.gulf_east_asia_monopoly import (
+              monthly_gulf_east_asia_inputs,
+              run_gulf_east_asia_monopoly_operations,
+              simulate_gulf_east_asia_monopoly_operations,
+          )
+          from asset_simulation.model.oil_shipping_world import run_oil_shipping_world
+
+          macro = run_global_macro(42, 20)
+          shipping = run_oil_shipping_world(macro)
+          baseline = run_gulf_east_asia_monopoly_operations(macro, shipping)
+          months = monthly_gulf_east_asia_inputs(shipping)
+          cpi = {
+              int(row["year"]): float(row["cpi_price_level_index_2025_100"])
+              for row in macro.rows
+          }
+          controls = {
+              turn: {"dispatch_override_vlcc": 0}
+              for turn in range(36, 39)
+          }
+          stress = simulate_gulf_east_asia_monopoly_operations(
+              months,
+              seed=42,
+              cpi_by_year=cpi,
+              control_by_turn=controls,
+          )
+          fields = (
+              "real_tce_2025_usd_per_day_p05",
+              "real_tce_2025_usd_per_day_median",
+              "real_tce_2025_usd_per_day_p95",
+              "real_tce_2025_usd_per_day_max",
+              "gulf_idle_vlcc_mean",
+              "gulf_idle_vlcc_max",
+              "strategically_withheld_vlcc_total",
+              "physical_shortage_vlcc_total",
+              "p95_abs_inventory_gap_days",
+              "maximum_abs_inventory_gap_days",
+              "cumulative_real_operating_cashflow_2025_usd",
+          )
+          print(json.dumps({
+              "baseline": {
+                  field: baseline["summary"][field] for field in fields
+              },
+              "three_turn_full_withholding": {
+                  field: stress["summary"][field] for field in fields
+              },
+          }, indent=2, sort_keys=True))
+          PY

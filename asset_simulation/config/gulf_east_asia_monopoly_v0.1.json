@@ -1,0 +1,62 @@
+{
+  "schema_version": "asset-simulation-gulf-east-asia-monopoly-operations-config-v1",
+  "model_version": "asset-simulation-gulf-east-asia-monopoly-operations-v0.1.0",
+  "route_id": "gulf_east_asia",
+  "shipping_turns_per_month": 3,
+  "reference_turn_days": 10.1388888889,
+  "reference_route_cargo_mbd": 9.3,
+  "fleet": {
+    "total_vlcc": 250,
+    "reference_active_vlcc": 239,
+    "reference_prompt_dispatch_vlcc": 48,
+    "opening_departure_cohorts_vlcc": [47, 48, 48, 48],
+    "cargo_mmbbl": 1.971,
+    "cargo_tonnes": 270000.0,
+    "cycle_turns": 5,
+    "cargo_arrival_lag_turns": 3
+  },
+  "costs": {
+    "base_real_opex_2025_usd_per_vessel_day": 9500.0,
+    "base_real_bunker_2025_usd_per_tonne": 550.0,
+    "bunker_real_oil_weight": 0.75,
+    "minimum_real_bunker_usd_per_tonne": 250.0,
+    "maximum_real_bunker_usd_per_tonne": 1200.0,
+    "laden_fuel_tonnes_per_day": 57.3,
+    "ballast_fuel_tonnes_per_day": 39.5,
+    "idle_fuel_tonnes_per_day": 4.0,
+    "load_port_fuel_tonnes": 20.0,
+    "discharge_port_fuel_tonnes": 110.0,
+    "waiting_fuel_tonnes": 10.0,
+    "gulf_load_port_cost_real_2025_usd": 125000.0,
+    "east_asia_discharge_port_cost_real_2025_usd": 175000.0,
+    "other_voyage_cost_real_2025_usd": 25000.0,
+    "commission_rate": 0.0375
+  },
+  "inventory": {
+    "clearance_fraction_per_turn": 0.35,
+    "maximum_correction_fraction_of_structural_flow": 0.22
+  },
+  "pricing": {
+    "baseline_real_tce_2025_usd_per_day": 35000.0,
+    "prompt_shortage_log_sensitivity": 1.25,
+    "inventory_gap_day_log_sensitivity": 0.09,
+    "demand_level_log_sensitivity": 0.35,
+    "price_persistence": 0.1,
+    "minimum_real_tce_2025_usd_per_day": 1000.0,
+    "maximum_real_tce_2025_usd_per_day": 122500.0
+  },
+  "control": {
+    "maximum_strategic_withholding_vlcc": 15,
+    "inventory_shadow_price_real_usd_per_bbl_day": 0.1,
+    "inventory_free_band_days": 0.25
+  },
+  "notes": {
+    "owner_scope": "one operator owns the entire fixed fleet and can leave Gulf-positioned ships idle",
+    "fleet_scope": "250 numbered VLCCs; no newbuildings, scrapping, purchases or sales",
+    "operations_scope": "five-turn round voyage with four opening pipeline cohorts and prompt Gulf idle ships",
+    "cost_scope": "gross freight, commission, bunker, port/other voyage costs, all-fleet OPEX and idle bunker",
+    "excluded_scope": "depreciation, debt, interest, ship values, taxes and corporate G&A",
+    "pricing_scope": "monopoly chooses dispatch against an inverse TCE demand curve; inventory shadow cost is a decision penalty, not a booked expense",
+    "bunker_scope": "marine fuel is a separate proxy linked to the real oil-price index and then nominalized by CPI"
+  }
+}
