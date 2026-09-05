@@ -1,0 +1,65 @@
+name: Build verified fixed10 Stage5A replacement
+on:
+  push:
+    branches: [stage5a-fixed10-bounded-pressure]
+    paths: [tools/_apply_stage5a_v2.py, .github/workflows/bootstrap_stage5a_v2.yml]
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: stage5a-v2-source-publish
+  cancel-in-progress: false
+jobs:
+  publish-verified-source:
+    if: github.ref == 'refs/heads/stage5a-fixed10-bounded-pressure'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      PYTHONHASHSEED: '0'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Apply exact locally tested candidate and remove transport files
+        run: python tools/_apply_stage5a_v2.py
+      - name: Full regression and viewer checks
+        run: |
+          set -o pipefail
+          python -m unittest discover -s asset_simulation/tests -v 2>&1 | tee "$RUNNER_TEMP/fixed10-tests.log"
+          node tools/test_viewer_parameters.cjs
+      - name: Upstream and original pure-pricing regressions
+        run: |
+          python -m asset_simulation.audit_oil_shipping_demand --seeds 0,1,2,3,4,5,6,7 --years 60 > "$RUNNER_TEMP/upstream-audit.json"
+          python -m asset_simulation.audit_single_route_pricing --seeds 0,1,5,7,42 --years 20 > "$RUNNER_TEMP/pure-pricing-audit.json"
+      - name: Fixed-clock, memory, fleet and actual-seed controls
+        run: python -m asset_simulation.audit_stage5a --years 20 --output "$RUNNER_TEMP/stage5a-audit.json" --turns-output "$RUNNER_TEMP/seed42-fleet245.json"
+      - name: Publish only verified source to replacement branch
+        run: |
+          test "$(git write-tree)" = fd1376748804dcf1e7632a5f135869469b299e37
+          git diff --cached --check
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'Implement fixed10 Stage5A with conserved cargo and bounded short-memory pricing'
+          git push origin HEAD:refs/heads/stage5a-fixed10-bounded-pressure
+          echo "VERIFIED_SOURCE_COMMIT=$(git rev-parse HEAD)"
+      - name: Replace only the explicitly retired Stage5A branch
+        run: |
+          git merge-base --is-ancestor 7c2cc8a1e3b6d8caaac51715624a5d7a85624e46 HEAD
+          git push --force-with-lease=refs/heads/stage5a-gulf-east-asia-physical-market:7c2cc8a1e3b6d8caaac51715624a5d7a85624e46 origin :refs/heads/stage5a-gulf-east-asia-physical-market
+      - name: Archive the exact committed source
+        run: git archive --format=zip HEAD -o "$RUNNER_TEMP/stage5a-source.zip"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: stage5a-fixed10-bootstrap-evidence
+          path: |
+            ${{ runner.temp }}/fixed10-tests.log
+            ${{ runner.temp }}/upstream-audit.json
+            ${{ runner.temp }}/pure-pricing-audit.json
+            ${{ runner.temp }}/stage5a-audit.json
+            ${{ runner.temp }}/seed42-fleet245.json
+            ${{ runner.temp }}/stage5a-source.zip
