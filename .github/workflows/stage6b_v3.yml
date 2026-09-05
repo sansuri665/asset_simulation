@@ -1,0 +1,88 @@
+name: Stage6B v3 transparent shipping market
+on:
+  push:
+    branches: [stage6b-v3-transparent-market]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: stage6bv3-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.11', '3.13']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Full Python regression
+        run: |
+          mkdir -p validation
+          set -o pipefail
+          python -m unittest discover -s asset_simulation/tests -v 2>&1 | tee validation/tests.log
+      - name: Viewer regression
+        run: node tools/test_viewer_parameters.cjs | tee validation/viewer.log
+      - name: Stage6B-v3 complete fleet, batch, partial-load and availability audit
+        if: matrix.python == '3.11'
+        run: |
+          set -o pipefail
+          python -m asset_simulation.audit_stage6b_v3 --years 20 --long-years 60 --output validation/stage6bv3-audit.json --turns-output validation/seed42-v3.json 2>&1 | tee validation/audit.log
+      - name: Inherited demand and physical contract audits
+        if: matrix.python == '3.11'
+        run: |
+          set -o pipefail
+          python -m asset_simulation.audit_oil_shipping_demand --seeds 0,1,2,3,4,5,6,7 --years 60 2>&1 | tee validation/upstream.log
+          python -m asset_simulation.audit_stage6a --years 20 --output validation/stage6a-audit.json --tables-dir validation/stage6a-tables
+      - name: Archive exact verified source
+        if: matrix.python == '3.11'
+        run: |
+          git rev-parse HEAD > validation/source-commit.txt
+          git archive --format=zip HEAD > validation/source.zip
+          cp asset_simulation/docs/current/STAGE6B_V3_TRANSPARENT_MARKET.md validation/
+          cp asset_simulation/docs/current/STAGE6B_V3_RESULTS.md validation/
+          cp asset_simulation/docs/current/STAGE6B_V3_VALIDATION.json validation/
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: stage6bv3-${{ matrix.python }}-${{ github.sha }}
+          path: validation
+  retire_verified_v2_once:
+    needs: regression
+    if: github.event_name == 'push' && github.repository == 'sansuri665/asset_simulation' && github.ref == 'refs/heads/stage6b-v3-transparent-market' && github.run_number == 1
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Retire only the unchanged ancestor branch explicitly replaced by v3
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          REPO=sansuri665/asset_simulation
+          OLD=stage6b-class-agnostic-mixed-fleet
+          NEW=stage6b-v3-transparent-market
+          EXPECTED=6f6aaa24e44784ff3eb0538e488636cff5f7d88b
+          test "$OLD" != main
+          test "$NEW" != main
+          NEW_SHA=$(gh api repos/$REPO/git/ref/heads/$NEW --jq .object.sha)
+          test "$NEW_SHA" = "$GITHUB_SHA"
+          OLD_SHA=$(gh api repos/$REPO/git/ref/heads/$OLD --jq .object.sha 2>/dev/null || true)
+          if [ -z "$OLD_SHA" ]; then echo 'Legacy ref already absent; nothing to delete.'; exit 0; fi
+          if [ "$OLD_SHA" != "$EXPECTED" ]; then echo 'Legacy branch advanced; preserve it.'; exit 0; fi
+          git merge-base --is-ancestor "$EXPECTED" HEAD
+          MAIN_BEFORE=$(gh api repos/$REPO/git/ref/heads/main --jq .object.sha)
+          gh api --method DELETE repos/$REPO/git/refs/heads/$OLD
+          MAIN_AFTER=$(gh api repos/$REPO/git/ref/heads/main --jq .object.sha)
+          printf 'Retired %s at %s; ancestor history preserved. main before=%s after=%s\n' "$OLD" "$EXPECTED" "$MAIN_BEFORE" "$MAIN_AFTER"

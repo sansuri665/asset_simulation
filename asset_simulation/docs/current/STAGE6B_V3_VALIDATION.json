@@ -1,0 +1,119 @@
+{
+  "model_version": "stage6b-v3-audit",
+  "base_commit": "6f6aaa24e44784ff3eb0538e488636cff5f7d88b",
+  "audit_hash": "b105b63178ad147468e8f73ad8490e2f056ee52af32e7844ca8e304c09a37a57",
+  "evidence": "Local Python3.13 complete regression 268; remote final commit status separately verified through Actions.",
+  "all_gates_pass": true,
+  "gates": {
+    "fixed_capacity_and_reference_mix_independence": true,
+    "cargo_due_date_independent_of_ship_speed": true,
+    "partial_load_keeps_full_hull_occupancy": true,
+    "fifo_and_partial_batch_allocation": true,
+    "manifest_delivered_at_frozen_quote": true,
+    "permanent_hull_and_manifest_validation": true,
+    "invalid_decisions_are_atomic": true,
+    "checkpoint_restart_exact": true,
+    "uncommitted_hulls_not_guessed": true,
+    "future_hulls_not_loadable_now": true,
+    "one_hull_one_availability_bucket": true,
+    "normal_horizon_schedule_preserves_anchor": true,
+    "same_capacity_substitution_preserves_quote": true,
+    "price_components_do_not_choose_ships": true,
+    "legacy_upper_bound_removed": true,
+    "urgency_only_premium_remains_bounded": true,
+    "local_bound_and_zero_sum_both_hold": true,
+    "time_only_diagnostic_no_double_return": true,
+    "all_seeded_hulls_and_batches_conserved": true,
+    "every_quote_reconstructs_from_trace": true,
+    "full_cargo_source_unchanged": true,
+    "forward_quote_not_physical_forecast": true,
+    "pre_shock_history_identical": true,
+    "shock_causes_real_capacity_reallocation": true,
+    "spec_unchanged": true
+  },
+  "constant_controls": {
+    "tail_1_now_only": {
+      "gulf": {"median": 16630.42865, "cv": 0.008631212929857867},
+      "west_africa": {"median": 13799.118900000001, "cv": 0.035398207688419885}
+    },
+    "tail_1_scheduled": {
+      "gulf": {"median": 26515.39755, "cv": 0.0035549663538886533},
+      "west_africa": {"median": 21126.7742, "cv": 0.019801281673007112}
+    },
+    "tail_0.7_now_only": {
+      "gulf": {"median": 16711.79945, "cv": 0.007256238911574979},
+      "west_africa": {"median": 14218.8282, "cv": 0.018645402997856105}
+    },
+    "tail_0.7_scheduled": {
+      "gulf": {"median": 26569.5735, "cv": 0.0021158559548568804},
+      "west_africa": {"median": 21565.8591, "cv": 0.004847031104274054}
+    },
+    "tail_0.5_now_only": {
+      "gulf": {"median": 16777.16265, "cv": 0.003119860636573615},
+      "west_africa": {"median": 15163.81595, "cv": 0.010306865882146254}
+    },
+    "tail_0.5_scheduled": {
+      "gulf": {"median": 26624.3579, "cv": 0.0010374530815094568},
+      "west_africa": {"median": 22233.12845, "cv": 0.0035584909261122295}
+    }
+  },
+  "seed42_ablation": {
+    "v2_full_current_logistic": {
+      "routes": {
+        "gulf": {"benchmark_median": 24764.266150000003, "benchmark_p95": 65829.45938999992, "benchmark_max": 87770.8236, "max_unshipped_days": 14.255980398985617, "closing_unshipped_bbl": 193170},
+        "west_africa": {"benchmark_median": 21760.4807, "benchmark_p95": 99565.32089499998, "benchmark_max": 111105.4173, "max_unshipped_days": 33.4704231325795, "closing_unshipped_bbl": 523971}
+      },
+      "conservation_exact": true, "observed_turns": 720, "quote_error": null
+    },
+    "v3_full_current_exp": {
+      "routes": {
+        "gulf": {"benchmark_median": 24934.90485, "benchmark_p95": 74089.54294499988, "benchmark_max": 128886.8607, "executed_window_benchmark_p95": 74089.54294499988, "no_current_supply_turns": 0, "numeric_price_guard_turns": 0, "max_unshipped_days": 14.255980398985617, "closing_unshipped_bbl": 193170, "mean_dispatched_load_factor": 1.0},
+        "west_africa": {"benchmark_median": 22223.3367, "benchmark_p95": 174037.18124499996, "benchmark_max": 292585.5037, "executed_window_benchmark_p95": 83421.27216999995, "no_current_supply_turns": 33, "numeric_price_guard_turns": 0, "max_unshipped_days": 33.4704231325795, "closing_unshipped_bbl": 523971, "mean_dispatched_load_factor": 1.0}
+      },
+      "conservation_exact": true, "observed_turns": 720, "quote_error": 0.0
+    },
+    "v3_full_scheduled_exp": {
+      "routes": {
+        "gulf": {"benchmark_median": 35300.3853, "benchmark_p95": 78093.768755, "benchmark_max": 124608.364, "executed_window_benchmark_p95": 78093.768755, "no_current_supply_turns": 0, "numeric_price_guard_turns": 0, "max_unshipped_days": 14.255980398985617, "closing_unshipped_bbl": 193170, "mean_dispatched_load_factor": 1.0},
+        "west_africa": {"benchmark_median": 29378.261850000003, "benchmark_p95": 133084.96435999993, "benchmark_max": 268338.1612, "executed_window_benchmark_p95": 83761.21886999982, "no_current_supply_turns": 33, "numeric_price_guard_turns": 0, "max_unshipped_days": 33.4704231325795, "closing_unshipped_bbl": 523971, "mean_dispatched_load_factor": 1.0}
+      },
+      "conservation_exact": true, "observed_turns": 720, "quote_error": 0.0
+    },
+    "v3_tail70_scheduled_exp": {
+      "routes": {
+        "gulf": {"benchmark_median": 35286.896550000005, "benchmark_p95": 79035.20411499999, "benchmark_max": 116339.4175, "executed_window_benchmark_p95": 79035.20411499999, "no_current_supply_turns": 0, "numeric_price_guard_turns": 0, "max_unshipped_days": 14.149158076980779, "closing_unshipped_bbl": 265026, "mean_dispatched_load_factor": 0.9995595826679398},
+        "west_africa": {"benchmark_median": 30094.9024, "benchmark_p95": 147712.4543349999, "benchmark_max": 265344.6493, "executed_window_benchmark_p95": 79597.61505, "no_current_supply_turns": 33, "numeric_price_guard_turns": 0, "max_unshipped_days": 34.07070557366568, "closing_unshipped_bbl": 40689, "mean_dispatched_load_factor": 0.9971336096747507}
+      },
+      "conservation_exact": true, "observed_turns": 720, "quote_error": 0.0
+    }
+  },
+  "four_origin": {
+    "routes": {
+      "brazil_guyana": {"benchmark_median": 21171.309999999998, "benchmark_p95": 36506.73233, "benchmark_max": 44137.0017, "executed_window_benchmark_p95": 36506.73233, "no_current_supply_turns": 0, "numeric_price_guard_turns": 0, "max_unshipped_days": 1.9159771221282182, "closing_unshipped_bbl": 248202, "mean_dispatched_load_factor": 0.9972913870632519},
+      "gulf": {"benchmark_median": 27973.672400000003, "benchmark_p95": 42772.416274999996, "benchmark_max": 48753.1821, "executed_window_benchmark_p95": 42772.416274999996, "no_current_supply_turns": 0, "numeric_price_guard_turns": 0, "max_unshipped_days": 0.3902277982778111, "closing_unshipped_bbl": 82526, "mean_dispatched_load_factor": 0.9999480547217907},
+      "us_gulf": {"benchmark_median": 21074.840949999998, "benchmark_p95": 36665.169735, "benchmark_max": 55309.8114, "executed_window_benchmark_p95": 36665.169735, "no_current_supply_turns": 0, "numeric_price_guard_turns": 0, "max_unshipped_days": 4.395769641861504, "closing_unshipped_bbl": 291688, "mean_dispatched_load_factor": 0.9973321567655757},
+      "west_africa": {"benchmark_median": 22057.038950000002, "benchmark_p95": 35963.13694499999, "benchmark_max": 45967.9323, "executed_window_benchmark_p95": 35963.13694499999, "no_current_supply_turns": 0, "numeric_price_guard_turns": 0, "max_unshipped_days": 2.7456552489432715, "closing_unshipped_bbl": 240540, "mean_dispatched_load_factor": 0.9970864114710214}
+    },
+    "conservation_exact": true, "observed_turns": 720, "quote_error": 0.0
+  },
+  "long_window": {
+    "routes": {
+      "gulf": {"benchmark_median": 27014.8544, "benchmark_p95": 58864.19356999979, "benchmark_max": 116339.4175, "executed_window_benchmark_p95": 58864.19356999979, "no_current_supply_turns": 0, "numeric_price_guard_turns": 0, "max_unshipped_days": 15.164233739697156, "closing_unshipped_bbl": 576644, "mean_dispatched_load_factor": 0.9994435595863628},
+      "west_africa": {"benchmark_median": 21871.931900000003, "benchmark_p95": 59328.119714999986, "benchmark_max": 265344.6493, "executed_window_benchmark_p95": 47085.18431999997, "no_current_supply_turns": 33, "numeric_price_guard_turns": 0, "max_unshipped_days": 31.193117755032105, "closing_unshipped_bbl": 0, "mean_dispatched_load_factor": 0.99688235154499}
+    },
+    "conservation_exact": true, "observed_turns": 2160, "quote_error": 0.0
+  },
+  "shock": {
+    "gulf": {"control_peak": 26679.0912, "shock_peak": 191544.7625, "max_committed_service_change": 15768000.0},
+    "west_africa": {"control_peak": 21665.6562, "shock_peak": 241436.0808, "max_committed_service_change": 11262857.142857103}
+  },
+  "warnings": [
+    "Ten-day game time, source calendar projection, reference capacities and distances remain design assumptions.",
+    "Partial loads can reduce tail backlog but consume whole hull voyages; lower thresholds are not automatically superior.",
+    "Forward arrival weights and normal-schedule normalization are not forecasts of uncommitted ships or future cargo.",
+    "Removing the 122500 ceiling changes prices: separated comparisons are necessary; lower CV is not empirical validation.",
+    "No-current-supply indications and numeric-guard observations are not transaction revenues.",
+    "The coverage router remains a demo without price arbitrage, costs or owner optimization.",
+    "Quote net value is not gross freight; actual load scales reference value but never changes permanent ship capacity."
+  ]
+}
