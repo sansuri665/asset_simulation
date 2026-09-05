@@ -1,0 +1,53 @@
+name: Stage5A physical single-route market
+
+on:
+  push:
+    branches: [stage5a-gulf-east-asia-physical-market]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: stage5a-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      matrix:
+        python: ['3.11', '3.13']
+    env:
+      PYTHONHASHSEED: '0'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Full Python regression
+        run: |
+          set -o pipefail
+          python -m unittest discover -s asset_simulation/tests -v 2>&1 | tee "$RUNNER_TEMP/tests.log"
+      - name: Viewer parameter regression
+        run: node tools/test_viewer_parameters.cjs
+      - name: Stage5A fleet sweeps and controls
+        if: matrix.python == '3.11'
+        run: |
+          if [ -f asset_simulation/audit_stage5a.py ]; then
+            python -m asset_simulation.audit_stage5a --years 20 --output "$RUNNER_TEMP/stage5a-audit.json"
+          fi
+      - name: Archive exact checked-out source
+        if: always() && matrix.python == '3.11'
+        run: git archive --format=zip HEAD > "$RUNNER_TEMP/stage5a-source.zip"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: stage5a-${{ matrix.python }}-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/tests.log
+            ${{ runner.temp }}/stage5a-audit.json
+            ${{ runner.temp }}/stage5a-source.zip
