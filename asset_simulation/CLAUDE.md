@@ -28,3 +28,6 @@ py -3.13 -m asset_simulation.audit_oil_shipping_demand --seeds 0,1,2,3,4,5,6,7 -
 新增独立 `single_route_pricing` v0.2.1；它只读供需和计划库存偏离并输出TCE，不属于已实现的船队。
 定价不接入现有Viewer，也不反写原油需求。研究接口保留；新的 `/api/decision` 只发布月末可见字段，由年度锚插值的油价月线只发布初始年或已完成年度。
 详细修复范围、兼容性与验证见 `docs/current/MAIN_REVIEW_FIXES.md`。
+
+### Stage5A v0.2（当前实验分支，优先于旧Stage5A描述）
+固定10运营日/回合，日货量投影至360日标签年；真实欠运完整守恒，报价改用有界短记忆信号与软上下界。旧主干定价核保留不改。详情见 `asset_simulation/docs/current/STAGE5A_FIXED10_BOUNDED_PRESSURE.md`。不含成本、需求破坏或增减船。

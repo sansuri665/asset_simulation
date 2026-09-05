@@ -1,0 +1,36 @@
+{
+  "model_version": "asset-simulation-stage5a-physical-market-v0.2.0",
+  "route_id": "gulf_east_asia",
+  "default_fleet_size": 245,
+  "fleet_sweep": [
+    230,
+    235,
+    239,
+    242,
+    245,
+    250,
+    260,
+    280
+  ],
+  "initialization": "phased",
+  "phase_rotation": 0,
+  "cargo_unit": "integer_barrels",
+  "state_clock": "0 loading + 2 laden + 1 discharge + 2 ballast; every turn exactly ten operating days",
+  "execution_rule": "bounded catch-up intention from physical backlog; independent of quotation price or pressure memory",
+  "cpi_rule": "last completed annual level before the current year; initial year uses initial condition",
+  "inventory_scope": "transport plan deviation, not absolute regional or refinery stocks",
+  "pricing_coefficients_recalibrated": false,
+  "excluded_scope": [
+    "costs",
+    "owner_strategy",
+    "newbuildings",
+    "scrapping",
+    "debt",
+    "time_charter",
+    "other_routes"
+  ],
+  "operating_turn_days": 10,
+  "operating_year_days": 360,
+  "source_projection": "preserve monthly daily rate, not real-calendar monthly volume; log the difference",
+  "pricing_curve_changed": "new bounded recent pressure and anchored soft price bounds; pure v0.2.1 kernel unchanged"
+}

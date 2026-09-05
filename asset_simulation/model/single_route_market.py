@@ -1,8 +1,8 @@
-"""Stage5A: real fixed-fleet supply -> existing pure price engine -> execution.
+"""Stage5A: fixed ten-day fleet -> bounded indicative price -> execution.
 
 No cost accounts or strategic agents. Quantities use integer barrels. A route
 plan is not an absolute regional inventory. Oil can only be delivered by a
-specific ship completing discharge. The price function is unchanged.
+specific ship completing discharge. Raw cargo never expires; pricing pressure can decay.
 """
 from __future__ import annotations
 
@@ -16,10 +16,13 @@ from typing import Any, Mapping, Sequence
 
 from .registry import sha256_json
 from .single_route_fleet import FleetState, advance_fleet, count_integer, dispatch_fleet, initial_fleet
-from .single_route_pricing import load_single_route_pricing_config, price_single_route_turn, shipping_turn_days
+from .bounded_route_pricing import (
+    OPERATING_TURN_DAYS, align_pressure_with_gap, bounded_pressure,
+    load_bounded_pricing_config, price_bounded_route_turn, validate_bounded_config,
+)
 
-MODEL_VERSION = "asset-simulation-stage5a-physical-market-v0.1.0"
-CONFIG_PATH = Path(__file__).resolve().parents[1] / "config" / "stage5a_single_route_v0.1.json"
+MODEL_VERSION = "asset-simulation-stage5a-physical-market-v0.2.0"
+CONFIG_PATH = Path(__file__).resolve().parents[1] / "config" / "stage5a_single_route_v0.2.json"
 
 
 def load_stage5a_config() -> dict[str, Any]:
@@ -60,9 +63,13 @@ class RouteMarketState:
     cumulative_reference_delivered_bbl: int = 0
     elapsed_days: int = 0
     previous_real_tce: float = 35000.0
+    pricing_pressure_days: float = 0.0
 
     def validate(self) -> None:
         self.fleet.validate()
+        _finite(self.pricing_pressure_days, "pricing pressure")
+        if _finite(self.previous_real_tce, "previous TCE") <= 0:
+            raise ValueError("previous TCE must be positive")
         if self.fleet.phase != "closed":
             raise ValueError("market state must be at a completed turn boundary")
         for name in ("cargo_bbl", "origin_bbl", "actual_in_transit_bbl", "initial_in_transit_bbl",
@@ -89,7 +96,8 @@ class RouteMarketState:
 
 def initial_market(fleet_size: int = 245, *, pricing_config: Mapping[str, Any] | None = None,
                    initialization: str = "phased", phase_rotation: int = 0) -> RouteMarketState:
-    cfg = load_single_route_pricing_config() if pricing_config is None else pricing_config
+    cfg = load_bounded_pricing_config() if pricing_config is None else pricing_config
+    validate_bounded_config(cfg)
     cargo = _whole_barrels(float(cfg["vlcc_cargo_mmbbl"]) * 1e6)
     departures = float(cfg["reference_route_cargo_mbd"]) * float(cfg["reference_turn_days"]) * 1e6 / cargo
     fleet = initial_fleet(fleet_size, reference_departures=departures,
@@ -114,9 +122,10 @@ def step_route_market(state: RouteMarketState, *, scheduled_cargo_bbl: int,
     state.validate()
     count_integer(scheduled_cargo_bbl, "scheduled cargo")
     count_integer(turn_days, "turn days")
-    if turn_days == 0:
-        raise ValueError("turn days must be positive")
-    cfg = load_single_route_pricing_config() if pricing_config is None else pricing_config
+    if turn_days != OPERATING_TURN_DAYS:
+        raise ValueError("each operating turn must be exactly ten days")
+    cfg = load_bounded_pricing_config() if pricing_config is None else pricing_config
+    validate_bounded_config(cfg)
     if _whole_barrels(float(cfg["vlcc_cargo_mmbbl"]) * 1e6) != state.cargo_bbl:
         raise ValueError("cannot change vessel cargo capacity mid-run")
     fleet, events = advance_fleet(state.fleet)
@@ -124,9 +133,17 @@ def step_route_market(state: RouteMarketState, *, scheduled_cargo_bbl: int,
     reference_arrivals = state.reference_arrivals_bbl[0]
     destination = state.destination_deviation_bbl + arrivals - reference_arrivals
     current_rate = scheduled_cargo_bbl / 1e6 / turn_days
-    quote = price_single_route_turn(
+    # Destination slippage is known at the turn opening. Signal updates never
+    # change the physical origin/destination records. One decay step per turn.
+    reference_daily_bbl = float(cfg["reference_route_cargo_mbd"]) * 1e6
+    opening_pressure = bounded_pressure(state.pricing_pressure_days,
+        (reference_arrivals - arrivals) / (2.0 * reference_daily_bbl),
+        config=cfg, decay=False)
+    opening_pressure = align_pressure_with_gap(opening_pressure, state.origin_bbl - destination)
+    quote = price_bounded_route_turn(
         structural_cargo_mbd=current_rate, turn_days=turn_days,
         prompt_supply_vlcc=len(fleet.gulf_prompt),
+        pricing_pressure_days=opening_pressure,
         origin_inventory_deviation_mmbbl=state.origin_bbl / 1e6,
         destination_inventory_deviation_mmbbl=destination / 1e6,
         previous_real_tce_2025_usd_per_day=state.previous_real_tce,
@@ -136,13 +153,24 @@ def step_route_market(state: RouteMarketState, *, scheduled_cargo_bbl: int,
     ready_fixtures = ready_bbl // state.cargo_bbl
     # No second fractional-demand ledger. Remainder stays in origin_bbl.
     # Round request up, but never load barrels that do not actually exist.
-    desired = max(0, int(math.ceil(float(quote["pricing_demand_vlcc_equivalent"]) - 1e-8)))
+    # Physical catch-up is deliberately separate from quote memory. Reducing a
+    # premium must not cancel orders or stop old barrels from being transported.
+    physical_gap_bbl = 0.5 * (state.origin_bbl - destination)
+    recovery_limit = float(cfg["inventory"]["maximum_recovery_fraction_of_structural_flow"]) * scheduled_cargo_bbl
+    recovery_bbl = max(-recovery_limit, min(recovery_limit,
+        float(cfg["inventory"]["recovery_fraction_per_turn"]) * physical_gap_bbl))
+    execution_request = max(0.0, scheduled_cargo_bbl + recovery_bbl)
+    desired = max(0, int(math.ceil(execution_request / state.cargo_bbl - 1e-8)))
     if scheduled_cargo_bbl == 0:
         desired = ready_fixtures  # clear old cargo; no new price observation
     eligible = min(desired, ready_fixtures)
     departures = min(eligible, len(fleet.gulf_prompt))
     next_fleet, departed_ids = dispatch_fleet(fleet, departures)
     loaded = departures * state.cargo_bbl
+    closing_pressure = bounded_pressure(opening_pressure,
+        (scheduled_cargo_bbl - loaded) / (2.0 * reference_daily_bbl),
+        config=cfg, decay=True)
+    closing_pressure = align_pressure_with_gap(closing_pressure, ready_bbl - loaded - destination)
     next_state = RouteMarketState(
         fleet=next_fleet, cargo_bbl=state.cargo_bbl,
         origin_bbl=ready_bbl - loaded, destination_deviation_bbl=destination,
@@ -155,6 +183,7 @@ def step_route_market(state: RouteMarketState, *, scheduled_cargo_bbl: int,
         cumulative_reference_delivered_bbl=state.cumulative_reference_delivered_bbl + reference_arrivals,
         elapsed_days=state.elapsed_days + turn_days,
         previous_real_tce=float(quote["real_tce_2025_usd_per_day"]),
+        pricing_pressure_days=closing_pressure,
     )
     next_state.validate()
     closing_gap = (next_state.origin_bbl - destination) / 2e6
@@ -163,6 +192,10 @@ def step_route_market(state: RouteMarketState, *, scheduled_cargo_bbl: int,
         **quote,
         "shipping_turn_index": next_fleet.turn_index,
         "day_start_offset": state.elapsed_days,
+        "clock_scope": "fixed_10_day_operating_clock",
+        "closing_pricing_pressure_days": closing_pressure,
+        "physical_catchup_request_bbl": recovery_bbl,
+        "execution_request_bbl": execution_request,
         "day_end_offset": next_state.elapsed_days,
         "fleet_size": fleet.size,
         "prompt_before_dispatch": len(fleet.gulf_prompt),
@@ -203,8 +236,9 @@ def monthly_turn_inputs(months: Sequence[Mapping[str, Any]], *,
                         initial_year: int) -> tuple[dict[str, Any], ...]:
     """Current-month plan is exogenous. No future month or year-close CPI read.
 
-    Round monthly scheduled volume once to whole barrels and allocate across
-    calendar turns. Their sum is exactly the rounded monthly volume.
+    Preserve the seed's daily RATE on three ten-day operating turns. This is a
+    360-day game projection, not execution of every real-calendar monthly barrel.
+    Record the source-calendar volume and the explicit mapping difference.
     """
     records = []
     previous_ordinal = None
@@ -222,8 +256,9 @@ def monthly_turn_inputs(months: Sequence[Mapping[str, Any]], *,
         rate = _finite(month["cargo_mbd"], "cargo rate")
         if rate < 0:
             raise ValueError("cargo rate cannot be negative")
-        lengths = shipping_turn_days(days)
-        total = _whole_barrels(rate * days * 1e6)
+        lengths = (OPERATING_TURN_DAYS,) * 3
+        source_calendar_volume = _whole_barrels(rate * days * 1e6)
+        total = _whole_barrels(rate * 3 * OPERATING_TURN_DAYS * 1e6)
         amounts = [_whole_barrels(rate * d * 1e6) for d in lengths[:2]]
         amounts.append(total - sum(amounts))
         information_year = max(initial_year, year - 1)
@@ -236,7 +271,11 @@ def monthly_turn_inputs(months: Sequence[Mapping[str, Any]], *,
             records.append({"year": year, "month": number, "turn_in_month": i,
                             "label": f"{year}-{number:02d}.{i}", "turn_days": days_in_turn,
                             "scheduled_cargo_bbl": amount, "source_cargo_mbd": rate,
-                            "cpi": cpi, "cpi_information_year": information_year})
+                            "cpi": cpi, "cpi_information_year": information_year,
+                            "source_calendar_month_days": days,
+                            "source_calendar_month_cargo_bbl": source_calendar_volume,
+                            "operating_month_cargo_bbl": total,
+                            "clock_projection_difference_bbl": total - source_calendar_volume})
     return tuple(records)
 
 
@@ -264,7 +303,8 @@ def summarize_market(records: Sequence[Mapping[str, Any]], *, cargo_bbl: int,
     ships = rows[0]["fleet_size"]
     output = {
         "fleet_size": ships, "warmup_turns": warmup_turns,
-        "observed_turns": len(rows), "observed_calendar_days": days,
+        "observed_turns": len(rows), "observed_operating_days": days,
+        "clock_scope": "360_operating_days_per_label_year",
         "mean_demand_mbd": mean_demand,
         "mean_required_cycling_vlcc": cargo / cargo_bbl / len(rows) * 5,
         "load_to_new_plan_ratio": loaded / cargo if cargo else None,
@@ -280,6 +320,10 @@ def summarize_market(records: Sequence[Mapping[str, Any]], *, cargo_bbl: int,
         "max_origin_backlog_days_at_mean_flow": max(r["origin_unshipped_bbl"] for r in rows) / 1e6 / mean_demand if mean_demand else None,
         "end_actual_in_transit_mmbbl": rows[-1]["actual_in_transit_bbl"] / 1e6,
         "cumulative_unfilled_fixture_observations": sum(r["unfilled_fixture_observations"] for r in rows),
+        "max_abs_pricing_pressure_days": max(abs(r["closing_pricing_pressure_days"]) for r in rows),
+        "end_pricing_pressure_days": rows[-1]["closing_pricing_pressure_days"],
+        "near_upper_bound_turns": sum(r["near_upper_price_bound"] for r in rows),
+        "near_lower_bound_turns": sum(r["near_lower_price_bound"] for r in rows),
         "no_match_turns": sum(r["dispatched_vlcc"] == 0 for r in rows),
         "upper_guard_turns": sum(r["maximum_price_guard_hit"] for r in rows),
         "lower_guard_turns": sum(r["minimum_price_guard_hit"] for r in rows),
@@ -287,6 +331,8 @@ def summarize_market(records: Sequence[Mapping[str, Any]], *, cargo_bbl: int,
         "max_barrel_residual": max(abs(r["barrel_conservation_residual"]) for r in records),
         "max_plan_residual": max(abs(r["plan_conservation_residual"]) for r in records),
     }
+    mean_price = sum(prices) / len(prices)
+    output["real_tce_cv"] = (sum((v - mean_price) ** 2 for v in prices) / len(prices)) ** 0.5 / mean_price
     for prefix, values in (("real_tce", prices), ("nominal_tce", nominal)):
         output.update({f"{prefix}_p05": _quantile(values, 0.05), f"{prefix}_median": _quantile(values, 0.5),
                        f"{prefix}_p95": _quantile(values, 0.95), f"{prefix}_min": min(values), f"{prefix}_max": max(values)})
@@ -300,14 +346,16 @@ def simulate_fixed_route(inputs: Sequence[Mapping[str, Any]], *, fleet_size: int
                          include_events: bool = False, warmup_turns: int = 36) -> dict[str, Any]:
     if not inputs:
         raise ValueError("at least one turn required")
-    cfg = deepcopy(load_single_route_pricing_config() if pricing_config is None else pricing_config)
+    cfg = deepcopy(load_bounded_pricing_config() if pricing_config is None else pricing_config)
     state = initial_market(fleet_size, pricing_config=cfg, initialization=initialization, phase_rotation=phase_rotation)
     initial_hash = sha256_json(asdict(state))
     records = []
     for item in inputs:
         state, row = step_route_market(state, scheduled_cargo_bbl=item["scheduled_cargo_bbl"],
             turn_days=item["turn_days"], cpi=item.get("cpi", 100.0), pricing_config=cfg, include_events=include_events)
-        for key in ("year", "month", "turn_in_month", "label", "source_cargo_mbd", "cpi_information_year"):
+        for key in ("year", "month", "turn_in_month", "label", "source_cargo_mbd", "cpi_information_year",
+                    "source_calendar_month_days", "source_calendar_month_cargo_bbl",
+                    "operating_month_cargo_bbl", "clock_projection_difference_bbl"):
             if key in item:
                 row[key] = item[key]
         records.append(row)
@@ -317,7 +365,13 @@ def simulate_fixed_route(inputs: Sequence[Mapping[str, Any]], *, fleet_size: int
                      "phase_rotation": phase_rotation, "pricing_config_hash": sha256_json(cfg),
                      "input_hash": sha256_json(inputs), "initial_state_hash": initial_hash,
                      "final_state_hash": sha256_json(asdict(state)), "result_hash": sha256_json(records),
-                     "price_feedback_into_execution": False, "cost_accounting_present": False,
+                     "price_feedback_into_execution": False,
+                     "pricing_memory_feedback_into_execution": False,
+                     "demand_destruction": False,
+                     "operating_turn_days": OPERATING_TURN_DAYS,
+                     "operating_days_per_label_year": 360,
+                     "clock_projection": "preserve_daily_rate_not_calendar_month_total",
+                     "pricing_pressure_scope": "bounded_recent_plan_slippage_not_physical_inventory", "cost_accounting_present": False,
                      "supply_owner": "single_route_fleet", "inventory_scope": "integer_barrel_transport_plan_deviation"},
         "turns": tuple(records), "final_state": asdict(state),
         "summary": summarize_market(records, cargo_bbl=state.cargo_bbl, warmup_turns=warmup_turns),

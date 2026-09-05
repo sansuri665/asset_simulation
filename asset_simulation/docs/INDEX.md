@@ -25,3 +25,6 @@
 
 ### Stage5A 实验分支
 固定编号VLCC状态机、整数桶运输执行、船队规模扫描与未校准定价见 `current/STAGE5A_PHYSICAL_MARKET.md`。不包含成本或公司模型；不修改现有服务。
+
+### Stage5A v0.2（当前实验分支，优先于旧Stage5A描述）
+固定10运营日/回合，日货量投影至360日标签年；真实欠运完整守恒，报价改用有界短记忆信号与软上下界。旧主干定价核保留不改。详情见 `current/STAGE5A_FIXED10_BOUNDED_PRESSURE.md`。不含成本、需求破坏或增减船。

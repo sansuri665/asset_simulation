@@ -13,7 +13,7 @@ from asset_simulation.model.single_route_market import (
     initial_market, monthly_turn_inputs, seeded_route_inputs, simulate_fixed_route,
     step_route_market,
 )
-from asset_simulation.model.single_route_pricing import load_single_route_pricing_config, price_single_route_turn
+from asset_simulation.model.bounded_route_pricing import load_bounded_pricing_config, price_bounded_route_turn
 
 
 def flat_turns(n=150, barrels=98550000):
@@ -140,14 +140,15 @@ class PhysicalMarketTests(unittest.TestCase):
         expected = 100 * 98550000 - 200 * 20 * 1971000
         self.assertEqual(expected, rows[149]["origin_unshipped_bbl"] - rows[49]["origin_unshipped_bbl"])
 
-    def test_step_calls_existing_price_core_without_recalibration(self):
+    def test_step_calls_pure_bounded_price_component(self):
         state = initial_market(252)
-        cfg = load_single_route_pricing_config()
+        cfg = load_bounded_pricing_config()
         before = sha256_json(cfg)
         opened, events = advance_fleet(state.fleet)
         destination = state.destination_deviation_bbl + len(events["delivered_ship_ids"]) * state.cargo_bbl - state.reference_arrivals_bbl[0]
-        quote = price_single_route_turn(structural_cargo_mbd=9.3, turn_days=10,
+        quote = price_bounded_route_turn(structural_cargo_mbd=9.3, turn_days=10,
             prompt_supply_vlcc=len(opened.gulf_prompt),
+            pricing_pressure_days=0.0,
             origin_inventory_deviation_mmbbl=state.origin_bbl/1e6,
             destination_inventory_deviation_mmbbl=destination/1e6,
             previous_real_tce_2025_usd_per_day=state.previous_real_tce)
@@ -156,7 +157,7 @@ class PhysicalMarketTests(unittest.TestCase):
         self.assertEqual(before, sha256_json(cfg))
 
     def test_price_level_is_not_secretly_a_dispatch_strategy(self):
-        cfg = deepcopy(load_single_route_pricing_config())
+        cfg = deepcopy(load_bounded_pricing_config())
         cfg["pricing"]["baseline_real_tce_2025_usd_per_day"] = 40000.0
         a = simulate_fixed_route(flat_turns(), fleet_size=245)
         b = simulate_fixed_route(flat_turns(), fleet_size=245, pricing_config=cfg)
@@ -194,12 +195,13 @@ class SeedAndCalendarTests(unittest.TestCase):
         cls.macro = run_global_macro(42, 5)
         cls.shipping = run_oil_shipping_world(cls.macro)
 
-    def test_monthly_barrels_and_calendar_days_are_preserved(self):
+    def test_monthly_daily_rate_is_projected_to_fixed_operating_clock(self):
         months = [{'year':2028,'month':m,'days':calendar.monthrange(2028,m)[1],'cargo_mbd':9.33333333} for m in range(1,13)]
         inputs = monthly_turn_inputs(months, cpi_by_information_year={2025:100.0,2027:110.0}, initial_year=2025)
-        self.assertEqual(366, sum(t['turn_days'] for t in inputs))
+        self.assertEqual(360, sum(t['turn_days'] for t in inputs))
+        self.assertEqual({10}, {t['turn_days'] for t in inputs})
         for i, month in enumerate(months):
-            self.assertEqual(round(month['cargo_mbd'] * month['days'] * 1e6), sum(t['scheduled_cargo_bbl'] for t in inputs[3*i:3*i+3]))
+            self.assertEqual(round(month['cargo_mbd'] * 30 * 1e6), sum(t['scheduled_cargo_bbl'] for t in inputs[3*i:3*i+3]))
 
     def test_same_seed_demand_and_no_upstream_mutation(self):
         before = sha256_json([self.macro.rows, self.shipping.turns])
@@ -224,11 +226,12 @@ class SeedAndCalendarTests(unittest.TestCase):
         self.assertEqual(short['turns'],long['turns'][:72])
         self.assertNotEqual(short['identity']['input_hash'],long['identity']['input_hash'])
 
-    def test_calendar_only_price_variation_is_reported_not_called_economic(self):
+    def test_constant_daily_flow_has_only_small_integer_fixture_variation(self):
         months = [{'year':y,'month':m,'days':calendar.monthrange(y,m)[1],'cargo_mbd':9.3} for y in range(2025,2028) for m in range(1,13)]
         inputs=monthly_turn_inputs(months,cpi_by_information_year={y:100.0 for y in range(2025,2028)},initial_year=2025)
         result=simulate_fixed_route(inputs,fleet_size=245)
         self.assertLess(result['summary']['end_origin_backlog_days_at_mean_flow'],1.0)
+        self.assertLess(result['summary']['real_tce_cv'],0.02)
         self.assertEqual('fixed_fleet_counterfactual_not_a_market_equilibrium_or_supercycle',result['summary']['interpretation'])
 
     def test_mixed_macro_world_rejected(self):

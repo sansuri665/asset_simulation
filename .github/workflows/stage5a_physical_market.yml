@@ -1,15 +1,15 @@
-name: Stage5A physical single-route market
+name: Stage5A fixed10 bounded pressure
 
 on:
   push:
-    branches: [stage5a-gulf-east-asia-physical-market]
+    branches: [stage5a-fixed10-bounded-pressure]
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: stage5a-${{ github.ref }}
+  group: stage5a-fixed10-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
