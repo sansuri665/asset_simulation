@@ -1,0 +1,33 @@
+name: Verify Stage6B-v3 opening-time correction
+on:
+  push:
+    branches: [stage6b-v3-transparent-market]
+    paths: [.github/workflows/fix_stage6bv3_opening_time.yml]
+permissions:
+  contents: write
+jobs:
+  verify:
+    if: github.repository == 'sansuri665/asset_simulation' && github.ref == 'refs/heads/stage6b-v3-transparent-market'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - run: python tools/fix_v3_opening_time.py
+      - run: python -m unittest discover -s asset_simulation/tests -v
+      - name: Publish only the two verified source corrections
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          LIVE=$(gh api repos/sansuri665/asset_simulation/git/ref/heads/stage6b-v3-transparent-market --jq .object.sha)
+          test "$LIVE" = "$GITHUB_SHA"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add asset_simulation/model/shipping_v3/pricing.py asset_simulation/tests/test_shipping_market_v3.py
+          git commit -m 'Normalize scheduled capacity only over knowable opening-time arrival horizons'
+          git push origin HEAD:refs/heads/stage6b-v3-transparent-market
