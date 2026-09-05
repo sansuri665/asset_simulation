@@ -1,0 +1,40 @@
+{
+  "model_version": "stage6c-dynamic-freight-board-preview-v0.1.0",
+  "operating_turn_days": 10,
+  "arrival_weights": [
+    1.0,
+    0.5,
+    0.15,
+    0.05
+  ],
+  "reserve_weight": 0.35,
+  "normal_prompt_multiplier": 1.06,
+  "inventory_log_premium_limit": 0.15,
+  "inventory_projection_turns": 12,
+  "source_inventory": {
+    "normal_days": 20,
+    "hard_low_days": -20,
+    "soft_low_days": -7,
+    "soft_high_days": 20,
+    "hard_high_days": 60
+  },
+  "destination_inventory": {
+    "normal_days": 40,
+    "hard_low_days": -40,
+    "soft_low_days": -10,
+    "soft_high_days": 10,
+    "hard_high_days": 40
+  },
+  "scope": {
+    "inventory_parameters": "explicit_game_buffers_not_observed_stocks",
+    "normalization": "per_class_post_trial_schedule_including_new_ballast_intents",
+    "quote": "local_response_no_forced_cross_route_average",
+    "cargo": "source_release_is_physical_oil; trial_order_is_not_new_oil",
+    "imports": "independent_due_requirements; only_deliveries_change_stock",
+    "trial": "pure_no_motion_no_batches_no_price_memory",
+    "commit": "single_writer_session_CAS_not_distributed_database",
+    "automatic_optimization": false,
+    "cost_model": false
+  },
+  "maximum_known_requirement_horizon_turns": 36
+}

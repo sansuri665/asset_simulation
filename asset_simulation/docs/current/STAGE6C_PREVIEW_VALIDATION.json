@@ -1,0 +1,278 @@
+{
+  "model": "stage6c-preview-audit-v1",
+  "parent": "c89f735ed06154e2309288ed5b941c5457e34909",
+  "seeded_replays": [
+    {
+      "seed": 0,
+      "annual_transitions": 5,
+      "input_turns": 216,
+      "committed_turns": 216,
+      "trial_evaluations": 648,
+      "observed_turns": 180,
+      "fleet_counts": {
+        "vlcc": 280,
+        "suezmax": 160,
+        "aframax": 40
+      },
+      "source": {
+        "seed": 0,
+        "annual_transitions": 5,
+        "source_hash": "4ce06c2b404d13c473cbce8c565d77386b0311a8dcb55f69dc7d83e1fd33f29f",
+        "source_unchanged": true,
+        "selected_full_route_operating_bbl": 23215079292,
+        "selected_full_route_calendar_bbl": 23548274829,
+        "clock_projection_difference_bbl": -333195537,
+        "class_partition_applied": false,
+        "outside_scope": "unselected routes, not other classes of selected cargo",
+        "input_hash": "ff1baa0fa3ea78448cc37dcd57f3555a4af4669ec82ea6ae98aa5d841a741a0e"
+      },
+      "scope": "explicit_fixed_home_caller_not_endogenous_dynamic_equilibrium",
+      "source_unchanged": true,
+      "trial_invariance": true,
+      "order_transfer_direction": true,
+      "max_quote_reconstruction_error": 0.0,
+      "mass_conserved": true,
+      "failure": null,
+      "summary": {
+        "gulf": {
+          "median_reference_tce": 5355.2322,
+          "min_reference_tce": 4182.1264,
+          "max_reference_tce": 8248.9818,
+          "mean_loaded_bbl": 92783023.53333333,
+          "no_loading_turns": 0,
+          "numeric_guard_turns": 0,
+          "max_source_stock_bbl": 186000000
+        },
+        "west_africa": {
+          "median_reference_tce": 44826.75565,
+          "min_reference_tce": 6848.8367,
+          "max_reference_tce": 138469.8223,
+          "mean_loaded_bbl": 15381128.9,
+          "no_loading_turns": 0,
+          "numeric_guard_turns": 0,
+          "max_source_stock_bbl": 45386772
+        }
+      },
+      "execution_path_hash": "71e8d32ff7ed95e7a2f7cb1fef3bdacbb7db73d3dc1ea9062a5adc26657933a4",
+      "final_state_hash": "c21c15f60aa68e4c08b782d1c413339c90206a962d6a0f115d714b42619fb1c9"
+    },
+    {
+      "seed": 1,
+      "annual_transitions": 5,
+      "input_turns": 216,
+      "committed_turns": 216,
+      "trial_evaluations": 648,
+      "observed_turns": 180,
+      "fleet_counts": {
+        "vlcc": 280,
+        "suezmax": 160,
+        "aframax": 40
+      },
+      "source": {
+        "seed": 1,
+        "annual_transitions": 5,
+        "source_hash": "58a1a964564bc930356c02b9809628598f6eaeec3583b788086dac9d2f98dcb7",
+        "source_unchanged": true,
+        "selected_full_route_operating_bbl": 23174073816,
+        "selected_full_route_calendar_bbl": 23507002505,
+        "clock_projection_difference_bbl": -332928689,
+        "class_partition_applied": false,
+        "outside_scope": "unselected routes, not other classes of selected cargo",
+        "input_hash": "4289c14824b40e93ff169ac8adbdfb15ea5384b7672843d2a8193f22a15084bc"
+      },
+      "scope": "explicit_fixed_home_caller_not_endogenous_dynamic_equilibrium",
+      "source_unchanged": true,
+      "trial_invariance": true,
+      "order_transfer_direction": true,
+      "max_quote_reconstruction_error": 0.0,
+      "mass_conserved": true,
+      "failure": null,
+      "summary": {
+        "gulf": {
+          "median_reference_tce": 7796.6632,
+          "min_reference_tce": 4373.3769,
+          "max_reference_tce": 9520.9985,
+          "mean_loaded_bbl": 96884501.76666667,
+          "no_loading_turns": 0,
+          "numeric_guard_turns": 0,
+          "max_source_stock_bbl": 186000000
+        },
+        "west_africa": {
+          "median_reference_tce": 1861.3863999999999,
+          "min_reference_tce": 651.8125,
+          "max_reference_tce": 15177.9577,
+          "mean_loaded_bbl": 10855418.283333333,
+          "no_loading_turns": 0,
+          "numeric_guard_turns": 0,
+          "max_source_stock_bbl": 24000000
+        }
+      },
+      "execution_path_hash": "5099bd0d516a6d5d01b33eaab5a528b155f68f4d95a6a089028e7793bc684258",
+      "final_state_hash": "187a4846e044c1976a427334d7720bf9fcf281f903d67ab75d9a2e216d616542"
+    },
+    {
+      "seed": 42,
+      "annual_transitions": 5,
+      "input_turns": 216,
+      "committed_turns": 216,
+      "trial_evaluations": 648,
+      "observed_turns": 180,
+      "fleet_counts": {
+        "vlcc": 280,
+        "suezmax": 160,
+        "aframax": 40
+      },
+      "source": {
+        "seed": 42,
+        "annual_transitions": 5,
+        "source_hash": "027f9559d73bcc0b7c6944eff50d0baad03ef3281edbd1fcbcebb91cf8aebfcc",
+        "source_unchanged": true,
+        "selected_full_route_operating_bbl": 23246354877,
+        "selected_full_route_calendar_bbl": 23580046898,
+        "clock_projection_difference_bbl": -333692021,
+        "class_partition_applied": false,
+        "outside_scope": "unselected routes, not other classes of selected cargo",
+        "input_hash": "b6c5cdbd76582e72c54ab1f85cf96538c51c5128ef77fa757951172e6d758d32"
+      },
+      "scope": "explicit_fixed_home_caller_not_endogenous_dynamic_equilibrium",
+      "source_unchanged": true,
+      "trial_invariance": true,
+      "order_transfer_direction": true,
+      "max_quote_reconstruction_error": 0.0,
+      "mass_conserved": true,
+      "failure": null,
+      "summary": {
+        "gulf": {
+          "median_reference_tce": 6527.16835,
+          "min_reference_tce": 4512.4127,
+          "max_reference_tce": 8119.175,
+          "mean_loaded_bbl": 95533647.01666667,
+          "no_loading_turns": 0,
+          "numeric_guard_turns": 0,
+          "max_source_stock_bbl": 186000000
+        },
+        "west_africa": {
+          "median_reference_tce": 5742.3934,
+          "min_reference_tce": 2208.4153,
+          "max_reference_tce": 25541.5278,
+          "mean_loaded_bbl": 12700055.416666666,
+          "no_loading_turns": 0,
+          "numeric_guard_turns": 0,
+          "max_source_stock_bbl": 24000000
+        }
+      },
+      "execution_path_hash": "6dc1244a2e984f4407a38411af0ca7ac1d4aa1d7a5fe88a64df3fc6ff1e71333",
+      "final_state_hash": "4eb29693f55a1a572323f25b107a9eea0cac4fa61183cc7773835b6107e2fe29"
+    }
+  ],
+  "contract_test_count": 44,
+  "contract_test_failures": [],
+  "gates": {
+    "contract_tests": true,
+    "1000_trials_pure": true,
+    "same_final_plan_same_physical_history": true,
+    "source_unchanged": true,
+    "trial_order_independence": true,
+    "cargo_transfer_negative_feedback": true,
+    "prices_reconstruct": true,
+    "physical_mass_conserved": true,
+    "declared_reference_replays_complete": true
+  },
+  "all_gates_pass": true,
+  "warnings": [
+    "No automatic buyer or owner optimizer; external trial input remains necessary.",
+    "Inventory is actual stock minus an explicit reference, not clipped price pressure.",
+    "Prices use new class-normalized post-trial quantities; not comparable to v3 calibration.",
+    "Source releases here cover only the two selected trades; this is not global surplus integration.",
+    "Known future inventories assume no as-yet-unsubmitted future decisions or requirements.",
+    "One-session replay protection is not distributed database concurrency control."
+  ],
+  "audit_hash": "e9afd1d0cdadc34d7e17611e29b2cb911fc1bc1dae0384e612729d902b5d4a5c",
+  "controls": {
+    "cargo_transfer_same_total": [
+      {
+        "cargo_bbl": {
+          "gulf": 15768000,
+          "west_africa": 5913000
+        },
+        "tce": {
+          "gulf": 32427.2185,
+          "west_africa": 110961.259
+        },
+        "net_per_bbl": {
+          "gulf": 0.822608283721034,
+          "west_africa": 3.9407854526577712
+        },
+        "valid": true
+      },
+      {
+        "cargo_bbl": {
+          "gulf": 17739000,
+          "west_africa": 3942000
+        },
+        "tce": {
+          "gulf": 38820.1989,
+          "west_africa": 52278.8933
+        },
+        "net_per_bbl": {
+          "gulf": 0.9847843456056536,
+          "west_africa": 1.8566831698753412
+        },
+        "valid": true
+      },
+      {
+        "cargo_bbl": {
+          "gulf": 19710000,
+          "west_africa": 1971000
+        },
+        "tce": {
+          "gulf": 45858.1082,
+          "west_africa": 16737.3079
+        },
+        "net_per_bbl": {
+          "gulf": 1.1633208577729566,
+          "west_africa": 0.5944249366631104
+        },
+        "valid": true
+      }
+    ],
+    "more_hulls_same_cargo": [
+      {
+        "trial_ships": 2,
+        "benchmark_tce": 24187.9113,
+        "full": 2,
+        "marginal_load_factor": null,
+        "unserved_bbl": 1058000,
+        "unused": 0
+      },
+      {
+        "trial_ships": 3,
+        "benchmark_tce": 21707.4104,
+        "full": 2,
+        "marginal_load_factor": 0.5367833587011669,
+        "unserved_bbl": 0,
+        "unused": 0
+      },
+      {
+        "trial_ships": 4,
+        "benchmark_tce": 19578.2587,
+        "full": 2,
+        "marginal_load_factor": 0.5367833587011669,
+        "unserved_bbl": 0,
+        "unused": 1
+      },
+      {
+        "trial_ships": 5,
+        "benchmark_tce": 17738.1059,
+        "full": 2,
+        "marginal_load_factor": 0.5367833587011669,
+        "unserved_bbl": 0,
+        "unused": 2
+      }
+    ],
+    "snapshot_unchanged_after_1000_trials": true
+  },
+  "full_local_python_tests": 314,
+  "viewer_assertions": 27,
+  "verification_scope": "Local Python 3.13.5. Remote status must be checked for final HEAD; do not infer CI completion."
+}

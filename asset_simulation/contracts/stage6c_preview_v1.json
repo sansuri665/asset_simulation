@@ -1,0 +1,54 @@
+{
+  "schema_version": "stage6c-dynamic-freight-board-preview-v1",
+  "scope": "Gulf/West Africa to East Asia, three compatible vessel classes, cost-free",
+  "clock": {"operating_days_per_turn": 10, "load_turns": 0, "discharge_turns": 1},
+  "opening_inputs": {
+    "source_release_bbl": "one nonnegative integer quantity at each physical origin",
+    "new_requirements": "unique immutable import requirement IDs, due turns and integer volumes",
+    "export_limits_bbl": "optional tighter source limits, never permission to create oil",
+    "cpi": "positive finite index, 2025=100"
+  },
+  "trial_inputs": {
+    "trial_ship_plan": "ordered unique local open ship IDs per origin; ordering is respected",
+    "trial_cargo_plan": "desired loading amount from each origin's actual available oil",
+    "ballast_orders": "optional unique open-hull destination intents; not physical movements yet",
+    "trial_inventory_plan": "optional assertion of derived stocks by due turn, not an inventory adjustment"
+  },
+  "invariants": [
+    "trial does not change physical snapshot, cargo, price history or inventory",
+    "one cargo demand, shared by all compatible vessel classes",
+    "one hull counted once across trial/reserve/committed/proposed capacity",
+    "local ship cannot be assigned to a different origin without actual ballast time",
+    "source oil cannot be relabelled as oil at a different origin",
+    "actual per-vessel load is positive and at most fixed vessel capacity",
+    "unused selected hulls remain in their physical port after commit",
+    "departure does not increase destination inventory; delivery does",
+    "reducing trial orders does not cancel independent import requirements",
+    "all supplied oil remains ashore, aboard a real hull, or delivered",
+    "hard infeasibility is reported and blocks commit, never clips stocks",
+    "the final trial quote is the frozen booked service reference",
+    "same final plan produces the same history regardless of intermediate trials"
+  ],
+  "price_units": {
+    "service_value": "net transport service reference USD/bbl, not gross freight or cash",
+    "route_benchmark": "standard VLCC equivalent 2025 USD/day",
+    "class_benchmark": "same service value times class capacity divided by class reference cycle days",
+    "partial_load": "service value times actual barrels; one full hull and voyage remain occupied",
+    "nominal": "real reference multiplied by CPI/100"
+  },
+  "inventory": {
+    "definition": "recorded stock minus explicit normal stock",
+    "source": "initial onshore oil plus releases minus actual loads",
+    "destination": "initial stock plus actual deliveries minus independently due requirements",
+    "future": "only known existing and proposed arrivals and explicitly supplied requirements",
+    "soft": "continuous bounded price pressure",
+    "hard": "feasibility envelope over actual chronological arrivals, not instant order totals"
+  },
+  "commit": {
+    "owner": "BoardSession",
+    "semantics": "atomic state version update and exactly-once snapshot consumption within this session",
+    "persistence": "settled checkpoint with spec and content hash",
+    "limitation": "separate sessions are simulation forks; distributed persistence requires its own conditional write"
+  },
+  "excluded": ["costs", "automatic buyer optimization", "automatic owner arbitrage", "global 25-OD operation", "invented vessel quotas", "real-world price calibration"]
+}

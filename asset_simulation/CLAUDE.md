@@ -43,3 +43,7 @@ py -3.13 -m asset_simulation.audit_oil_shipping_demand --seeds 0,1,2,3,4,5,6,7 -
 
 ### Stage6B-v3：透明报价与逐船货批（当前替代候选）
 新入口 `model.shipping_v3` 保留完整共同货物，增加逐船实际装载、不可变批次到期日、已承诺到船曲线、分离的有限欠运溢价、可复算报价和存档。`prepare_turn → external Decision → settle_turn` 不做同回合迭代；测试策略单列，不含成本。旧v2代码保留对照。见 `docs/current/STAGE6B_V3_TRANSPARENT_MARKET.md`。
+
+
+### Stage6C-preview：动态试填报（独立候选分支）
+`model.freight_board` 继承6B-v3物理执行，增加冻结快照上的纯 `quote_trial`、按外部船单顺序计算边际装载、真实源端供给与独立目的地需求/库存、逐船型运力归一化，以及 `BoardSession.commit` 单次原子提交。无成本、无自动订单/套利优化；旧v3计算文件保留。详见 `docs/current/STAGE6C_PREVIEW_DYNAMIC_BOARD.md` 和 `STAGE6C_PREVIEW_RESULTS.md`。
