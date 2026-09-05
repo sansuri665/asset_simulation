@@ -85,3 +85,7 @@
 
 ### Stage6B v0.2：共用货物与多船型（当前替代分支）
 新入口 `model/mixed_cargo_market.py::run_seeded_mixed_market` 使用完整航线货量、固定船型载量和外部配船接口，不按船型份额切货；旧Stage6A份额与商业货盘仅留作历史参照。纯报价按合计兼容运量形成共同服务价值，不含成本。旧Stage6B文件为可复跑对照。见 `docs/current/STAGE6B_MIXED_CARGO_V02.md`。
+
+
+### Stage6B-v3：透明报价与逐船货批（当前替代候选）
+新入口 `model.shipping_v3` 保留完整共同货物，增加逐船实际装载、不可变批次到期日、已承诺到船曲线、分离的有限欠运溢价、可复算报价和存档。`prepare_turn → external Decision → settle_turn` 不做同回合迭代；测试策略单列，不含成本。旧v2代码保留对照。见 `docs/current/STAGE6B_V3_TRANSPARENT_MARKET.md`。

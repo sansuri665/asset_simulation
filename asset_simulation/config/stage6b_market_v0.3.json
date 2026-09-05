@@ -1,0 +1,54 @@
+{
+  "model_version": "stage6b-transparent-market-v0.3.0",
+  "operating_turn_days": 10,
+  "default_origins": ["gulf", "west_africa"],
+  "destination": "east_asia",
+  "default_fleet_counts": {"vlcc": 240, "suezmax": 120, "aframax": 0},
+  "warmup_turns": 36,
+  "cargo_due_lag_by_pair": {
+    "gulf::east_asia": 3,
+    "west_africa::east_asia": 4,
+    "brazil_guyana::east_asia": 5,
+    "us_gulf::east_asia": 6
+  },
+  "availability": {
+    "arrival_weights": [1.0, 0.5, 0.15],
+    "reference_prompt_multiplier": 1.06,
+    "scope": "exact_horizon_arrivals_not_cumulative; committed_ballast_only; uncommitted_destination_hulls_excluded"
+  },
+  "pricing": {
+    "reference_capacity_bbl": 1971000,
+    "baseline_real_tce_2025_usd_per_day": 35000.0,
+    "liquidity_fraction": 0.085,
+    "supply_demand_log_sensitivity": 3.0,
+    "inventory_urgency_log_sensitivity_per_day": 0.03,
+    "urgency_recovery_fraction": 0.25,
+    "price_persistence": 0.25,
+    "shared_signal_weight": 1.0,
+    "local_signal_limit": 0.6,
+    "local_evidence_capacity_bbl": 9855000,
+    "numeric_minimum_real_tce": 1.0,
+    "numeric_maximum_real_tce": 1000000.0
+  },
+  "pressure": {"limit_days": 5.0, "soft_scale_days": 2.0, "half_life_turns": 3.0},
+  "demo_policy": {
+    "minimum_tail_load_fraction": 0.7,
+    "forecast_persistence": 0.5,
+    "spare_loading_fraction": 0.06,
+    "cross_origin_limit": 8,
+    "routing_mode": "pooled"
+  },
+  "scope": {
+    "clock": "preserve_daily_rates_on_360_operating_day_year",
+    "cargo": "one_batch_ledger_per_route; earliest_due_then_fifo; no_cancellation",
+    "due_dates": "explicit_service_plan_not_chosen_vessel_class",
+    "capacity": "fixed_by_class; actual_load_positive_up_to_capacity",
+    "future_supply": "known_movement_schedule_not_forecast; no_double_counting",
+    "pricing": "indicative_net_service_value_not_invoice_or_profit",
+    "class_prices": "common_per_barrel_service_value_and_reference_duration_conversion",
+    "numeric_guard": "debug_safety_not_economic_willingness_to_pay",
+    "decisions": "external_load_and_ballast_orders; demo_policy_is_replaceable",
+    "intraperiod_equilibrium_iteration": false,
+    "cost_model": false
+  }
+}
