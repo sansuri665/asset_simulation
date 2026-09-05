@@ -27,7 +27,7 @@ jobs:
           root = pathlib.Path.cwd()
           text = ''.join((root / f'.stage6c_staging/part-{i}.txt').read_text() for i in range(6))
           raw = lzma.decompress(base64.b64decode(text, validate=True))
-          assert hashlib.sha256(raw).hexdigest() == '075b0bde4be6e4ea9813d8dcac528662ba3d5a1c91774e18b30d870f11bdb4f1'
+          assert hashlib.sha256(raw).hexdigest() == '5681cae1d613ef3443e0c396a7422f6a0ca6c55e97690c0b1777b5e3520b2207'
           manifest = json.loads(raw)
           assert manifest['base_commit'] == os.environ['EXPECTED_PARENT']
           assert manifest['branch'] == 'stage6c-preview-dynamic-freight-board'
