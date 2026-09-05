@@ -32,3 +32,7 @@
 
 ### Stage6A 全球物理契约（独立分支）
 新增三种原油轮、25格航线/船型先验、载货与空船计划、50项定向空船选择和只读分船型工作量。集合地理明确禁止直接航行；不实现全球船池、成本或新运价。见 `current/STAGE6A_GLOBAL_SHIPPING_CONTRACT.md`。
+
+
+### Stage6B 多产地—单目的地实验
+固定编号VLCC在海湾、西非（可扩四产地）与同一个东亚节点间运行；即时供给只含本地开放船。共用目的地压力、独立源端台账、单次分配与冻结MovementPlan；不含成本或完整全球均衡。见 `docs/current/STAGE6B_MULTI_ORIGIN_MARKET.md`。

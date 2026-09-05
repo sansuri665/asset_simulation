@@ -31,3 +31,7 @@ py -3.13 -m asset_simulation.audit_oil_shipping_demand --seeds 0,1,2,3,4,5,6,7 -
 
 ### Stage5A v0.2（当前实验分支，优先于旧Stage5A描述）
 固定10运营日/回合，日货量投影至360日标签年；真实欠运完整守恒，报价改用有界短记忆信号与软上下界。旧主干定价核保留不改。详情见 `asset_simulation/docs/current/STAGE5A_FIXED10_BOUNDED_PRESSURE.md`。不含成本、需求破坏或增减船。
+
+
+### Stage6B 多产地—单目的地实验
+固定编号VLCC在海湾、西非（可扩四产地）与同一个东亚节点间运行；即时供给只含本地开放船。共用目的地压力、独立源端台账、单次分配与冻结MovementPlan；不含成本或完整全球均衡。见 `docs/current/STAGE6B_MULTI_ORIGIN_MARKET.md`。

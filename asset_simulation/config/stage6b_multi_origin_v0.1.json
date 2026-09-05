@@ -1,0 +1,48 @@
+{
+  "model_version": "asset-simulation-stage6b-multi-origin-v0.1.0",
+  "default_origins": ["gulf", "west_africa"],
+  "destination": "east_asia",
+  "vessel_class": "vlcc",
+  "default_fleet_size": 265,
+  "operating_turn_days": 10,
+  "warmup_turns": 36,
+  "routing": {
+    "forecast_persistence": 0.5,
+    "target_spare_fraction_of_loading_window": 0.06,
+    "bounded_price_tiebreak_weight": 0.01,
+    "cross_origin_max_ships_per_turn": 8,
+    "mode": "pooled"
+  },
+  "execution": {
+    "backlog_recovery_fraction": 0.25,
+    "maximum_extra_fraction_of_new_plan": 0.2
+  },
+  "pricing": {
+    "baseline_real_tce_2025_usd_per_day": 35000.0,
+    "minimum_real_tce_2025_usd_per_day": 1000.0,
+    "maximum_real_tce_2025_usd_per_day": 122500.0,
+    "supply_demand_log_sensitivity": 3.0,
+    "inventory_urgency_log_sensitivity_per_day": 0.03,
+    "price_persistence": 0.25,
+    "reference_prompt_multiplier": 1.0596774193548386,
+    "liquidity_fraction_of_reference_loading_window": 0.0847741935483871,
+    "quote_recovery_fraction": 0.25,
+    "maximum_quote_recovery_fraction": 0.2
+  },
+  "pressure": {
+    "limit_days": 5.0,
+    "soft_scale_days": 2.0,
+    "half_life_turns": 3.0
+  },
+  "scope": {
+    "market": "selected_origins_to_one_destination_vlcc_submarket",
+    "routing_rule": "causal_target_coverage_heuristic_not_owner_profit_optimization",
+    "price": "indicative_benchmark_not_negotiated_freight_or_cash_revenue",
+    "destination": "shared_delivery_plan_deviation_not_absolute_refinery_inventory",
+    "distance": "frozen_stage6a_catalogue_paths; dynamic upstream haul is diagnostic only",
+    "fleet": "fixed_submarket_fleet_not_entire_global_vlcc_fleet",
+    "share_priors": "inherit_stage6a_not_observed_market_shares",
+    "upper_bound": "retained_stage5a_experiment_guard_not_global_wtp_limit",
+    "excluded": ["costs", "debt", "fleet_growth", "scrapping", "demand_destruction", "source_substitution", "multi_class_execution", "full_global_market"]
+  }
+}

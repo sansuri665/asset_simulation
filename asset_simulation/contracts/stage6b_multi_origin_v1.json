@@ -1,0 +1,40 @@
+{
+  "schema_version": "asset-simulation-stage6b-multi-origin-v1",
+  "scope": "selected named origins to one named destination, VLCC only",
+  "owners": {
+    "movement_templates": "global_shipping_contract.Stage6A catalogue",
+    "actual_ships_and_cargo": "multi_origin_market.NetworkState",
+    "route_indicative_tce": "multi_origin_pricing.quote_origin_route",
+    "shared_destination_deviation": "sum of route-labelled actual-minus-reference deliveries; not another cargo store",
+    "routing": "one sequential reservation allocator over unique empty ship IDs"
+  },
+  "units": {
+    "scheduled_by_origin_bbl": "integer barrels per ten-operating-day turn",
+    "prompt_ships": "integer ships actually open at that origin before dispatch",
+    "reference_daily_bbl": "barrels per operating day in selected VLCC scope",
+    "movement_ready_turn": "integer internal tick; >= departure plus occupied sea/discharge turns",
+    "tce_real": "2025 USD per standard ship day, indicative benchmark",
+    "tce_nominal": "real benchmark times last-completed-year CPI / 100",
+    "pressure_days": "bounded reference-flow-day signal, not physical barrels"
+  },
+  "rules": [
+    "A destination empty ship is never prompt at any origin until ballast arrival.",
+    "One ship can take at most one departure or repositioning order per turn.",
+    "Cargo size belongs to its selected route/class service parcel, not to a global VLCC lot constant.",
+    "Actual cargo is discharged exactly once by the completing identified laden movement.",
+    "Loaded ships cannot be rerouted; empty movements are also frozen until their ready turn.",
+    "No order cancellation, cargo decay, source substitution, or new global demand curve.",
+    "Destination pressure is normalized once by the selected routes' total reference daily flow.",
+    "Each quote uses half local origin pressure and half shared destination pressure, not multiple copies of total shortage cargo.",
+    "Routing forecasts use current and past plan volumes plus bounded physical catch-up; never future Seed volumes.",
+    "Reference-cycle target assignment and incoming ballast are diagnostics, not immediately available supply.",
+    "Zero ship supply may have an indication but cannot have executed benchmark freight or revenue.",
+    "The retained real TCE soft ceiling is a prior experimental guard, not an economic global reservation price.",
+    "Non-VLCC quantities and nonselected routes remain outside this fixed submarket fleet."
+  ],
+  "not_implemented": [
+    "global price clearing", "freight negotiations", "cost accounting", "owner optimization",
+    "dynamic route disruptions", "port congestion", "newbuilding", "scrapping",
+    "absolute destination refinery inventory", "all 25 OD physical execution"
+  ]
+}
