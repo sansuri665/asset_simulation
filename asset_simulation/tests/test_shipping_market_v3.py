@@ -29,7 +29,8 @@ def pure(spec, *, multiplier=1., now_factor=1.06, future_factor=1., pressure=0.)
     cfg=spec.config();buckets={};q={};signals={}
     for lane in spec.physical.lanes:
         volume=round(lane.reference_daily_bbl*10*multiplier);q[lane.origin]=volume
-        buckets[lane.origin]=[{'horizon_turns':i,'capacity_bbl':round(volume*(now_factor if i==0 else future_factor))}
+        ref = next((x for x in lane.services if x.class_id == 'vlcc'), lane.services[0])
+        buckets[lane.origin]=[{'horizon_turns':i,'capacity_bbl':round(volume*(now_factor if i==0 else future_factor if i < ref.return_leg.ready_turn else 0))}
                                for i in range(len(cfg['availability']['arrival_weights']))]
         signals[lane.origin]=OriginSignal(lane.origin,pressure_days=pressure)
     args=dict(scheduled_by_origin_bbl=q,availability={'routes':buckets,'current_turn':0},
@@ -278,6 +279,19 @@ class V3AvailabilityAndPrice(unittest.TestCase):
             cfg=load_config();cfg['availability']['arrival_weights']=weights
             spec=make_market_spec(config=cfg);q,_=pure(spec)
             self.assertTrue(all(abs(x['route_benchmark_real_tce']-35000)<.001 for x in q['routes'].values()))
+
+    def test_normal_profile_respects_opening_before_routing(self):
+        q,_=pure(self.spec)
+        self.assertEqual(q['routes']['gulf']['explanation']['normal_committed_arrival_profile'],[1.06,1.,0.])
+        self.assertEqual(q['routes']['west_africa']['explanation']['normal_committed_arrival_profile'],[1.06,1.,1.])
+        self.assertAlmostEqual(q['routes']['gulf']['explanation']['normal_schedule_divisor'],1.56)
+        self.assertAlmostEqual(q['routes']['west_africa']['explanation']['normal_schedule_divisor'],1.71)
+
+    def test_real_early_commitment_beyond_normal_profile_still_matters(self):
+        spec=make_market_spec(origins=('gulf',));q,args=pure(spec)
+        args['availability']['routes']['gulf'][2]['capacity_bbl']=93000000
+        after=quote_routes(spec,**args)
+        self.assertLess(after['routes']['gulf']['route_benchmark_real_tce'],q['routes']['gulf']['route_benchmark_real_tce'])
 
     def test_future_supply_changes_quote_but_not_current_capacity(self):
         q,args=pure(self.spec,now_factor=.7,future_factor=0)

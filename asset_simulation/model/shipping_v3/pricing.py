@@ -33,7 +33,6 @@ def quote_routes(spec: MarketSpec, *, scheduled_by_origin_bbl: Mapping[str, int]
         raise ValueError('each origin must be present exactly once')
     cfg = spec.config(); p = cfg['pricing']; a = cfg['availability']
     weights = a['arrival_weights']
-    normalizer = a['reference_prompt_multiplier'] + sum(weights[1:])
     cpi = finite_signed(cpi, 'CPI')
     if cpi <= 0 or abs(finite_signed(destination_pressure, 'destination pressure')) > cfg['pressure']['limit_days']:
         raise ValueError('invalid CPI or destination pressure')
@@ -60,9 +59,15 @@ def quote_routes(spec: MarketSpec, *, scheduled_by_origin_bbl: Mapping[str, int]
                     counted.add(item['ship_id'])
             capacity.append(bucket['capacity_bbl'])
         weighted = sum(w * s for w, s in zip(weights, capacity))
-        # At steady ordinary coverage A0 = 1.06*Q and A1=A2=Q,
-        # normalized available work equals Q. Without this term, simply
-        # lengthening the horizon would artificially depress every quote.
+        # Orders are placed AFTER the quote. With a reference return of b
+        # turns, normal already-committed arrivals at this opening can only
+        # occupy horizons 1..b-1. Do not price unmade h=b orders as missing
+        # supply. Longer cross-origin commitments still count when real.
+        reference_service = next((x for x in lane.services if x.class_id == 'vlcc'), lane.services[0])
+        return_lag = reference_service.return_leg.ready_turn
+        normal_profile = [a['reference_prompt_multiplier']] + [
+            1.0 if h < return_lag else 0.0 for h in range(1, len(weights))]
+        normalizer = sum(w * expected for w, expected in zip(weights, normal_profile))
         normalized = weighted / normalizer
         smoothing = lane.reference_daily_bbl * 10 * p['liquidity_fraction']
         ratio = (q + smoothing) / (normalized + smoothing)
@@ -77,6 +82,7 @@ def quote_routes(spec: MarketSpec, *, scheduled_by_origin_bbl: Mapping[str, int]
         urgency, priced = urgency_signal((sig.pressure_days + destination_pressure) / 2, cfg)
         raw[o] = {'q': q, 'reference': lane.reference_daily_bbl * 10,
                   'capacities': capacity, 'weighted': weighted, 'normalized': normalized,
+                  'normalizer': normalizer, 'normal_profile': normal_profile, 'reference_return_lag': return_lag,
                   'smoothing': smoothing, 'ratio': ratio, 'supply': supply,
                   'urgency': urgency, 'priced': priced, 'previous': sig}
     active = [o for o in spec.origins if raw[o]['q'] > 0]
@@ -130,7 +136,9 @@ def quote_routes(spec: MarketSpec, *, scheduled_by_origin_bbl: Mapping[str, int]
         trace = {
             'scheduled_new_cargo_bbl': s['q'],
             'exact_arrival_capacity_bbl': s['capacities'], 'arrival_weights': weights,
-            'weighted_scheduled_capacity_bbl': s['weighted'], 'normal_schedule_divisor': normalizer,
+            'weighted_scheduled_capacity_bbl': s['weighted'], 'normal_schedule_divisor': s['normalizer'],
+            'normal_committed_arrival_profile': s['normal_profile'],
+            'reference_return_lag_turns': s['reference_return_lag'],
             'normalized_capacity_bbl_per_current_window': s['normalized'],
             'reference_window_bbl': s['reference'], 'liquidity_capacity_bbl': s['smoothing'],
             'capacity_ratio': s['ratio'], 'supply_sensitivity': p['supply_demand_log_sensitivity'],
