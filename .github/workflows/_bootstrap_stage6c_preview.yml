@@ -1,0 +1,93 @@
+name: Verify staged Stage6C preview source
+on:
+  push:
+    branches: [stage6c-preview-dynamic-freight-board]
+permissions:
+  contents: write
+jobs:
+  verify-and-publish:
+    if: github.repository == 'sansuri665/asset_simulation' && github.ref == 'refs/heads/stage6c-preview-dynamic-freight-board'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Reconstruct checksummed ordinary source on isolated branch
+        env:
+          EXPECTED_PARENT: c89f735ed06154e2309288ed5b941c5457e34909
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor "$EXPECTED_PARENT" HEAD
+          python - <<'PY'
+          import base64, hashlib, json, lzma, os, pathlib
+          root = pathlib.Path.cwd()
+          text = ''.join((root / f'.stage6c_staging/part-{i}.txt').read_text() for i in range(6))
+          raw = lzma.decompress(base64.b64decode(text, validate=True))
+          assert hashlib.sha256(raw).hexdigest() == '075b0bde4be6e4ea9813d8dcac528662ba3d5a1c91774e18b30d870f11bdb4f1'
+          manifest = json.loads(raw)
+          assert manifest['base_commit'] == os.environ['EXPECTED_PARENT']
+          assert manifest['branch'] == 'stage6c-preview-dynamic-freight-board'
+          seen = set()
+          for item in manifest['files']:
+              name = item['path']
+              path = pathlib.PurePosixPath(name)
+              assert not path.is_absolute() and '..' not in path.parts and name not in seen
+              assert name.startswith(('asset_simulation/', 'tools/')) or name == '.github/workflows/stage6c_preview.yml'
+              seen.add(name)
+              target = root / path
+              assert not target.is_symlink()
+              data = item['content'].encode('utf-8')
+              assert hashlib.sha256(data).hexdigest() == item['sha256']
+              if item['old_sha256'] is None:
+                  assert not target.exists(), name
+              else:
+                  assert hashlib.sha256(target.read_bytes()).hexdigest() == item['old_sha256'], name
+              target.parent.mkdir(parents=True, exist_ok=True)
+              target.write_bytes(data)
+          (pathlib.Path(os.environ['RUNNER_TEMP']) / 'stage6c-paths.json').write_text(json.dumps(sorted(seen)))
+          print('Verified and reconstructed', len(seen), 'ordinary source/config/test/document files')
+          PY
+      - name: Complete regression
+        run: |
+          mkdir -p validation
+          set -o pipefail
+          python -m unittest discover -s asset_simulation/tests -v 2>&1 | tee validation/tests.log
+          node tools/test_viewer_parameters.cjs | tee validation/viewer.log
+      - name: Actual Seed and trial/commit audits
+        run: |
+          set -o pipefail
+          python -m asset_simulation.audit_stage6c_preview --seeds 42 --years 5 --output validation/audit.json --turns-output validation/seed42.json 2>&1 | tee validation/audit.log
+          python tools/demo_stage6c_board.py --output validation/demo.json
+      - name: Publish verified source only to requested branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          REPO=sansuri665/asset_simulation
+          BRANCH=stage6c-preview-dynamic-freight-board
+          test "$BRANCH" != main
+          CURRENT=$(gh api repos/$REPO/git/ref/heads/$BRANCH --jq .object.sha)
+          test "$CURRENT" = "$GITHUB_SHA"
+          MAIN_BEFORE=$(gh api repos/$REPO/git/ref/heads/main --jq .object.sha)
+          python - <<'PY'
+          import json, os, pathlib, subprocess
+          names = json.loads((pathlib.Path(os.environ['RUNNER_TEMP']) / 'stage6c-paths.json').read_text())
+          subprocess.run(['git', 'add', '--', *names], check=True)
+          PY
+          git rm -r .stage6c_staging .github/workflows/_bootstrap_stage6c_preview.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'Implement Stage6C-preview pure dynamic trials, timed inventory and atomic final settlement'
+          git push origin HEAD:refs/heads/$BRANCH
+          test "$MAIN_BEFORE" = "$(gh api repos/$REPO/git/ref/heads/main --jq .object.sha)"
+          git rev-parse HEAD > validation/source-commit.txt
+          git archive --format=zip HEAD > validation/source.zip
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: staged-stage6c-preview-${{ github.sha }}
+          path: validation
