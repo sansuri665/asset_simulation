@@ -1,0 +1,86 @@
+name: Validate staged Stage6A contracts
+
+on:
+  push:
+    branches: [stage6a-global-shipping-contracts]
+    paths: [.github/workflows/bootstrap_stage6a.yml]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: stage6a-bootstrap
+  cancel-in-progress: false
+
+jobs:
+  validate-source:
+    if: github.ref == 'refs/heads/stage6a-global-shipping-contracts'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      PYTHONHASHSEED: '0'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.sha }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Verify checksummed source manifest and isolated base
+        run: |
+          git merge-base --is-ancestor b997920847fbf5f9b7510cffc5487ee8f1c6a1bc HEAD
+          python - <<'PY'
+          import base64, hashlib, json, lzma
+          from pathlib import Path, PurePosixPath
+          encoded = ''.join(Path(f'tools/_stage6a_payload{i}.txt').read_text().strip() for i in range(3))
+          raw = lzma.decompress(base64.b64decode(encoded, validate=True))
+          assert hashlib.sha256(raw).hexdigest() == 'cd0dcbab8f5b1f5428b11100bd3437af84bca2a7e74fa99e1e1e8c2844d47f65'
+          manifest = json.loads(raw)
+          assert manifest['base_sha'] == 'b997920847fbf5f9b7510cffc5487ee8f1c6a1bc'
+          assert len(manifest['files']) == 10
+          for name, content in manifest['files'].items():
+              p = PurePosixPath(name)
+              assert not p.is_absolute() and '..' not in p.parts and p.parts[0] == 'asset_simulation'
+              target = Path(name)
+              target.parent.mkdir(parents=True, exist_ok=True)
+              target.write_text(content, encoding='utf-8')
+          print('Validated and applied 10 Stage6A files; existing price and demand owners unchanged.')
+          PY
+      - name: Full Python regression
+        run: |
+          set -o pipefail
+          python -m unittest discover -s asset_simulation/tests -v 2>&1 | tee "$RUNNER_TEMP/stage6a-tests.log"
+      - name: Viewer parameter regression
+        run: node tools/test_viewer_parameters.cjs
+      - name: Stage6A exact cargo, route and class audits
+        run: python -m asset_simulation.audit_stage6a --years 20 --output "$RUNNER_TEMP/stage6a-audit.json" --tables-dir "$RUNNER_TEMP/stage6a-tables"
+      - name: Inherited upstream and Stage5A audits
+        run: |
+          python -m asset_simulation.audit_oil_shipping_demand --seeds 0,1,2,3,4,5,6,7 --years 60 > "$RUNNER_TEMP/upstream-audit.json"
+          python -m asset_simulation.audit_stage5a --years 20 --output "$RUNNER_TEMP/stage5a-audit.json"
+      - name: Commit only verified source to the requested branch
+        run: |
+          test -z "$(git diff --name-only -- .github tools)"
+          git diff --check
+          git add -- asset_simulation
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'Implement Stage6A physical catalog, cargo partition and movement contracts'
+          git push origin HEAD:refs/heads/stage6a-global-shipping-contracts
+          echo "VERIFIED_SOURCE_COMMIT=$(git rev-parse HEAD)"
+      - name: Archive exact committed source
+        if: success()
+        run: git archive --format=zip HEAD > "$RUNNER_TEMP/stage6a-source.zip"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: stage6a-bootstrap-evidence
+          path: |
+            ${{ runner.temp }}/stage6a-tests.log
+            ${{ runner.temp }}/stage6a-audit.json
+            ${{ runner.temp }}/stage6a-tables
+            ${{ runner.temp }}/upstream-audit.json
+            ${{ runner.temp }}/stage5a-audit.json
+            ${{ runner.temp }}/stage6a-source.zip
