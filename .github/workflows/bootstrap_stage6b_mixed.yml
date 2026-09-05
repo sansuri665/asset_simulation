@@ -1,0 +1,52 @@
+name: Validate staged class-agnostic Stage6B
+on:
+  push:
+    branches: [stage6b-class-agnostic-mixed-fleet]
+    paths: [.github/workflows/bootstrap_stage6b_mixed.yml]
+permissions:
+  contents: write
+jobs:
+  verify-source:
+    if: github.repository == 'sansuri665/asset_simulation' && github.ref == 'refs/heads/stage6b-class-agnostic-mixed-fleet'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      PYTHONHASHSEED: '0'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Reconstruct checksummed source files only
+        run: python tools/_stage6b_mixed_apply.py
+      - name: Complete regression
+        run: |
+          set -o pipefail
+          python -m unittest discover -s asset_simulation/tests -v 2>&1 | tee "$RUNNER_TEMP/mixed-tests.log"
+          node tools/test_viewer_parameters.cjs | tee "$RUNNER_TEMP/viewer.log"
+      - name: Real-seed mixed-fleet and substitution audit
+        run: python -m asset_simulation.audit_stage6b_mixed --years 20 --output "$RUNNER_TEMP/mixed-audit.json" --turns-output "$RUNNER_TEMP/seed42-mixed.json"
+      - name: Publish verified ordinary source on replacement branch only
+        run: |
+          git diff --cached --check
+          if git diff --cached --name-only | grep -q '^.github/'; then exit 1; fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'Implement Stage6B class-agnostic cargo, fixed class loads and external mixed dispatch'
+          git push origin HEAD:refs/heads/stage6b-class-agnostic-mixed-fleet
+          git rev-parse HEAD > "$RUNNER_TEMP/source-commit.txt"
+          git archive --format=zip HEAD -o "$RUNNER_TEMP/mixed-source.zip"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: stage6b-mixed-bootstrap-evidence
+          path: |
+            ${{ runner.temp }}/mixed-tests.log
+            ${{ runner.temp }}/viewer.log
+            ${{ runner.temp }}/mixed-audit.json
+            ${{ runner.temp }}/seed42-mixed.json
+            ${{ runner.temp }}/source-commit.txt
+            ${{ runner.temp }}/mixed-source.zip
