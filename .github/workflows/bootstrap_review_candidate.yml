@@ -36,7 +36,15 @@ jobs:
           test "$(git branch --show-current)" = main-review-fixes-candidate
           test -f tools/build_review_candidate.py
       - name: Apply exact review repairs
-        run: python tools/build_review_candidate.py
+        run: |
+          python tools/build_review_candidate.py
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('asset_simulation/tests/test_review_candidate.py')
+          text = p.read_text(encoding='utf-8')
+          text = text.replace('cls.run', 'cls.macro').replace('self.run', 'self.macro')
+          p.write_text(text, encoding='utf-8')
+          PY
       - name: Complete Python regression suite
         run: |
           set -o pipefail
