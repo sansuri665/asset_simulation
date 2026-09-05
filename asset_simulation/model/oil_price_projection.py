@@ -126,6 +126,7 @@ def build_oil_price_payload(projection: OilPriceProjection) -> dict[str, Any]:
     return {
         "ok": True,
         "schemaVersion": OIL_PRICE_PROJECTION_SCHEMA_VERSION,
+        "scope": "research_full_path_not_for_agent_decisions",
         "identity": projection.identity,
         "unit": "usd_per_barrel",
         "annual": projection.annual,

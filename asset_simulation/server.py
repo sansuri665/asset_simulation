@@ -24,7 +24,8 @@ from .model.oil_price_projection import (
     build_oil_price_payload,
     run_oil_price_projection,
 )
-from .model.registry import clear_registered_assets_cache
+from .model.registry import clear_registered_assets_cache, load_registered_assets
+from .model.decision_view import build_decision_snapshot
 
 
 SERVICE_ID = "asset-simulation-macro-oil-ui-v0.7"
@@ -74,6 +75,7 @@ def build_run_payload(run: GlobalMacroRun) -> dict[str, Any]:
     payload: dict[str, Any] = {
         "ok": True,
         "schemaVersion": "asset-simulation-global-run-response-v1",
+        "scope": "research_full_path_not_for_agent_decisions",
         "identity": run.identity,
         "summary": run.summary,
         "globalMacroSnapshots": run.snapshots,
@@ -153,6 +155,7 @@ class AssetSimulationHandler(BaseHTTPRequestHandler):
                         "viewerAvailable": True,
                         "endpoints": [
                             "/api/health",
+                            "/api/decision?seed=42&years=60&year=2030&month=1",
                             "/api/global?seed=42&years=60",
                             "/api/oil-price?seed=42&years=60",
                             "/api/oil-shipping?seed=42&years=60&year=2030&month=1",
@@ -170,7 +173,7 @@ class AssetSimulationHandler(BaseHTTPRequestHandler):
                         "oilShippingDemandModelVersion": OIL_SHIPPING_DEMAND_MODEL_VERSION,
                         "oilPriceProjectionModelVersion": OIL_PRICE_PROJECTION_MODEL_VERSION,
                         "scope": "global_physical_pool_with_regional_balances_and_route_network",
-                        "explicitRouteCount": 9,
+                        "explicitRouteCount": len(load_registered_assets()["oil_shipping_demand_config"]["route_network"]["explicit_routes"]),
                         "regionalBalanceCount": 10,
                         "cargoGeneration": "regional_physical_surplus_and_deficit",
                         "scenarioExposure": "test_only_not_exposed_by_service_or_viewer",
@@ -178,6 +181,18 @@ class AssetSimulationHandler(BaseHTTPRequestHandler):
                         "cache": cache_info(),
                     },
                 )
+                return
+            if parsed.path == "/api/decision":
+                query = parse_qs(parsed.query, keep_blank_values=True)
+                seed = int(_single_query(query, "seed", "42"))
+                years = int(_single_query(query, "years", "60"))
+                year = int(_single_query(query, "year", "2030"))
+                month = int(_single_query(query, "month", "1"))
+                run = get_cached_run(seed, years)
+                self._json(HTTPStatus.OK, build_decision_snapshot(
+                    run, run_oil_shipping_world(run), run_oil_price_projection(run),
+                    as_of_year=year, as_of_month=month,
+                ))
                 return
             if parsed.path == "/api/global":
                 query = parse_qs(parsed.query, keep_blank_values=True)

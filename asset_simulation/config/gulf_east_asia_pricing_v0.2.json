@@ -1,0 +1,42 @@
+{
+  "schema_version": "asset-simulation-gulf-east-asia-single-route-pricing-config-v2",
+  "model_version": "asset-simulation-gulf-east-asia-single-route-pricing-v0.2.1",
+  "route_id": "gulf_east_asia",
+  "shipping_turns_per_month": 3,
+  "reference_turn_days": 10.1388888889,
+  "reference_route_cargo_mbd": 9.3,
+  "vlcc_cargo_mmbbl": 1.971,
+  "reference_prompt_supply_vlcc": 50.0,
+  "state_contract": {
+    "loading_turns": 0,
+    "laden_turns": 2,
+    "discharge_turns": 1,
+    "ballast_turns": 2,
+    "cycle_turns": 5,
+    "cargo_arrival_lag_turns": 3
+  },
+  "inventory": {
+    "recovery_fraction_per_turn": 0.25,
+    "maximum_recovery_fraction_of_structural_flow": 0.2,
+    "maximum_abs_gap_days_for_pricing": 10.0
+  },
+  "pricing": {
+    "baseline_real_tce_2025_usd_per_day": 35000.0,
+    "supply_demand_log_sensitivity": 3.0,
+    "inventory_urgency_log_sensitivity_per_day": 0.03,
+    "liquidity_smoothing_vlcc": 4.0,
+    "price_persistence": 0.25,
+    "minimum_real_tce_2025_usd_per_day": 1000.0,
+    "maximum_real_tce_2025_usd_per_day": 122500.0
+  },
+  "notes": {
+    "scope": "one-route pricing engine: current cargo demand, Gulf prompt VLCC supply and relative origin/destination inventories in; spot TCE out",
+    "state_separation": "fleet operations publish prompt_supply_vlcc; pricing does not move ships",
+    "time_contract": "loading consumes zero turns; laden voyage two turns; East Asia discharge one turn; ballast return two turns",
+    "inventory_scope": "inventory values are deviations from a normal pipeline, not absolute regional stocks",
+    "price_scope": "real 2025 USD/day TCE is formed first and then nominalized by CPI",
+    "excluded_scope": "all voyage costs, vessel OPEX, owner cash flow, debt, interest, depreciation, ship values, newbuildings, scrapping and bargaining agents",
+    "validation_supply": "lag daily cargo rate, scale to current turn days; never lag a differently sized window total",
+    "zero_demand": "carry last indicative TCE without a new price observation; no executed fixture price"
+  }
+}

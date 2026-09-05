@@ -71,3 +71,9 @@
 航线层发布十四条显式航线状况参考和一个聚合十一格小额联系的其他航线池。`reference_cargo_mbd`是2024年模型归一化结构中心；`margin_scaled_reference_mbd`按当月两端区域边际缩放，仅用于诊断。最终`cargo_mbd`仍由25格IPF在当月区域行列边际内求得，参考字段不会增加或删除货量。
 
 区域生产或炼厂加工的每项命名覆盖层完整进入所属区域。为保持全球原油产量或炼厂加工总量不变，等量反向调整只按相应基准份额分散给另外九个区域，不再把所属区域自己的覆盖幅度投影扣回。区域快照用`base_crude_*`表示覆盖前基线，用`unconstrained_*`表示自身覆盖后的目标，用`*_conservation_adjustment_mbd`表示承接其他区域覆盖所产生的守恒调整，并用`effective_*_adjustment_mbd`表示最终值相对基线的总变化。
+
+
+### 2026-09-05 候选增补（优先于上述旧进度描述）
+新增独立 `single_route_pricing` v0.2.1；它只读供需和计划库存偏离并输出TCE，不属于已实现的船队。
+定价不接入现有Viewer，也不反写原油需求。研究接口保留；新的 `/api/decision` 只发布月末可见字段。
+详细修复范围、兼容性与验证见 `docs/current/MAIN_REVIEW_FIXES.md`。

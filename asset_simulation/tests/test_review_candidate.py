@@ -172,12 +172,12 @@ class OriginalTradeMarginTests(unittest.TestCase):
 class DecisionBoundaryTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.run = run_global_macro(42, 5)
-        cls.world = run_oil_shipping_world(cls.run)
-        cls.prices = run_oil_price_projection(cls.run)
+        cls.macro = run_global_macro(42, 5)
+        cls.world = run_oil_shipping_world(cls.macro)
+        cls.prices = run_oil_price_projection(cls.macro)
 
     def snapshot(self, year=2028, month=6):
-        return build_decision_snapshot(self.run, self.world, self.prices, as_of_year=year, as_of_month=month)
+        return build_decision_snapshot(self.macro, self.world, self.prices, as_of_year=year, as_of_month=month)
 
     def test_only_completed_annual_and_monthly_data_is_published(self):
         view = self.snapshot()
@@ -205,13 +205,13 @@ class DecisionBoundaryTests(unittest.TestCase):
             if (row['year'], row['month']) > (2028, 6):
                 row['close_usd_per_bbl'] = 987654321
         mutated = replace(self.prices, monthly=monthly)
-        view = build_decision_snapshot(self.run, self.world, mutated, as_of_year=2028, as_of_month=6)
+        view = build_decision_snapshot(self.macro, self.world, mutated, as_of_year=2028, as_of_month=6)
         self.assertEqual(self.snapshot(), view)
 
     def test_wrong_input_identity_rejected(self):
         other = run_oil_price_projection(run_global_macro(7, 5))
         with self.assertRaises(ValueError):
-            build_decision_snapshot(self.run, self.world, other, as_of_year=2028, as_of_month=6)
+            build_decision_snapshot(self.macro, self.world, other, as_of_year=2028, as_of_month=6)
 
     def test_visible_snapshot_does_not_alias_source_records(self):
         view = self.snapshot()

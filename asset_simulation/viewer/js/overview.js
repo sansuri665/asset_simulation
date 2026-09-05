@@ -23,9 +23,14 @@ const state = {
 
 const $ = (id) => document.getElementById(id);
 
-function numericParam(params, key, fallback) {
-  const value = Number(params.get(key));
+function finiteNumberOr(raw, fallback) {
+  if (raw === null || raw === undefined || String(raw).trim() === "") return fallback;
+  const value = Number(raw);
   return Number.isFinite(value) ? value : fallback;
+}
+
+function numericParam(params, key, fallback) {
+  return finiteNumberOr(params.get(key), fallback);
 }
 
 function readUrl() {
@@ -428,8 +433,8 @@ $("oilPeriodNav").addEventListener("click", (event) => {
 
 $("overviewForm").addEventListener("submit", (event) => {
   event.preventDefault();
-  state.seed = Math.max(0, Math.trunc(Number($("seedInput").value) || 42));
-  state.years = Math.min(90, Math.max(5, Math.trunc(Number($("yearsInput").value) || 60)));
+  state.seed = Math.max(0, Math.trunc(finiteNumberOr($("seedInput").value, 42)));
+  state.years = Math.min(90, Math.max(5, Math.trunc(finiteNumberOr($("yearsInput").value, 60))));
   loadWorld();
 });
 

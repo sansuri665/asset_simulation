@@ -193,8 +193,23 @@ def _balance_matrix(
 ) -> dict[str, float]:
     """Use iterative proportional fitting to satisfy both regional margins."""
 
+    if not row_targets or not column_targets:
+        raise ValueError("route margins cannot be empty")
+    for name, targets in (("export", row_targets), ("import", column_targets)):
+        if any(not math.isfinite(float(v)) or float(v) <= 0 for v in targets.values()):
+            raise ValueError(f"{name} margins must be finite and positive")
     row_total = sum(row_targets.values())
     column_total = sum(column_targets.values())
+    # Inputs are rounded to eight decimals by the regional owner: only dust
+    # may be rescaled, never a genuine missing supply or demand quantity.
+    margin_tolerance = 1e-7
+    if not math.isclose(row_total, column_total, rel_tol=0.0, abs_tol=margin_tolerance):
+        raise ValueError(f"original export/import totals disagree: {row_total} vs {column_total}")
+    for origin in row_targets:
+        for destination in column_targets:
+            weight = float(preferences[_pair_id(origin, destination)])
+            if not math.isfinite(weight) or weight <= 0:
+                raise ValueError("IPF preferences must be finite and positive")
     if row_total <= 0.0 or column_total <= 0.0:
         raise ValueError("regional route allocation requires positive trade margins")
     columns = {
@@ -246,6 +261,16 @@ def _balance_matrix(
     )
     if maximum_residual > 1e-8:
         raise ValueError(f"regional route allocation failed to converge: {maximum_residual}")
+    original_export_error = max(
+        abs(sum(flows[_pair_id(o, d)] for d in column_targets) - target)
+        for o, target in row_targets.items()
+    )
+    original_import_error = max(
+        abs(sum(flows[_pair_id(o, d)] for o in row_targets) - target)
+        for d, target in column_targets.items()
+    )
+    if max(original_export_error, original_import_error) > margin_tolerance:
+        raise ValueError("IPF did not satisfy the ORIGINAL regional margins")
     return flows
 
 
