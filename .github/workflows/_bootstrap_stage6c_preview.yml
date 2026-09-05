@@ -62,11 +62,12 @@ jobs:
           set -o pipefail
           python -m asset_simulation.audit_stage6c_preview --seeds 42 --years 5 --output validation/audit.json --turns-output validation/seed42.json 2>&1 | tee validation/audit.log
           python tools/demo_stage6c_board.py --output validation/demo.json
-      - name: Publish verified source only to requested branch
+      - name: Publish ordinary verified source without changing workflows
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
+          exec > >(tee validation/publish.log) 2>&1
           REPO=sansuri665/asset_simulation
           BRANCH=stage6c-preview-dynamic-freight-board
           test "$BRANCH" != main
@@ -76,12 +77,14 @@ jobs:
           python - <<'PY'
           import json, os, pathlib, subprocess
           names = json.loads((pathlib.Path(os.environ['RUNNER_TEMP']) / 'stage6c-paths.json').read_text())
+          names = [name for name in names if not name.startswith('.github/')]
           subprocess.run(['git', 'add', '--', *names], check=True)
+          print('Staging', len(names), 'non-workflow files only')
           PY
-          git rm -r .stage6c_staging .github/workflows/_bootstrap_stage6c_preview.yml
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git commit -m 'Implement Stage6C-preview pure dynamic trials, timed inventory and atomic final settlement'
+          git commit -m 'Implement verified Stage6C-preview source and tests'
+          git diff-tree --no-commit-id --name-only -r HEAD
           git push origin HEAD:refs/heads/$BRANCH
           test "$MAIN_BEFORE" = "$(gh api repos/$REPO/git/ref/heads/main --jq .object.sha)"
           git rev-parse HEAD > validation/source-commit.txt
