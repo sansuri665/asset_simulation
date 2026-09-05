@@ -1,0 +1,1012 @@
+{
+  "base_commit": "1d9f824ad6c099e7671446698f2fc5053054f38c",
+  "model_version": "stage6b-mixed-audit-v0.2",
+  "full_audit_hash": "dde4babfebc1abd96590a9e27e472abd47fd59f2bd81a099ed4fb23953388930",
+  "gates": {
+    "all_seeded_fleets_and_barrels_conserved": true,
+    "full_cargo_not_partitioned_by_class": true,
+    "upstream_world_unchanged": true,
+    "class_prior_invariance": true,
+    "route_parcel_does_not_change_physical_capacity": true,
+    "equivalent_offered_capacity_has_identical_quote": true,
+    "arbitrary_external_mix_is_independent_of_same_turn_quote": true,
+    "all_three_single_class_fleets_can_serve_same_cargo": true,
+    "packing_maximum_checked_against_bruteforce": true,
+    "price_sharing_does_not_modify_dispatch": true,
+    "fixed_class_on_every_ship_and_no_double_dispatch": true,
+    "pre_shock_prefix_unchanged": true,
+    "real_capacity_reallocation_occurs": true,
+    "four_origins_use_same_conserved_engine": true,
+    "long_window_conserved": true,
+    "specification_unchanged": true
+  },
+  "all_gates_pass": true,
+  "scenarios": {
+    "vlcc_only_300": {
+      "counts": {
+        "vlcc": 300,
+        "suezmax": 0,
+        "aframax": 0
+      },
+      "total_cargo_capacity_bbl": 591300000
+    },
+    "mixed_240v_120s": {
+      "counts": {
+        "vlcc": 240,
+        "suezmax": 120,
+        "aframax": 0
+      },
+      "total_cargo_capacity_bbl": 591300000
+    },
+    "mixed_210v_180s": {
+      "counts": {
+        "vlcc": 210,
+        "suezmax": 180,
+        "aframax": 0
+      },
+      "total_cargo_capacity_bbl": 591300000
+    },
+    "three_225v_120s_50a": {
+      "counts": {
+        "vlcc": 225,
+        "suezmax": 120,
+        "aframax": 50
+      },
+      "total_cargo_capacity_bbl": 590935000
+    }
+  },
+  "constant_controls": {
+    "vlcc_only_300": {
+      "gulf": {
+        "mean_full_cargo_mbd": 9.3,
+        "benchmark_median": 15853.731800000001,
+        "benchmark_p95": 16497.656815,
+        "benchmark_max": 16968.7328,
+        "benchmark_cv": 0.022461384214893815,
+        "no_supply_turns": 0,
+        "max_unshipped_days": 0.21161290322580645,
+        "closing_unshipped_bbl": 1539000,
+        "class_loaded_shares": {
+          "vlcc": 1.0,
+          "suezmax": 0.0,
+          "aframax": 0.0
+        }
+      },
+      "west_africa": {
+        "mean_full_cargo_mbd": 1.2,
+        "benchmark_median": 11557.334299999999,
+        "benchmark_p95": 14698.4794,
+        "benchmark_max": 14958.0352,
+        "benchmark_cv": 0.10846331856276337,
+        "no_supply_turns": 0,
+        "max_unshipped_days": 1.61,
+        "closing_unshipped_bbl": 135000,
+        "class_loaded_shares": {
+          "vlcc": 1.0,
+          "suezmax": 0.0,
+          "aframax": 0.0
+        }
+      }
+    },
+    "mixed_240v_120s": {
+      "gulf": {
+        "mean_full_cargo_mbd": 9.3,
+        "benchmark_median": 15545.850699999999,
+        "benchmark_p95": 15814.205895,
+        "benchmark_max": 15897.2034,
+        "benchmark_cv": 0.010275068579075798,
+        "no_supply_turns": 0,
+        "max_unshipped_days": 0.10564516129032259,
+        "closing_unshipped_bbl": 553500,
+        "class_loaded_shares": {
+          "vlcc": 0.8680089485458613,
+          "suezmax": 0.1319910514541387,
+          "aframax": 0.0
+        }
+      },
+      "west_africa": {
+        "mean_full_cargo_mbd": 1.2,
+        "benchmark_median": 12443.64935,
+        "benchmark_p95": 13082.59622,
+        "benchmark_max": 13205.8877,
+        "benchmark_cv": 0.04149529497670213,
+        "no_supply_turns": 0,
+        "max_unshipped_days": 0.78875,
+        "closing_unshipped_bbl": 135000,
+        "class_loaded_shares": {
+          "vlcc": 0.8248175182481752,
+          "suezmax": 0.17518248175182483,
+          "aframax": 0.0
+        }
+      }
+    },
+    "mixed_210v_180s": {
+      "gulf": {
+        "mean_full_cargo_mbd": 9.3,
+        "benchmark_median": 15545.850699999999,
+        "benchmark_p95": 15814.205895,
+        "benchmark_max": 15897.2034,
+        "benchmark_cv": 0.010275068579075798,
+        "no_supply_turns": 0,
+        "max_unshipped_days": 0.10564516129032259,
+        "closing_unshipped_bbl": 553500,
+        "class_loaded_shares": {
+          "vlcc": 0.7646296950429766,
+          "suezmax": 0.23537030495702344,
+          "aframax": 0.0
+        }
+      },
+      "west_africa": {
+        "mean_full_cargo_mbd": 1.2,
+        "benchmark_median": 12443.64935,
+        "benchmark_p95": 13082.59622,
+        "benchmark_max": 13205.8877,
+        "benchmark_cv": 0.04149529497670213,
+        "no_supply_turns": 0,
+        "max_unshipped_days": 0.78875,
+        "closing_unshipped_bbl": 135000,
+        "class_loaded_shares": {
+          "vlcc": 0.6934306569343066,
+          "suezmax": 0.30656934306569344,
+          "aframax": 0.0
+        }
+      }
+    },
+    "three_225v_120s_50a": {
+      "gulf": {
+        "mean_full_cargo_mbd": 9.3,
+        "benchmark_median": 15498.90115,
+        "benchmark_p95": 15634.2424,
+        "benchmark_max": 15801.825,
+        "benchmark_cv": 0.005978189655714824,
+        "no_supply_turns": 0,
+        "max_unshipped_days": 0.003870967741935484,
+        "closing_unshipped_bbl": 6000,
+        "class_loaded_shares": {
+          "vlcc": 0.8101825000545102,
+          "suezmax": 0.1629548873819855,
+          "aframax": 0.02686261256350435
+        }
+      },
+      "west_africa": {
+        "mean_full_cargo_mbd": 1.2,
+        "benchmark_median": 12510.276,
+        "benchmark_p95": 12881.37873,
+        "benchmark_max": 13370.8088,
+        "benchmark_cv": 0.027315199892697,
+        "no_supply_turns": 0,
+        "max_unshipped_days": 0.8204166666666667,
+        "closing_unshipped_bbl": 865000,
+        "class_loaded_shares": {
+          "vlcc": 0.7949901120632828,
+          "suezmax": 0.17661376197961565,
+          "aframax": 0.028396125957101566
+        }
+      }
+    }
+  },
+  "constant_independent_quote_control": {
+    "gulf": {
+      "mean_full_cargo_mbd": 9.3,
+      "benchmark_median": 15947.38725,
+      "benchmark_p95": 16246.41951,
+      "benchmark_max": 16347.9967,
+      "benchmark_cv": 0.011801566239211619,
+      "no_supply_turns": 0,
+      "max_unshipped_days": 0.10564516129032259,
+      "closing_unshipped_bbl": 553500,
+      "class_loaded_shares": {
+        "vlcc": 0.8680089485458613,
+        "suezmax": 0.1319910514541387,
+        "aframax": 0.0
+      }
+    },
+    "west_africa": {
+      "mean_full_cargo_mbd": 1.2,
+      "benchmark_median": 10249.08905,
+      "benchmark_p95": 11052.21517,
+      "benchmark_max": 11058.9269,
+      "benchmark_cv": 0.07353298470334269,
+      "no_supply_turns": 0,
+      "max_unshipped_days": 0.78875,
+      "closing_unshipped_bbl": 135000,
+      "class_loaded_shares": {
+        "vlcc": 0.8248175182481752,
+        "suezmax": 0.17518248175182483,
+        "aframax": 0.0
+      }
+    }
+  },
+  "short_shock": {
+    "gulf": {
+      "control_peak": 15834.7211,
+      "shock_peak": 114627.5308,
+      "max_absolute_committed_capacity_change_bbl_per_turn": 15570900.0
+    },
+    "west_africa": {
+      "control_peak": 13177.621,
+      "shock_peak": 117833.2877,
+      "max_absolute_committed_capacity_change_bbl_per_turn": 11122071.42857144
+    }
+  },
+  "seeded_sweep": [
+    {
+      "seed": 0,
+      "source_hash": "61bfe7aa9506fe02c6956dc594f5f1a0de5edfaf63b42fe7ee8ec2d9a1517797",
+      "input_hash": "3cafb7f423436d50a4b745f6e63895a7e2e1e2a4e936744bfed5c292587f5ed4",
+      "fleets": {
+        "vlcc_only_300": {
+          "gulf": {
+            "mean_full_cargo_mbd": 9.104400538750001,
+            "benchmark_median": 26108.74895,
+            "benchmark_p95": 43560.29343,
+            "benchmark_max": 56067.3777,
+            "benchmark_cv": 0.31253219929448944,
+            "no_supply_turns": 0,
+            "max_unshipped_days": 2.0053715697471626,
+            "closing_unshipped_bbl": 1886628,
+            "class_loaded_shares": {
+              "vlcc": 1.0,
+              "suezmax": 0.0,
+              "aframax": 0.0
+            }
+          },
+          "west_africa": {
+            "mean_full_cargo_mbd": 1.6375982075,
+            "benchmark_median": 21995.732,
+            "benchmark_p95": 43078.83801499999,
+            "benchmark_max": 57304.1316,
+            "benchmark_cv": 0.39977190869311957,
+            "no_supply_turns": 0,
+            "max_unshipped_days": 2.3274646873354006,
+            "closing_unshipped_bbl": 412653,
+            "class_loaded_shares": {
+              "vlcc": 1.0,
+              "suezmax": 0.0,
+              "aframax": 0.0
+            }
+          }
+        },
+        "mixed_240v_120s": {
+          "gulf": {
+            "mean_full_cargo_mbd": 9.104400538750001,
+            "benchmark_median": 25596.58455,
+            "benchmark_p95": 42422.64608,
+            "benchmark_max": 56512.7078,
+            "benchmark_cv": 0.311404977465658,
+            "no_supply_turns": 0,
+            "max_unshipped_days": 2.043872072719116,
+            "closing_unshipped_bbl": 901128,
+            "class_loaded_shares": {
+              "vlcc": 0.8383847495339467,
+              "suezmax": 0.16161525046605327,
+              "aframax": 0.0
+            }
+          },
+          "west_africa": {
+            "mean_full_cargo_mbd": 1.6375982075,
+            "benchmark_median": 22543.6261,
+            "benchmark_p95": 42996.152689999995,
+            "benchmark_max": 61771.0087,
+            "benchmark_cv": 0.3943365516777644,
+            "no_supply_turns": 0,
+            "max_unshipped_days": 2.802189193285374,
+            "closing_unshipped_bbl": 412653,
+            "class_loaded_shares": {
+              "vlcc": 0.7972250083584086,
+              "suezmax": 0.20277499164159143,
+              "aframax": 0.0
+            }
+          }
+        },
+        "mixed_210v_180s": {
+          "gulf": {
+            "mean_full_cargo_mbd": 9.104400538750001,
+            "benchmark_median": 25596.58455,
+            "benchmark_p95": 42422.64608,
+            "benchmark_max": 56512.7078,
+            "benchmark_cv": 0.311404977465658,
+            "no_supply_turns": 0,
+            "max_unshipped_days": 2.043872072719116,
+            "closing_unshipped_bbl": 901128,
+            "class_loaded_shares": {
+              "vlcc": 0.7421372301401167,
+              "suezmax": 0.2578627698598833,
+              "aframax": 0.0
+            }
+          },
+          "west_africa": {
+            "mean_full_cargo_mbd": 1.6375982075,
+            "benchmark_median": 22543.6261,
+            "benchmark_p95": 42996.152689999995,
+            "benchmark_max": 61771.0087,
+            "benchmark_cv": 0.3943365516777644,
+            "no_supply_turns": 0,
+            "max_unshipped_days": 2.802189193285374,
+            "closing_unshipped_bbl": 412653,
+            "class_loaded_shares": {
+              "vlcc": 0.6639919759277834,
+              "suezmax": 0.33600802407221664,
+              "aframax": 0.0
+            }
+          }
+        },
+        "three_225v_120s_50a": {
+          "gulf": {
+            "mean_full_cargo_mbd": 9.104400538750001,
+            "benchmark_median": 25483.1027,
+            "benchmark_p95": 42365.87286,
+            "benchmark_max": 52110.208,
+            "benchmark_cv": 0.31167648901755657,
+            "no_supply_turns": 0,
+            "max_unshipped_days": 1.6509851402104208,
+            "closing_unshipped_bbl": 134628,
+            "class_loaded_shares": {
+              "vlcc": 0.7881102534948389,
+              "suezmax": 0.1708459219548157,
+              "aframax": 0.041043824550345394
+            }
+          },
+          "west_africa": {
+            "mean_full_cargo_mbd": 1.6375982075,
+            "benchmark_median": 23216.70745,
+            "benchmark_p95": 43312.649815,
+            "benchmark_max": 58929.039,
+            "benchmark_cv": 0.38822566209265674,
+            "no_supply_turns": 0,
+            "max_unshipped_days": 2.610754567524159,
+            "closing_unshipped_bbl": 193653,
+            "class_loaded_shares": {
+              "vlcc": 0.7390184558045084,
+              "suezmax": 0.21229437658261155,
+              "aframax": 0.048687167612880056
+            }
+          }
+        }
+      }
+    },
+    {
+      "seed": 1,
+      "source_hash": "6df895717df98e6afe9728c2e783fa50438a5d4a003c8a92ff471e2d2b60980b",
+      "input_hash": "16522d7a67d607d0708a76c147310deab2171f3c929aa64d2d233806c0ef6aff",
+      "fleets": {
+        "vlcc_only_300": {
+          "gulf": {
+            "mean_full_cargo_mbd": 8.993876396666666,
+            "benchmark_median": 7440.703100000001,
+            "benchmark_p95": 25077.148429999997,
+            "benchmark_max": 39475.2873,
+            "benchmark_cv": 0.7238253732801584,
+            "no_supply_turns": 0,
+            "max_unshipped_days": 0.2187866402888624,
+            "closing_unshipped_bbl": 511635,
+            "class_loaded_shares": {
+              "vlcc": 1.0,
+              "suezmax": 0.0,
+              "aframax": 0.0
+            }
+          },
+          "west_africa": {
+            "mean_full_cargo_mbd": 1.0046643454166666,
+            "benchmark_median": 5493.53095,
+            "benchmark_p95": 21064.858734999976,
+            "benchmark_max": 41883.161,
+            "benchmark_cv": 0.8058977492117533,
+            "no_supply_turns": 0,
+            "max_unshipped_days": 1.9572417484214417,
+            "closing_unshipped_bbl": 687915,
+            "class_loaded_shares": {
+              "vlcc": 1.0,
+              "suezmax": 0.0,
+              "aframax": 0.0
+            }
+          }
+        },
+        "mixed_240v_120s": {
+          "gulf": {
+            "mean_full_cargo_mbd": 8.993876396666666,
+            "benchmark_median": 7345.39035,
+            "benchmark_p95": 25042.79331999999,
+            "benchmark_max": 34988.0992,
+            "benchmark_cv": 0.7153437067021331,
+            "no_supply_turns": 0,
+            "max_unshipped_days": 0.10939743405464836,
+            "closing_unshipped_bbl": 511635,
+            "class_loaded_shares": {
+              "vlcc": 0.9017334002952412,
+              "suezmax": 0.09826659970475886,
+              "aframax": 0.0
+            }
+          },
+          "west_africa": {
+            "mean_full_cargo_mbd": 1.0046643454166666,
+            "benchmark_median": 5448.23215,
+            "benchmark_p95": 22289.663544999992,
+            "benchmark_max": 38111.7839,
+            "benchmark_cv": 0.7903434295160111,
+            "no_supply_turns": 0,
+            "max_unshipped_days": 1.9017674994802336,
+            "closing_unshipped_bbl": 687915,
+            "class_loaded_shares": {
+              "vlcc": 0.8937329700272479,
+              "suezmax": 0.10626702997275204,
+              "aframax": 0.0
+            }
+          }
+        },
+        "mixed_210v_180s": {
+          "gulf": {
+            "mean_full_cargo_mbd": 8.993876396666666,
+            "benchmark_median": 7345.39035,
+            "benchmark_p95": 25042.79331999999,
+            "benchmark_max": 34988.0992,
+            "benchmark_cv": 0.7157448739692436,
+            "no_supply_turns": 0,
+            "max_unshipped_days": 0.10939743405464836,
+            "closing_unshipped_bbl": 511635,
+            "class_loaded_shares": {
+              "vlcc": 0.8012601013559786,
+              "suezmax": 0.19873989864402136,
+              "aframax": 0.0
+            }
+          },
+          "west_africa": {
+            "mean_full_cargo_mbd": 1.0046643454166666,
+            "benchmark_median": 5448.23215,
+            "benchmark_p95": 22289.663544999992,
+            "benchmark_max": 38111.7839,
+            "benchmark_cv": 0.7888359916451718,
+            "no_supply_turns": 0,
+            "max_unshipped_days": 0.9781654982415355,
+            "closing_unshipped_bbl": 687915,
+            "class_loaded_shares": {
+              "vlcc": 0.7588555858310627,
+              "suezmax": 0.24114441416893734,
+              "aframax": 0.0
+            }
+          }
+        },
+        "three_225v_120s_50a": {
+          "gulf": {
+            "mean_full_cargo_mbd": 8.993876396666666,
+            "benchmark_median": 7321.219,
+            "benchmark_p95": 25023.192589999984,
+            "benchmark_max": 34968.4987,
+            "benchmark_cv": 0.7170128738976876,
+            "no_supply_turns": 0,
+            "max_unshipped_days": 0.06322657494056237,
+            "closing_unshipped_bbl": 635,
+            "class_loaded_shares": {
+              "vlcc": 0.8490789053168889,
+              "suezmax": 0.10691101430045785,
+              "aframax": 0.04401008038265322
+            }
+          },
+          "west_africa": {
+            "mean_full_cargo_mbd": 1.0046643454166666,
+            "benchmark_median": 5639.0729,
+            "benchmark_p95": 23917.040689999998,
+            "benchmark_max": 38355.9144,
+            "benchmark_cv": 0.7960613879602724,
+            "no_supply_turns": 0,
+            "max_unshipped_days": 0.9784491750747986,
+            "closing_unshipped_bbl": 140415,
+            "class_loaded_shares": {
+              "vlcc": 0.8354012664934278,
+              "suezmax": 0.12084163786361228,
+              "aframax": 0.04375709564295986
+            }
+          }
+        }
+      }
+    },
+    {
+      "seed": 5,
+      "source_hash": "2854aa0987856c74e74691c91e7fb14be8a113e8f888a23970ea4a64d9091ace",
+      "input_hash": "0b6623397a575457d095c02f50c07994035acc62a67159bdf5bd94eeef5ba456",
+      "fleets": {
+        "vlcc_only_300": {
+          "gulf": {
+            "mean_full_cargo_mbd": 8.655824799166666,
+            "benchmark_median": 8280.48475,
+            "benchmark_p95": 28564.384335,
+            "benchmark_max": 39282.0938,
+            "benchmark_cv": 0.7364545036966447,
+            "no_supply_turns": 0,
+            "max_unshipped_days": 0.2270206532125262,
+            "closing_unshipped_bbl": 747246,
+            "class_loaded_shares": {
+              "vlcc": 1.0,
+              "suezmax": 0.0,
+              "aframax": 0.0
+            }
+          },
+          "west_africa": {
+            "mean_full_cargo_mbd": 1.2502867345833333,
+            "benchmark_median": 6220.06235,
+            "benchmark_p95": 22835.35735499999,
+            "benchmark_max": 54007.8118,
+            "benchmark_cv": 0.8088404910920357,
+            "no_supply_turns": 0,
+            "max_unshipped_days": 3.8138411518771336,
+            "closing_unshipped_bbl": 623742,
+            "class_loaded_shares": {
+              "vlcc": 1.0,
+              "suezmax": 0.0,
+              "aframax": 0.0
+            }
+          }
+        },
+        "mixed_240v_120s": {
+          "gulf": {
+            "mean_full_cargo_mbd": 8.655824799166666,
+            "benchmark_median": 8150.0449,
+            "benchmark_p95": 27697.39701,
+            "benchmark_max": 34249.1564,
+            "benchmark_cv": 0.7300196562156485,
+            "no_supply_turns": 0,
+            "max_unshipped_days": 0.11353961324339841,
+            "closing_unshipped_bbl": 747246,
+            "class_loaded_shares": {
+              "vlcc": 0.9016904125618684,
+              "suezmax": 0.09830958743813153,
+              "aframax": 0.0
+            }
+          },
+          "west_africa": {
+            "mean_full_cargo_mbd": 1.2502867345833333,
+            "benchmark_median": 6334.9177,
+            "benchmark_p95": 23145.00643499998,
+            "benchmark_max": 39160.9759,
+            "benchmark_cv": 0.8020183641519001,
+            "no_supply_turns": 0,
+            "max_unshipped_days": 0.7877536990170744,
+            "closing_unshipped_bbl": 623742,
+            "class_loaded_shares": {
+              "vlcc": 0.8955550689730677,
+              "suezmax": 0.10444493102693234,
+              "aframax": 0.0
+            }
+          }
+        },
+        "mixed_210v_180s": {
+          "gulf": {
+            "mean_full_cargo_mbd": 8.655824799166666,
+            "benchmark_median": 8151.48905,
+            "benchmark_p95": 27697.39701,
+            "benchmark_max": 34249.1564,
+            "benchmark_cv": 0.7302146002293078,
+            "no_supply_turns": 0,
+            "max_unshipped_days": 0.11353961324339841,
+            "closing_unshipped_bbl": 747246,
+            "class_loaded_shares": {
+              "vlcc": 0.8021948481158778,
+              "suezmax": 0.19780515188412215,
+              "aframax": 0.0
+            }
+          },
+          "west_africa": {
+            "mean_full_cargo_mbd": 1.2502867345833333,
+            "benchmark_median": 6349.61675,
+            "benchmark_p95": 23145.00643499998,
+            "benchmark_max": 39160.9759,
+            "benchmark_cv": 0.8014770438439234,
+            "no_supply_turns": 0,
+            "max_unshipped_days": 0.7877536990170744,
+            "closing_unshipped_bbl": 623742,
+            "class_loaded_shares": {
+              "vlcc": 0.7606744033282242,
+              "suezmax": 0.23932559667177578,
+              "aframax": 0.0
+            }
+          }
+        },
+        "three_225v_120s_50a": {
+          "gulf": {
+            "mean_full_cargo_mbd": 8.655824799166666,
+            "benchmark_median": 8096.70435,
+            "benchmark_p95": 27606.639485,
+            "benchmark_max": 34102.3536,
+            "benchmark_cv": 0.7318451955017834,
+            "no_supply_turns": 0,
+            "max_unshipped_days": 0.07742497284193192,
+            "closing_unshipped_bbl": 17246,
+            "class_loaded_shares": {
+              "vlcc": 0.847421593604498,
+              "suezmax": 0.10917332864798383,
+              "aframax": 0.04340507774751823
+            }
+          },
+          "west_africa": {
+            "mean_full_cargo_mbd": 1.2502867345833333,
+            "benchmark_median": 6440.2116,
+            "benchmark_p95": 23958.46745,
+            "benchmark_max": 41192.6946,
+            "benchmark_cv": 0.8061932006754353,
+            "no_supply_turns": 0,
+            "max_unshipped_days": 1.0300277243437108,
+            "closing_unshipped_bbl": 112742,
+            "class_loaded_shares": {
+              "vlcc": 0.8350741185247657,
+              "suezmax": 0.11691913458107626,
+              "aframax": 0.0480067468941581
+            }
+          }
+        }
+      }
+    },
+    {
+      "seed": 7,
+      "source_hash": "fb9b8d2a6d6844a5b33a4fe2722b458cfe11ff12278b752435925b97b461e61c",
+      "input_hash": "86ceb45a292b39d5968f371a745cd357af368cf3ef89a34af8c0505bd46aa966",
+      "fleets": {
+        "vlcc_only_300": {
+          "gulf": {
+            "mean_full_cargo_mbd": 8.967513823333334,
+            "benchmark_median": 12114.1369,
+            "benchmark_p95": 28914.476394999998,
+            "benchmark_max": 35974.8458,
+            "benchmark_cv": 0.4894300720736867,
+            "no_supply_turns": 0,
+            "max_unshipped_days": 0.21929456020275395,
+            "closing_unshipped_bbl": 1876830,
+            "class_loaded_shares": {
+              "vlcc": 1.0,
+              "suezmax": 0.0,
+              "aframax": 0.0
+            }
+          },
+          "west_africa": {
+            "mean_full_cargo_mbd": 1.2967095333333334,
+            "benchmark_median": 9318.716,
+            "benchmark_p95": 24882.2958,
+            "benchmark_max": 39138.1024,
+            "benchmark_cv": 0.5677439701359129,
+            "no_supply_turns": 0,
+            "max_unshipped_days": 1.5182390114301105,
+            "closing_unshipped_bbl": 1142235,
+            "class_loaded_shares": {
+              "vlcc": 1.0,
+              "suezmax": 0.0,
+              "aframax": 0.0
+            }
+          }
+        },
+        "mixed_240v_120s": {
+          "gulf": {
+            "mean_full_cargo_mbd": 8.967513823333334,
+            "benchmark_median": 11715.71155,
+            "benchmark_p95": 27815.794529999992,
+            "benchmark_max": 33335.2475,
+            "benchmark_cv": 0.48757843739161655,
+            "no_supply_turns": 0,
+            "max_unshipped_days": 0.1097949799015773,
+            "closing_unshipped_bbl": 891330,
+            "class_loaded_shares": {
+              "vlcc": 0.8790219183100312,
+              "suezmax": 0.12097808168996886,
+              "aframax": 0.0
+            }
+          },
+          "west_africa": {
+            "mean_full_cargo_mbd": 1.2967095333333334,
+            "benchmark_median": 9463.079849999998,
+            "benchmark_p95": 25294.614680000002,
+            "benchmark_max": 38331.4675,
+            "benchmark_cv": 0.5765436092424494,
+            "no_supply_turns": 0,
+            "max_unshipped_days": 1.2568211755261767,
+            "closing_unshipped_bbl": 156735,
+            "class_loaded_shares": {
+              "vlcc": 0.8629934557736965,
+              "suezmax": 0.13700654422630357,
+              "aframax": 0.0
+            }
+          }
+        },
+        "mixed_210v_180s": {
+          "gulf": {
+            "mean_full_cargo_mbd": 8.967513823333334,
+            "benchmark_median": 11715.71155,
+            "benchmark_p95": 27815.794529999992,
+            "benchmark_max": 33335.2475,
+            "benchmark_cv": 0.4876309483267073,
+            "no_supply_turns": 0,
+            "max_unshipped_days": 0.1097949799015773,
+            "closing_unshipped_bbl": 891330,
+            "class_loaded_shares": {
+              "vlcc": 0.7765736613956896,
+              "suezmax": 0.2234263386043104,
+              "aframax": 0.0
+            }
+          },
+          "west_africa": {
+            "mean_full_cargo_mbd": 1.2967095333333334,
+            "benchmark_median": 9463.079849999998,
+            "benchmark_p95": 25294.614680000002,
+            "benchmark_max": 38331.4675,
+            "benchmark_cv": 0.5763887206022374,
+            "no_supply_turns": 0,
+            "max_unshipped_days": 1.2568211755261767,
+            "closing_unshipped_bbl": 156735,
+            "class_loaded_shares": {
+              "vlcc": 0.7234536626556892,
+              "suezmax": 0.2765463373443107,
+              "aframax": 0.0
+            }
+          }
+        },
+        "three_225v_120s_50a": {
+          "gulf": {
+            "mean_full_cargo_mbd": 8.967513823333334,
+            "benchmark_median": 11660.06285,
+            "benchmark_p95": 27904.847635,
+            "benchmark_max": 33313.3568,
+            "benchmark_cv": 0.48836248197544957,
+            "no_supply_turns": 0,
+            "max_unshipped_days": 0.0989371209767714,
+            "closing_unshipped_bbl": 15330,
+            "class_loaded_shares": {
+              "vlcc": 0.826239984080808,
+              "suezmax": 0.1318455069550362,
+              "aframax": 0.041914508964155814
+            }
+          },
+          "west_africa": {
+            "mean_full_cargo_mbd": 1.2967095333333334,
+            "benchmark_median": 9574.87565,
+            "benchmark_p95": 26133.519180000003,
+            "benchmark_max": 38662.8522,
+            "benchmark_cv": 0.5802449138221136,
+            "no_supply_turns": 0,
+            "max_unshipped_days": 1.0002802992168434,
+            "closing_unshipped_bbl": 558235,
+            "class_loaded_shares": {
+              "vlcc": 0.7978309145502315,
+              "suezmax": 0.15475259602151883,
+              "aframax": 0.04741648942824972
+            }
+          }
+        }
+      }
+    },
+    {
+      "seed": 42,
+      "source_hash": "bb7b3f94637933d9013d8990b1544061db62a8b50e9e9189b6d928bd0bb0437c",
+      "input_hash": "d3add86730063898b2262f7ff05b1ecf64c9184718272f44fab256de7e7753af",
+      "fleets": {
+        "vlcc_only_300": {
+          "gulf": {
+            "mean_full_cargo_mbd": 9.45612285,
+            "benchmark_median": 25279.785,
+            "benchmark_p95": 68836.4267,
+            "benchmark_max": 85825.6018,
+            "benchmark_cv": 0.552199898213644,
+            "no_supply_turns": 0,
+            "max_unshipped_days": 15.171441221282358,
+            "closing_unshipped_bbl": 1178670,
+            "class_loaded_shares": {
+              "vlcc": 1.0,
+              "suezmax": 0.0,
+              "aframax": 0.0
+            }
+          },
+          "west_africa": {
+            "mean_full_cargo_mbd": 1.3645376641666669,
+            "benchmark_median": 20924.52785,
+            "benchmark_p95": 94912.04003999999,
+            "benchmark_max": 112469.0686,
+            "benchmark_cv": 0.8183672358429858,
+            "no_supply_turns": 35,
+            "max_unshipped_days": 31.372920751252472,
+            "closing_unshipped_bbl": 1509471,
+            "class_loaded_shares": {
+              "vlcc": 1.0,
+              "suezmax": 0.0,
+              "aframax": 0.0
+            }
+          }
+        },
+        "mixed_240v_120s": {
+          "gulf": {
+            "mean_full_cargo_mbd": 9.45612285,
+            "benchmark_median": 24764.266150000003,
+            "benchmark_p95": 65829.45938999992,
+            "benchmark_max": 87770.8236,
+            "benchmark_cv": 0.5516080277743112,
+            "no_supply_turns": 0,
+            "max_unshipped_days": 14.255980398985617,
+            "closing_unshipped_bbl": 193170,
+            "class_loaded_shares": {
+              "vlcc": 0.8342934892742379,
+              "suezmax": 0.1657065107257621,
+              "aframax": 0.0
+            }
+          },
+          "west_africa": {
+            "mean_full_cargo_mbd": 1.3645376641666669,
+            "benchmark_median": 21760.4807,
+            "benchmark_p95": 99565.32089499998,
+            "benchmark_max": 111105.4173,
+            "benchmark_cv": 0.8249022671733692,
+            "no_supply_turns": 33,
+            "max_unshipped_days": 33.4704231325795,
+            "closing_unshipped_bbl": 523971,
+            "class_loaded_shares": {
+              "vlcc": 0.8167318687932591,
+              "suezmax": 0.1832681312067409,
+              "aframax": 0.0
+            }
+          }
+        },
+        "mixed_210v_180s": {
+          "gulf": {
+            "mean_full_cargo_mbd": 9.45612285,
+            "benchmark_median": 24764.266150000003,
+            "benchmark_p95": 65829.45938999992,
+            "benchmark_max": 87770.8236,
+            "benchmark_cv": 0.5515949902796172,
+            "no_supply_turns": 0,
+            "max_unshipped_days": 14.255980398985617,
+            "closing_unshipped_bbl": 193170,
+            "class_loaded_shares": {
+              "vlcc": 0.7349390614596301,
+              "suezmax": 0.26506093854037,
+              "aframax": 0.0
+            }
+          },
+          "west_africa": {
+            "mean_full_cargo_mbd": 1.3645376641666669,
+            "benchmark_median": 21760.4807,
+            "benchmark_p95": 99565.32089499998,
+            "benchmark_max": 111105.4173,
+            "benchmark_cv": 0.8249282873917703,
+            "no_supply_turns": 33,
+            "max_unshipped_days": 33.4704231325795,
+            "closing_unshipped_bbl": 523971,
+            "class_loaded_shares": {
+              "vlcc": 0.6923462734476878,
+              "suezmax": 0.30765372655231216,
+              "aframax": 0.0
+            }
+          }
+        },
+        "three_225v_120s_50a": {
+          "gulf": {
+            "mean_full_cargo_mbd": 9.45612285,
+            "benchmark_median": 24597.34605,
+            "benchmark_p95": 63745.00168,
+            "benchmark_max": 86980.0079,
+            "benchmark_cv": 0.5391832351022814,
+            "no_supply_turns": 0,
+            "max_unshipped_days": 14.31800560839795,
+            "closing_unshipped_bbl": 10670,
+            "class_loaded_shares": {
+              "vlcc": 0.7840100186670583,
+              "suezmax": 0.17320478331308656,
+              "aframax": 0.04278519801985506
+            }
+          },
+          "west_africa": {
+            "mean_full_cargo_mbd": 1.3645376641666669,
+            "benchmark_median": 22246.73955,
+            "benchmark_p95": 95633.15009499998,
+            "benchmark_max": 109930.7175,
+            "benchmark_cv": 0.7967211761575912,
+            "no_supply_turns": 24,
+            "max_unshipped_days": 32.02597784406949,
+            "closing_unshipped_bbl": 49471,
+            "class_loaded_shares": {
+              "vlcc": 0.7577208709640268,
+              "suezmax": 0.19389388980321207,
+              "aframax": 0.048385239232761085
+            }
+          }
+        }
+      }
+    }
+  ],
+  "four_origin": {
+    "brazil_guyana": {
+      "mean_full_cargo_mbd": 1.397302175,
+      "benchmark_median": 12975.626100000001,
+      "benchmark_p95": 32511.270209999977,
+      "benchmark_max": 43767.6903,
+      "benchmark_cv": 0.5872513890698708,
+      "no_supply_turns": 0,
+      "max_unshipped_days": 1.8779731735549614,
+      "closing_unshipped_bbl": 89901,
+      "class_loaded_shares": {
+        "vlcc": 0.7924351700018865,
+        "suezmax": 0.19531714820565657,
+        "aframax": 0.012247681792456937
+      }
+    },
+    "gulf": {
+      "mean_full_cargo_mbd": 9.45612285,
+      "benchmark_median": 17554.0128,
+      "benchmark_p95": 34632.717684999996,
+      "benchmark_max": 40337.9219,
+      "benchmark_cv": 0.46309844509850323,
+      "no_supply_turns": 0,
+      "max_unshipped_days": 0.16455792978620196,
+      "closing_unshipped_bbl": 156670,
+      "class_loaded_shares": {
+        "vlcc": 0.8702229918271177,
+        "suezmax": 0.11928655481781897,
+        "aframax": 0.010490453355063354
+      }
+    },
+    "us_gulf": {
+      "mean_full_cargo_mbd": 1.16506105125,
+      "benchmark_median": 12269.37555,
+      "benchmark_p95": 31085.022229999995,
+      "benchmark_max": 49161.1473,
+      "benchmark_cv": 0.608250373364279,
+      "no_supply_turns": 0,
+      "max_unshipped_days": 3.2009610105829207,
+      "closing_unshipped_bbl": 190242,
+      "class_loaded_shares": {
+        "vlcc": 0.7492364319837106,
+        "suezmax": 0.23259456496201739,
+        "aframax": 0.018169003054272066
+      }
+    },
+    "west_africa": {
+      "mean_full_cargo_mbd": 1.3645376641666669,
+      "benchmark_median": 13895.9074,
+      "benchmark_p95": 31727.772975,
+      "benchmark_max": 47418.1352,
+      "benchmark_cv": 0.5586526606982601,
+      "no_supply_turns": 0,
+      "max_unshipped_days": 1.950761836702862,
+      "closing_unshipped_bbl": 487471,
+      "class_loaded_shares": {
+        "vlcc": 0.8532355498094113,
+        "suezmax": 0.1364213905173759,
+        "aframax": 0.010343059673212814
+      }
+    }
+  },
+  "seed42_long": {
+    "gulf": {
+      "mean_full_cargo_mbd": 8.823141300555555,
+      "benchmark_median": 16112.93465,
+      "benchmark_p95": 49488.45558999996,
+      "benchmark_max": 87770.8236,
+      "benchmark_cv": 0.7286943555826578,
+      "no_supply_turns": 0,
+      "max_unshipped_days": 15.27871960879872,
+      "closing_unshipped_bbl": 281742,
+      "class_loaded_shares": {
+        "vlcc": 0.8687895585984363,
+        "suezmax": 0.13121044140156374,
+        "aframax": 0.0
+      }
+    },
+    "west_africa": {
+      "mean_full_cargo_mbd": 1.4904172569444445,
+      "benchmark_median": 13009.448649999998,
+      "benchmark_p95": 53050.713084999945,
+      "benchmark_max": 111105.4173,
+      "benchmark_cv": 1.0266277008249465,
+      "no_supply_turns": 33,
+      "max_unshipped_days": 30.643534746526633,
+      "closing_unshipped_bbl": 972039,
+      "class_loaded_shares": {
+        "vlcc": 0.8492622298414253,
+        "suezmax": 0.15073777015857467,
+        "aframax": 0.0
+      }
+    }
+  },
+  "warnings": [
+    "Class TCE is a capacity/time convention from common net service value, not independent price discovery.",
+    "Shared signal and bounded local residual are explicit uncalibrated quote-design parameters.",
+    "Full-load packing is a maximum-volume demo, not an economic owner choice.",
+    "More hulls with the same capacity can affect timing/packing: live trajectories need not be identical.",
+    "The inherited legacy Stage6B uses only VLCC shares, so its rates are not a like-for-like comparison.",
+    "Physical conservation is not proof of adequate service or real market equilibrium."
+  ],
+  "full_evidence_location": "CI artifact audit.json and seed42-mixed.json"
+}

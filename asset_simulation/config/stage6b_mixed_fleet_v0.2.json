@@ -1,0 +1,36 @@
+{
+  "model_version": "stage6b-class-agnostic-v0.2.0",
+  "default_origins": ["gulf", "west_africa"],
+  "destination": "east_asia",
+  "default_fleet_counts": {"vlcc": 240, "suezmax": 120, "aframax": 0},
+  "warmup_turns": 36,
+  "operating_turn_days": 10,
+  "routing": {"forecast_persistence": 0.5, "spare_loading_fraction": 0.06, "cross_origin_limit": 8, "mode": "pooled"},
+  "execution": {"policy": "max_volume_full_load", "partial_loads": false},
+  "pricing": {
+    "reference_capacity_bbl": 1971000,
+    "baseline_real_tce_2025_usd_per_day": 35000.0,
+    "minimum_real_tce_2025_usd_per_day": 1000.0,
+    "maximum_real_tce_2025_usd_per_day": 122500.0,
+    "supply_demand_log_sensitivity": 3.0,
+    "inventory_urgency_log_sensitivity_per_day": 0.03,
+    "price_persistence": 0.25,
+    "reference_prompt_multiplier": 1.06,
+    "liquidity_fraction": 0.085,
+    "local_signal_limit": 0.6,
+    "local_evidence_capacity_bbl": 9855000,
+    "shared_signal_weight": 1.0
+  },
+  "pressure": {"limit_days": 5.0, "soft_scale_days": 2.0, "half_life_turns": 3.0},
+  "scope": {
+    "cargo": "one_full_route_queue_no_class_partition",
+    "class_mix": "output_or_caller_dispatch_never_a_quota",
+    "capacity": "fixed_per_ship_class_independent_of_origin",
+    "pricing": "common_capacity_service_value_not_gross_freight_or_realized_profit",
+    "class_quote": "capacity_and_reference_duration_conversion_no_invented_class_demand",
+    "routing": "replaceable_capacity_coverage_test_policy_not_owner_economics",
+    "legacy_stage6a_shares_and_parcels": "historical_reference_only_not_read_by_execution",
+    "global_price_discovery": false,
+    "cost_model_present": false
+  }
+}

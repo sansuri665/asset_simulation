@@ -1,0 +1,29 @@
+{
+  "schema_version": "stage6b-mixed-cargo-v2",
+  "owner": "mixed_cargo_market",
+  "clock": {"turn_days": 10, "loading_turns": 0, "discharge_turns": 1},
+  "cargo": {"unit": "integer_barrels", "queue_key": "origin_destination", "class_partition": false, "expiry": false, "raw_backlog_clipped": false},
+  "capacity": {"owner": "ship_class", "fixed_full_loads": true, "route_benchmark_parcel_controls_execution": false},
+  "compatibility": "selected_Stage6A_path_mask; a_zero_reference_share_is_not_a_ban",
+  "dispatch": {
+    "input": "optional_origin_to_class_counts; all_origins_explicit",
+    "checks": ["nonnegative_integer", "actual_local_ship_ids", "compatible_path", "no_more_than_available", "sum_class_loads_le_shared_ready_cargo", "no_same_ship_twice"],
+    "fallback": "replaceable_maximum_full_load_volume_test_packer_not_owner_choice"
+  },
+  "pricing": {
+    "demand": "full_route_cargo_once",
+    "supply": "sum_compatible_local_prompt_count_times_fixed_capacity",
+    "route_value_unit": "2025_USD_per_barrel_net_transport_service_benchmark",
+    "class_tce_unit": "2025_USD_per_ship_day_under_disclosed_reference_cycle",
+    "conversion": "class_TCE = route_net_service_value_per_bbl * class_capacity_bbl / class_reference_cycle_days",
+    "quote_is_gross_freight": false,
+    "quote_is_cash_revenue": false,
+    "independent_class_scarcity_inferred_from_zero_class_count": false,
+    "common_signal": "weighted_local_capacity_signal_not_an_extra_global_multiplier",
+    "local_residual": "explicit_bounded_thin_market_design_rule_not_empirical_calibration"
+  },
+  "reference_delivery": "one_fixed_route_reference_schedule_independent_of_executed_mix",
+  "destination": "one_aggregate_delivery_deviation_with_origin_contributions",
+  "legacy": {"stage6a_share_matrix": "comparison_only", "stage6b_v0_1": "frozen_VLCC_share_control_not_new_default"},
+  "scope": "research_library_no_player_API_costs_debt_or_fleet_growth"
+}

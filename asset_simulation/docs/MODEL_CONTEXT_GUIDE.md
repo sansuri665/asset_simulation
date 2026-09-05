@@ -58,3 +58,7 @@ API 任务另读完整 `server.py`。全球公式任务按 `docs/components/GLOB
 
 ### Stage6B 多产地—单目的地实验
 固定编号VLCC在海湾、西非（可扩四产地）与同一个东亚节点间运行；即时供给只含本地开放船。共用目的地压力、独立源端台账、单次分配与冻结MovementPlan；不含成本或完整全球均衡。见 `docs/current/STAGE6B_MULTI_ORIGIN_MARKET.md`。
+
+
+### Stage6B v0.2：共用货物与多船型（当前替代分支）
+新入口 `model/mixed_cargo_market.py::run_seeded_mixed_market` 使用完整航线货量、固定船型载量和外部配船接口，不按船型份额切货；旧Stage6A份额与商业货盘仅留作历史参照。纯报价按合计兼容运量形成共同服务价值，不含成本。旧Stage6B文件为可复跑对照。见 `docs/current/STAGE6B_MIXED_CARGO_V02.md`。

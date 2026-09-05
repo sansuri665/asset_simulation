@@ -1,3 +1,5 @@
+> 历史Stage6B v0.1对照，仍可复跑。当前替代实现见 `STAGE6B_MIXED_CARGO_V02.md`；旧VLCC份额与不同航线货盘不再控制新执行。
+
 # Stage6B：多产地—单目的地VLCC物理市场
 
 分支 `stage6b-multi-origin-east-asia-market`，直接继承Stage6A `c8c8f0ade48ebfb8cf2ff32407a1c1693a44d31b`。不改main，不删除Stage5A/6A，也不合并旧成本、垄断或全球船池实验。
