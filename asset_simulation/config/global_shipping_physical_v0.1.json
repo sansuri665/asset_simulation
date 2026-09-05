@@ -1,0 +1,419 @@
+{
+  "schema_version": "asset-simulation-global-shipping-physical-v1",
+  "model_version": "asset-simulation-stage6a-contract-v0.1.0",
+  "base_stage5a_sha": "b997920847fbf5f9b7510cffc5487ee8f1c6a1bc",
+  "upstream_network_hash": "7438cb59fe89f7b7f6dcacd8f68415a54dbe3016120593c39a2118a192ec3018",
+  "clock": {
+    "operating_turn_days": 10,
+    "turns_per_month": 3,
+    "operating_days_per_year": 360,
+    "loading_turns": 0,
+    "discharge_turns": 1,
+    "sea_rounding": "nearest_half_up_minimum_one",
+    "projection": "preserve_daily_rate_not_calendar_volume",
+    "departure_snapshot_frozen": true
+  },
+  "units": {
+    "cargo": "integer_barrels",
+    "cargo_mass": "metric_tonnes",
+    "distance": "nautical_miles",
+    "speed": "knots",
+    "barrels_per_tonne": 7.3
+  },
+  "scope": {
+    "catalog_only": true,
+    "global_fleet_simulator": false,
+    "price_model_changed": false,
+    "class_share_status": "scenario_priors_not_empirical_frequencies",
+    "modeled_classes": "three_class_crude_only_envelope_not_all_real_world_tanker_types",
+    "aggregate_policy": "block_physical_plan_until_subbasin_is_selected",
+    "return_policy": "no_automatic_home_return_after_discharge"
+  },
+  "sources": {
+    "upstream": {
+      "kind": "inherited_model_reference",
+      "as_of": "2026-09-05",
+      "url": "https://github.com/sansuri665/asset_simulation/blob/a2a7281424d066a11eea3eea23d9442aa329b9a0/asset_simulation/config/oil_shipping_demand_v0.6.json",
+      "supports": "25 reference flows, distances, 14 display routes; not observed per-vessel geography"
+    },
+    "baltic_routes": {
+      "kind": "primary_benchmark",
+      "accessed": "2026-09-05",
+      "url": "https://www.balticexchange.com/en/data-services/market-information0/tankers-services.html",
+      "supports": "270kt TD3C/TD22; 260kt TD15; 130kt TD20/TD27; 140kt TD23; 80kt regional and 70kt TD25 parcels; NOT route class market shares"
+    },
+    "baltic_speed_2015": {
+      "kind": "historical_primary_benchmark",
+      "as_of": "2015-05-01",
+      "url": "https://www.balticexchange.com/en/data-services/WeeklyRoundup/tanker/news/2015/revised-tanker-benchmarkspecifications.html",
+      "supports": "13kn laden and 12.5kn ballast for all three classes, adopted as historical planning convention, not 2026 AIS average"
+    },
+    "baltic_classes": {
+      "kind": "primary_benchmark",
+      "accessed": "2026-09-05",
+      "url": "https://emissions.balticexchange.com/en/imo-regulationss/eeoi/tanker-whitepaper.html",
+      "supports": "300000/160000/105000 DWT reference classes and distinction between laden tonne-miles and ballast travel"
+    },
+    "eia_capacity": {
+      "kind": "primary_explanation",
+      "url": "https://www.eia.gov/todayinenergy/detail.php?id=32292",
+      "supports": "cargo is not total DWT; barrel conversion depends on oil density"
+    },
+    "design": {
+      "kind": "explicit_game_assumption",
+      "as_of": "2026-09-05",
+      "supports": "class-share priors, coarse rounding, proxy corridors, non-empirical return distances, source projection and access masks"
+    }
+  },
+  "export_region_ids": [
+    "gulf",
+    "us_gulf",
+    "brazil_guyana",
+    "west_africa",
+    "other_export_regions"
+  ],
+  "import_region_ids": [
+    "east_asia",
+    "south_asia",
+    "europe",
+    "north_america_import",
+    "rest_of_world"
+  ],
+  "regions": {
+    "gulf": {
+      "role": "export",
+      "geography": "representative_basin",
+      "terminal_access": "model_service_envelope_not_port_or_draft_certification"
+    },
+    "us_gulf": {
+      "role": "export",
+      "geography": "representative_basin",
+      "terminal_access": "model_service_envelope_not_port_or_draft_certification"
+    },
+    "brazil_guyana": {
+      "role": "export",
+      "geography": "representative_basin",
+      "terminal_access": "model_service_envelope_not_port_or_draft_certification"
+    },
+    "west_africa": {
+      "role": "export",
+      "geography": "representative_basin",
+      "terminal_access": "model_service_envelope_not_port_or_draft_certification"
+    },
+    "other_export_regions": {
+      "role": "export",
+      "geography": "aggregate_unresolved",
+      "terminal_access": "model_service_envelope_not_port_or_draft_certification"
+    },
+    "east_asia": {
+      "role": "import",
+      "geography": "representative_basin",
+      "terminal_access": "model_service_envelope_not_port_or_draft_certification"
+    },
+    "south_asia": {
+      "role": "import",
+      "geography": "representative_basin",
+      "terminal_access": "model_service_envelope_not_port_or_draft_certification"
+    },
+    "europe": {
+      "role": "import",
+      "geography": "representative_basin",
+      "terminal_access": "model_service_envelope_not_port_or_draft_certification"
+    },
+    "north_america_import": {
+      "role": "import",
+      "geography": "representative_basin",
+      "terminal_access": "model_service_envelope_not_port_or_draft_certification"
+    },
+    "rest_of_world": {
+      "role": "import",
+      "geography": "aggregate_unresolved",
+      "terminal_access": "model_service_envelope_not_port_or_draft_certification"
+    }
+  },
+  "vessel_classes": {
+    "vlcc": {
+      "reference_dwt_tonnes": 300000,
+      "default_cargo_tonnes": 270000,
+      "maximum_model_cargo_tonnes": 285000,
+      "laden_speed_knots": 13.0,
+      "ballast_speed_knots": 12.5,
+      "sources": [
+        "baltic_classes",
+        "baltic_speed_2015",
+        "baltic_routes"
+      ],
+      "cargo_note": "representative parcel, not every vessel full-load capacity"
+    },
+    "suezmax": {
+      "reference_dwt_tonnes": 160000,
+      "default_cargo_tonnes": 135000,
+      "maximum_model_cargo_tonnes": 145000,
+      "laden_speed_knots": 13.0,
+      "ballast_speed_knots": 12.5,
+      "sources": [
+        "baltic_classes",
+        "baltic_speed_2015",
+        "baltic_routes"
+      ],
+      "cargo_note": "representative parcel, not every vessel full-load capacity"
+    },
+    "aframax": {
+      "reference_dwt_tonnes": 105000,
+      "default_cargo_tonnes": 80000,
+      "maximum_model_cargo_tonnes": 100000,
+      "laden_speed_knots": 13.0,
+      "ballast_speed_knots": 12.5,
+      "sources": [
+        "baltic_classes",
+        "baltic_speed_2015",
+        "baltic_routes"
+      ],
+      "cargo_note": "representative parcel, not every vessel full-load capacity"
+    }
+  },
+  "class_order": [
+    "vlcc",
+    "suezmax",
+    "aframax"
+  ],
+  "class_share_matrix_bps": {
+    "gulf": {
+      "east_asia": [
+        9000,
+        1000,
+        0
+      ],
+      "south_asia": [
+        5500,
+        3500,
+        1000
+      ],
+      "europe": [
+        2000,
+        7000,
+        1000
+      ],
+      "north_america_import": [
+        5000,
+        4000,
+        1000
+      ],
+      "rest_of_world": [
+        4000,
+        4000,
+        2000
+      ]
+    },
+    "us_gulf": {
+      "east_asia": [
+        7000,
+        2500,
+        500
+      ],
+      "south_asia": [
+        6500,
+        3000,
+        500
+      ],
+      "europe": [
+        1000,
+        5000,
+        4000
+      ],
+      "north_america_import": [
+        0,
+        2000,
+        8000
+      ],
+      "rest_of_world": [
+        1500,
+        4000,
+        4500
+      ]
+    },
+    "brazil_guyana": {
+      "east_asia": [
+        8000,
+        2000,
+        0
+      ],
+      "south_asia": [
+        7000,
+        2500,
+        500
+      ],
+      "europe": [
+        1500,
+        7500,
+        1000
+      ],
+      "north_america_import": [
+        1000,
+        6000,
+        3000
+      ],
+      "rest_of_world": [
+        2000,
+        5000,
+        3000
+      ]
+    },
+    "west_africa": {
+      "east_asia": [
+        8000,
+        2000,
+        0
+      ],
+      "south_asia": [
+        6000,
+        3500,
+        500
+      ],
+      "europe": [
+        1000,
+        7000,
+        2000
+      ],
+      "north_america_import": [
+        2500,
+        6000,
+        1500
+      ],
+      "rest_of_world": [
+        2000,
+        5000,
+        3000
+      ]
+    },
+    "other_export_regions": {
+      "east_asia": [
+        3500,
+        3500,
+        3000
+      ],
+      "south_asia": [
+        3000,
+        4500,
+        2500
+      ],
+      "europe": [
+        500,
+        4000,
+        5500
+      ],
+      "north_america_import": [
+        1000,
+        3000,
+        6000
+      ],
+      "rest_of_world": [
+        1000,
+        3500,
+        5500
+      ]
+    }
+  },
+  "parcel_overrides_tonnes": {
+    "gulf::europe": {
+      "suezmax": 140000
+    },
+    "us_gulf::europe": {
+      "aframax": 70000
+    },
+    "brazil_guyana::europe": {
+      "suezmax": 130000
+    },
+    "west_africa::east_asia": {
+      "vlcc": 260000
+    },
+    "west_africa::europe": {
+      "suezmax": 130000
+    }
+  },
+  "benchmark_analogues": {
+    "gulf::east_asia": [
+      "TD3C"
+    ],
+    "gulf::europe": [
+      "TD23"
+    ],
+    "us_gulf::east_asia": [
+      "TD22"
+    ],
+    "us_gulf::europe": [
+      "TD25",
+      "TD33"
+    ],
+    "brazil_guyana::europe": [
+      "TD27"
+    ],
+    "west_africa::east_asia": [
+      "TD15"
+    ],
+    "west_africa::europe": [
+      "TD20"
+    ]
+  },
+  "path_overrides": {
+    "gulf::europe": {
+      "paths": [
+        {
+          "path_id": "suez_proxy",
+          "distance_nm": 6100.0,
+          "allowed_laden_classes": [
+            "suezmax",
+            "aframax"
+          ],
+          "source": "design",
+          "confidence": "basin_reference",
+          "chokepoints": [
+            "霍尔木兹",
+            "红海／苏伊士",
+            "好望角备选"
+          ],
+          "access_note": "Conservative model mask: no full VLCC/SUMED transshipment in this sailing-only path; not a universal ban on real VLCC canal passage."
+        },
+        {
+          "path_id": "cape_proxy",
+          "distance_nm": 11500.0,
+          "allowed_laden_classes": [
+            "vlcc",
+            "suezmax",
+            "aframax"
+          ],
+          "source": "design",
+          "confidence": "low",
+          "chokepoints": [
+            "霍尔木兹",
+            "好望角"
+          ],
+          "access_note": "Unmeasured broad-basin Cape proxy; validate before fleet calibration."
+        }
+      ],
+      "default_path_by_class": {
+        "vlcc": "cape_proxy",
+        "suezmax": "suez_proxy",
+        "aframax": "suez_proxy"
+      }
+    }
+  },
+  "lane_notes": {
+    "us_gulf::east_asia": "Long Cape proxy; Panama shortcut is not enabled. No STS extra vessel counted."
+  },
+  "ballast_policy": {
+    "import_to_export": "reverse_accounting_distance_proxy; empty Europe->Gulf uses Suez proxy independently of full VLCC laden mask",
+    "confidence": "low",
+    "assume_symmetric_export_cross_priors": true,
+    "diagonal_export_stay_days": 0,
+    "missing_or_aggregate_leg": "reject_physical_plan_not_free_teleport"
+  },
+  "export_cross_distance_priors_nm": {
+    "gulf::us_gulf": 8500,
+    "gulf::brazil_guyana": 9000,
+    "gulf::west_africa": 7500,
+    "us_gulf::brazil_guyana": 5000,
+    "us_gulf::west_africa": 5500,
+    "brazil_guyana::west_africa": 3300
+  }
+}

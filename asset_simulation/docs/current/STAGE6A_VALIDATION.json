@@ -1,0 +1,315 @@
+{
+  "audit_id": "stage6a-global-contract-audit-v1",
+  "catalog_hash": "b867c7a67807018a48bfee0e99016e123db8c4872908545dc9243299394ee8d0",
+  "annual_transitions": 20,
+  "calendar_label_years_per_seed": 21,
+  "seeds": [
+    0,
+    1,
+    5,
+    7,
+    42
+  ],
+  "tables": {
+    "route_class_row_count": 75,
+    "ballast_class_row_count": 150,
+    "geography_ready_pair_count": 16,
+    "unresolved_pair_count": 9,
+    "maximum_abs_laden_rounding_error_days": 4.7435897435897445,
+    "maximum_abs_ballast_rounding_error_days": 5.0,
+    "reference_class_cargo_mbd": {
+      "vlcc": 17.455,
+      "suezmax": 13.405,
+      "aframax": 8.94
+    },
+    "reference_unresolved_cargo_mbd": 17.5,
+    "table_hash": "e036b7d754ccd47951c04c90296262b5aae24806a7792aa422746807eceff51c"
+  },
+  "share_sensitivity": [
+    {
+      "vlcc_vs_suez_share_shift_bps": -1000,
+      "reference_total_cargo_mbd": 39.800000000000004,
+      "roundtrip_reference_equivalents": {
+        "vlcc": 377.986574561917,
+        "suezmax": 787.1003172373034,
+        "aframax": 606.5557729941291
+      },
+      "scope": "conditional_reference_workload_not_inferred_real_fleet"
+    },
+    {
+      "vlcc_vs_suez_share_shift_bps": 0,
+      "reference_total_cargo_mbd": 39.800000000000004,
+      "roundtrip_reference_equivalents": {
+        "vlcc": 471.1489677243102,
+        "suezmax": 604.3554618897084,
+        "aframax": 606.5557729941291
+      },
+      "scope": "conditional_reference_workload_not_inferred_real_fleet"
+    },
+    {
+      "vlcc_vs_suez_share_shift_bps": 1000,
+      "reference_total_cargo_mbd": 39.800000000000004,
+      "roundtrip_reference_equivalents": {
+        "vlcc": 567.5077079186668,
+        "suezmax": 415.21791247818646,
+        "aframax": 606.5557729941291
+      },
+      "scope": "conditional_reference_workload_not_inferred_real_fleet"
+    }
+  ],
+  "gates": {
+    "catalog_covers_25_od_pairs": true,
+    "route_by_class_covers_75_combinations": true,
+    "ballast_reference_has_50_directed_choices": true,
+    "all_plan_barrels_partitioned_once": true,
+    "eleven_residual_pairs_not_discarded": true,
+    "ordinary_seed_replay_matches_public_cargo": true,
+    "each_operating_month_is_30_days": true,
+    "integer_clock_rounding_is_disclosed": true,
+    "source_worlds_and_catalog_unmodified": true,
+    "no_false_global_fleet_or_price_claim": true
+  },
+  "all_gates_pass": true,
+  "per_seed": [
+    {
+      "scope": "research_catalogue_workload_not_global_market",
+      "seed": 0,
+      "catalog_hash": "b867c7a67807018a48bfee0e99016e123db8c4872908545dc9243299394ee8d0",
+      "upstream_identity_hash": "de98b3048cf6b7651ad6a98c134a78ab2d5969a16664e37de7e2aeda07d1726e",
+      "month_count": 252,
+      "operating_turn_count": 756,
+      "operating_day_count": 7560,
+      "source_calendar_plan_bbl": 322262536221,
+      "operating_plan_bbl": 317645711781,
+      "clock_projection_difference_bbl": -4616824440,
+      "residual_11_pair_plan_bbl": 88747285518,
+      "class_totals": {
+        "vlcc": {
+          "plan_bbl": 142633501281,
+          "geography_ready_bbl": 110643690552,
+          "unresolved_geography_bbl": 31989810729,
+          "roundtrip_reference_vessel_turns": 396445.8230232427,
+          "mean_roundtrip_reference_vessel_equivalent": 524.3992368032311
+        },
+        "suezmax": {
+          "plan_bbl": 106167740787,
+          "geography_ready_bbl": 52075227540,
+          "unresolved_geography_bbl": 54092513247,
+          "roundtrip_reference_vessel_turns": 490172.48718349414,
+          "mean_roundtrip_reference_vessel_equivalent": 648.3763057982727
+        },
+        "aframax": {
+          "plan_bbl": 68844469713,
+          "geography_ready_bbl": 14400976095,
+          "unresolved_geography_bbl": 54443493618,
+          "roundtrip_reference_vessel_turns": 474183.49591585144,
+          "mean_roundtrip_reference_vessel_equivalent": 627.2268464495389
+        }
+      },
+      "class_split_residual_bbl": 0,
+      "maximum_pair_month_rounding_error_bbl": 1.499929598532617,
+      "maximum_route_replay_error": 5.447999956231797e-05,
+      "maximum_group_cargo_error_mbd": 4.9999602236283636e-09,
+      "upstream_effective_tonne_nm_on_operating_clock": 242207478955075.16,
+      "catalogue_selected_path_tonne_nm": 244495027618029.78,
+      "tonne_mile_difference_scope": "different_geographic_path_assumptions_not_a_conservation_error",
+      "source_unchanged": true,
+      "global_fleet_size_inferred": false,
+      "price_present": false,
+      "cost_present": false,
+      "result_hash": "83275e7c18a8ba5153462bde15f61473768e9305623b0a7bde3e5360037515b9"
+    },
+    {
+      "scope": "research_catalogue_workload_not_global_market",
+      "seed": 1,
+      "catalog_hash": "b867c7a67807018a48bfee0e99016e123db8c4872908545dc9243299394ee8d0",
+      "upstream_identity_hash": "1e4f4c7965b4de82594f547e7da08cb8065738374f166be15929b2921d0e74c7",
+      "month_count": 252,
+      "operating_turn_count": 756,
+      "operating_day_count": 7560,
+      "source_calendar_plan_bbl": 312771533097,
+      "operating_plan_bbl": 308294335440,
+      "clock_projection_difference_bbl": -4477197657,
+      "residual_11_pair_plan_bbl": 82120224867,
+      "class_totals": {
+        "vlcc": {
+          "plan_bbl": 137794969566,
+          "geography_ready_bbl": 107523196566,
+          "unresolved_geography_bbl": 30271773000,
+          "roundtrip_reference_vessel_turns": 385979.72247957013,
+          "mean_roundtrip_reference_vessel_equivalent": 510.55518846503986
+        },
+        "suezmax": {
+          "plan_bbl": 102777870639,
+          "geography_ready_bbl": 51067088505,
+          "unresolved_geography_bbl": 51710782134,
+          "roundtrip_reference_vessel_turns": 477646.13045222923,
+          "mean_roundtrip_reference_vessel_equivalent": 631.8070508627371
+        },
+        "aframax": {
+          "plan_bbl": 67721495235,
+          "geography_ready_bbl": 14696205312,
+          "unresolved_geography_bbl": 53025289923,
+          "roundtrip_reference_vessel_turns": 468329.6659491198,
+          "mean_roundtrip_reference_vessel_equivalent": 619.4836851178833
+        }
+      },
+      "class_split_residual_bbl": 0,
+      "maximum_pair_month_rounding_error_bbl": 1.499860230833292,
+      "maximum_route_replay_error": 5.469999996421393e-05,
+      "maximum_group_cargo_error_mbd": 4.997020131014551e-09,
+      "upstream_effective_tonne_nm_on_operating_clock": 235565612886883.03,
+      "catalogue_selected_path_tonne_nm": 237945650223165.25,
+      "tonne_mile_difference_scope": "different_geographic_path_assumptions_not_a_conservation_error",
+      "source_unchanged": true,
+      "global_fleet_size_inferred": false,
+      "price_present": false,
+      "cost_present": false,
+      "result_hash": "2441b7f66b9bb745f2ad5874a188a24b2a309967bc71536e2287653166d2e476"
+    },
+    {
+      "scope": "research_catalogue_workload_not_global_market",
+      "seed": 5,
+      "catalog_hash": "b867c7a67807018a48bfee0e99016e123db8c4872908545dc9243299394ee8d0",
+      "upstream_identity_hash": "ce8c46fa559bab5f329d57455b55f6032927937df571c992edf5248dd40d0b31",
+      "month_count": 252,
+      "operating_turn_count": 756,
+      "operating_day_count": 7560,
+      "source_calendar_plan_bbl": 299511377816,
+      "operating_plan_bbl": 295226633079,
+      "clock_projection_difference_bbl": -4284744737,
+      "residual_11_pair_plan_bbl": 84375269991,
+      "class_totals": {
+        "vlcc": {
+          "plan_bbl": 131811442743,
+          "geography_ready_bbl": 101202546342,
+          "unresolved_geography_bbl": 30608896401,
+          "roundtrip_reference_vessel_turns": 366608.6524873567,
+          "mean_roundtrip_reference_vessel_equivalent": 484.93208000973107
+        },
+        "suezmax": {
+          "plan_bbl": 98503008900,
+          "geography_ready_bbl": 47216208051,
+          "unresolved_geography_bbl": 51286800849,
+          "roundtrip_reference_vessel_turns": 453998.9531758575,
+          "mean_roundtrip_reference_vessel_equivalent": 600.5277158410813
+        },
+        "aframax": {
+          "plan_bbl": 64912181436,
+          "geography_ready_bbl": 12784105884,
+          "unresolved_geography_bbl": 52128075552,
+          "roundtrip_reference_vessel_turns": 445114.5608842955,
+          "mean_roundtrip_reference_vessel_equivalent": 588.7758741855761
+        }
+      },
+      "class_split_residual_bbl": 0,
+      "maximum_pair_month_rounding_error_bbl": 1.4998332588002086,
+      "maximum_route_replay_error": 5.4799999816168565e-05,
+      "maximum_group_cargo_error_mbd": 4.999117786397278e-09,
+      "upstream_effective_tonne_nm_on_operating_clock": 227130061406719.3,
+      "catalogue_selected_path_tonne_nm": 227682870613766.53,
+      "tonne_mile_difference_scope": "different_geographic_path_assumptions_not_a_conservation_error",
+      "source_unchanged": true,
+      "global_fleet_size_inferred": false,
+      "price_present": false,
+      "cost_present": false,
+      "result_hash": "d160a52b2148bc2c98fd8069dce0077f21b120091d0b16862f5091f4779fbc43"
+    },
+    {
+      "scope": "research_catalogue_workload_not_global_market",
+      "seed": 7,
+      "catalog_hash": "b867c7a67807018a48bfee0e99016e123db8c4872908545dc9243299394ee8d0",
+      "upstream_identity_hash": "a13b72b37ba3551800340cc747daa98b7715b8eebcb8acb63274cdf762781671",
+      "month_count": 252,
+      "operating_turn_count": 756,
+      "operating_day_count": 7560,
+      "source_calendar_plan_bbl": 311504202681,
+      "operating_plan_bbl": 307044571422,
+      "clock_projection_difference_bbl": -4459631259,
+      "residual_11_pair_plan_bbl": 83581822656,
+      "class_totals": {
+        "vlcc": {
+          "plan_bbl": 136653458217,
+          "geography_ready_bbl": 106374953535,
+          "unresolved_geography_bbl": 30278504682,
+          "roundtrip_reference_vessel_turns": 380074.3454069777,
+          "mean_roundtrip_reference_vessel_equivalent": 502.74384313092287
+        },
+        "suezmax": {
+          "plan_bbl": 103179903417,
+          "geography_ready_bbl": 52013971884,
+          "unresolved_geography_bbl": 51165931533,
+          "roundtrip_reference_vessel_turns": 475532.52657718107,
+          "mean_roundtrip_reference_vessel_equivalent": 629.0112785412448
+        },
+        "aframax": {
+          "plan_bbl": 67211209788,
+          "geography_ready_bbl": 15143519283,
+          "unresolved_geography_bbl": 52067690505,
+          "roundtrip_reference_vessel_turns": 465214.4362529351,
+          "mean_roundtrip_reference_vessel_equivalent": 615.3630109165808
+        }
+      },
+      "class_split_residual_bbl": 0,
+      "maximum_pair_month_rounding_error_bbl": 1.4988133609294891,
+      "maximum_route_replay_error": 5.446999966807198e-05,
+      "maximum_group_cargo_error_mbd": 4.999106906211637e-09,
+      "upstream_effective_tonne_nm_on_operating_clock": 235453828445935.44,
+      "catalogue_selected_path_tonne_nm": 236286372689999.4,
+      "tonne_mile_difference_scope": "different_geographic_path_assumptions_not_a_conservation_error",
+      "source_unchanged": true,
+      "global_fleet_size_inferred": false,
+      "price_present": false,
+      "cost_present": false,
+      "result_hash": "a4e14382e656cb31930b53fd427597a83d17e2e6f64f07e1717a0d1b1a905885"
+    },
+    {
+      "scope": "research_catalogue_workload_not_global_market",
+      "seed": 42,
+      "catalog_hash": "b867c7a67807018a48bfee0e99016e123db8c4872908545dc9243299394ee8d0",
+      "upstream_identity_hash": "6d52e8f2e9d3ded565920e2cb8c53936bec4034096a3765a553ac4c20bc176dd",
+      "month_count": 252,
+      "operating_turn_count": 756,
+      "operating_day_count": 7560,
+      "source_calendar_plan_bbl": 302331016184,
+      "operating_plan_bbl": 298003681194,
+      "clock_projection_difference_bbl": -4327334990,
+      "residual_11_pair_plan_bbl": 77566866879,
+      "class_totals": {
+        "vlcc": {
+          "plan_bbl": 136368644316,
+          "geography_ready_bbl": 108612701103,
+          "unresolved_geography_bbl": 27755943213,
+          "roundtrip_reference_vessel_turns": 376554.7890590102,
+          "mean_roundtrip_reference_vessel_equivalent": 498.0883453161511
+        },
+        "suezmax": {
+          "plan_bbl": 97919302743,
+          "geography_ready_bbl": 49726446447,
+          "unresolved_geography_bbl": 48192856296,
+          "roundtrip_reference_vessel_turns": 451172.6020873665,
+          "mean_roundtrip_reference_vessel_equivalent": 596.7891562002203
+        },
+        "aframax": {
+          "plan_bbl": 63715734135,
+          "geography_ready_bbl": 14000615355,
+          "unresolved_geography_bbl": 49715118780,
+          "roundtrip_reference_vessel_turns": 437056.4386313607,
+          "mean_roundtrip_reference_vessel_equivalent": 578.1169823166147
+        }
+      },
+      "class_split_residual_bbl": 0,
+      "maximum_pair_month_rounding_error_bbl": 1.4997899271547794,
+      "maximum_route_replay_error": 5.484000030264724e-05,
+      "maximum_group_cargo_error_mbd": 4.999733516086735e-09,
+      "upstream_effective_tonne_nm_on_operating_clock": 226789434747834.56,
+      "catalogue_selected_path_tonne_nm": 228839197425287.28,
+      "tonne_mile_difference_scope": "different_geographic_path_assumptions_not_a_conservation_error",
+      "source_unchanged": true,
+      "global_fleet_size_inferred": false,
+      "price_present": false,
+      "cost_present": false,
+      "result_hash": "ae503e71f57824bfa53d51894f314d424404beab4385e9aae9515a559b512180"
+    }
+  ]
+}

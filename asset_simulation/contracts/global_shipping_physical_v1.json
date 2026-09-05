@@ -1,0 +1,54 @@
+{
+  "contract_id": "global_shipping_physical_v1",
+  "model_version": "asset-simulation-stage6a-contract-v0.1.0",
+  "scope": "research_physical_catalogue_and_departure_plans_not_global_market",
+  "owners": {
+    "upstream_trade": "oil_shipping_world; not modified by Stage6A",
+    "catalogue_and_movement_plans": "global_shipping_contract",
+    "read_only_pair_and_class_projection": "global_shipping_projection",
+    "future_fleet_assignment": "not_implemented",
+    "future_global_price_discovery": "not_implemented"
+  },
+  "clock": {"turn_days": 10, "loading_turns": 0, "discharge_turns": 1, "turns_per_label_year": 36},
+  "units": {
+    "scheduled_plan_bbl": "integer_barrels_per_10_operating_day_window",
+    "allocated_plan_bbl": "integer_barrels_per_class_per_window",
+    "cargo_bbl": "integer_barrels_per_reference_parcel",
+    "cargo_tonnes": "metric_tonnes_not_ship_deadweight",
+    "distance_nm": "nautical_miles",
+    "speed_knots": "nautical_miles_per_hour",
+    "reference_sea_days": "continuous_24_hour_days",
+    "share_bps": "basis_points_of_cargo_not_of_ship_count",
+    "same_origin_roundtrip_ship_days": "reference_ship_days_not_actual_fleet_occupancy",
+    "same_origin_roundtrip_vessel_equivalent": "continuous_workload_equivalent_not_vessels_available"
+  },
+  "invariants": [
+    "25 inherited OD cells equal 14 display routes plus 11 residual cells",
+    "one crude barrel allocated to exactly one vessel class; class shares total 10000 bps",
+    "shares are design priors, not measured market frequencies and not compatibility permissions",
+    "all parcel and remainder barrels remain accounted for; planning slices do not discard operational backlog",
+    "all loaded legs take at least one sea turn; only explicit same-node stay may take zero turns",
+    "cargo delivery and ship release occur at the start of depart_turn + laden_turns + discharge_turns",
+    "empty repositioning has zero cargo and zero discharge time",
+    "ships become open at the actual destination, never automatically return home",
+    "route-class-specific paths and reverse ballast legs are separate",
+    "departure plans freeze distance and timing; later snapshots cannot retime a voyage already at sea",
+    "aggregate geography has no physical plan until a concrete subbasin is selected",
+    "global fixture allocation must later consume each prompt ship at most once across competing routes",
+    "class partitions are alternative allocations of one common cargo total, not three copies of demand",
+    "reference return-cycle workload is a diagnostic, not a global fleet-size estimate",
+    "natural-calendar source quantities and 360-day operating projections are separate",
+    "reference averages never automatically override vessel/path-specific distances",
+    "research replay may read current/past route states, not future year-end anchors",
+    "no costs, no owner AI, no global prices, no automatic fleet rebalancing in Stage6A"
+  ],
+  "future_pricing_contract": {
+    "market_key": ["pair_id", "vessel_class"],
+    "bounded_inventory_premium": "separate_from_total_price_bounds",
+    "global_and_local_tightness": "do_not_double_count_the_same_scarcity",
+    "price_units": "class_specific_real_and_nominal_TCE_not_a_common_USD_per_barrel",
+    "raw_prompt_compatibility": "not_an_allocation; one_ship_must_not_be_sold_on_several_routes",
+    "transaction_price": "requires_fixture_execution; quoted_TCE_is_not_cash_income",
+    "status": "interface_design_only_no_new_price_formula"
+  }
+}
