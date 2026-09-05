@@ -57,7 +57,7 @@ real_economy → inflation_nominal → rates → funding_credit
 年度世界使用服务内有界缓存；油运世界使用上游 identity 和普通参数构成的确定性投影缓存。服务重启后可由 Seed 完整重建。
 
 
-### 2026-09-05 候选增补（优先于上述旧进度描述）
+### 2026-09-05 主线增补（优先于上述旧进度描述）
 新增独立 `single_route_pricing` v0.2.1；它只读供需和计划库存偏离并输出TCE，不属于已实现的船队。
-定价不接入现有Viewer，也不反写原油需求。研究接口保留；新的 `/api/decision` 只发布月末可见字段。
+定价不接入现有Viewer，也不反写原油需求。研究接口保留；新的 `/api/decision` 只发布月末可见字段，由年度锚插值的油价月线只发布初始年或已完成年度。
 详细修复范围、兼容性与验证见 `docs/current/MAIN_REVIEW_FIXES.md`。

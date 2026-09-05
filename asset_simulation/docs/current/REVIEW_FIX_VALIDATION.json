@@ -1,7 +1,6 @@
 {
-  "base_main_sha": "75722a1db5867eec9a2f0a1fa96fa30b1df88cb4",
   "calendar_control": {
-    "old_adapter": {
+    "legacy_calendar_adapter": {
       "maximum_abs_inventory_gap_days": 2.04693548,
       "maximum_real_tce": 50412.27,
       "median_real_tce": 38698.235,
@@ -18,16 +17,23 @@
       "real_tce_cv": 0.0040505094695444934
     }
   },
+  "comparison_method": "self_contained_legacy_calendar_formula",
   "constant_control_warmup_turns": 36,
-  "interpretation": "Behavioral regressions, not a fit to observed tanker-market freight prices.",
-  "legacy_pricing_sha": "1f077c609111e6767866d1adc6b1796e2ccf87c2",
+  "interpretation": "Self-contained behavioral regressions, not a fit to observed tanker-market freight prices.",
   "per_seed": [
     {
-      "old_adapter": {
+      "legacy_calendar_adapter": {
+        "calendar_day_count": 7670,
+        "closing_destination_inventory_deviation_mmbbl": -1.32842383,
+        "closing_origin_inventory_deviation_mmbbl": 4.63656507,
+        "covered_calendar_year_count": 21,
+        "cumulative_unfilled_fixture_observations_vlcc": 578,
+        "matched_fixture_count": 35439,
         "maximum_abs_inventory_conservation_residual_mmbbl": 0.0,
         "maximum_abs_inventory_gap_days": 2.177033,
         "maximum_price_guard_hit_turns": 0,
         "minimum_price_guard_hit_turns": 0,
+        "no_match_turn_count": 0,
         "nominal_tce_usd_per_day_max": 81359.9,
         "nominal_tce_usd_per_day_median": 49198.29,
         "nominal_tce_usd_per_day_p05": 33932.73,
@@ -155,11 +161,18 @@
       "seed": 0
     },
     {
-      "old_adapter": {
+      "legacy_calendar_adapter": {
+        "calendar_day_count": 7670,
+        "closing_destination_inventory_deviation_mmbbl": -2.98847147,
+        "closing_origin_inventory_deviation_mmbbl": 5.03126772,
+        "covered_calendar_year_count": 21,
+        "cumulative_unfilled_fixture_observations_vlcc": 563,
+        "matched_fixture_count": 35046,
         "maximum_abs_inventory_conservation_residual_mmbbl": 0.0,
         "maximum_abs_inventory_gap_days": 2.034926,
         "maximum_price_guard_hit_turns": 0,
         "minimum_price_guard_hit_turns": 0,
+        "no_match_turn_count": 0,
         "nominal_tce_usd_per_day_max": 78064.1,
         "nominal_tce_usd_per_day_median": 48003.82,
         "nominal_tce_usd_per_day_p05": 33605.06,
@@ -287,11 +300,18 @@
       "seed": 1
     },
     {
-      "old_adapter": {
+      "legacy_calendar_adapter": {
+        "calendar_day_count": 7670,
+        "closing_destination_inventory_deviation_mmbbl": -2.72504933,
+        "closing_origin_inventory_deviation_mmbbl": 7.06411261,
+        "covered_calendar_year_count": 21,
+        "cumulative_unfilled_fixture_observations_vlcc": 534,
+        "matched_fixture_count": 33771,
         "maximum_abs_inventory_conservation_residual_mmbbl": 0.0,
         "maximum_abs_inventory_gap_days": 2.137746,
         "maximum_price_guard_hit_turns": 0,
         "minimum_price_guard_hit_turns": 0,
+        "no_match_turn_count": 0,
         "nominal_tce_usd_per_day_max": 72611.3,
         "nominal_tce_usd_per_day_median": 46733.92,
         "nominal_tce_usd_per_day_p05": 32923.48,
@@ -419,11 +439,18 @@
       "seed": 5
     },
     {
-      "old_adapter": {
+      "legacy_calendar_adapter": {
+        "calendar_day_count": 7670,
+        "closing_destination_inventory_deviation_mmbbl": -1.99595958,
+        "closing_origin_inventory_deviation_mmbbl": 3.82565946,
+        "covered_calendar_year_count": 21,
+        "cumulative_unfilled_fixture_observations_vlcc": 562,
+        "matched_fixture_count": 34967,
         "maximum_abs_inventory_conservation_residual_mmbbl": 0.0,
         "maximum_abs_inventory_gap_days": 2.14356,
         "maximum_price_guard_hit_turns": 0,
         "minimum_price_guard_hit_turns": 0,
+        "no_match_turn_count": 0,
         "nominal_tce_usd_per_day_max": 82193.34,
         "nominal_tce_usd_per_day_median": 47513.04,
         "nominal_tce_usd_per_day_p05": 32896.96,
@@ -551,11 +578,18 @@
       "seed": 7
     },
     {
-      "old_adapter": {
+      "legacy_calendar_adapter": {
+        "calendar_day_count": 7670,
+        "closing_destination_inventory_deviation_mmbbl": -2.72172167,
+        "closing_origin_inventory_deviation_mmbbl": 4.27673218,
+        "covered_calendar_year_count": 21,
+        "cumulative_unfilled_fixture_observations_vlcc": 626,
+        "matched_fixture_count": 36746,
         "maximum_abs_inventory_conservation_residual_mmbbl": 0.0,
         "maximum_abs_inventory_gap_days": 2.23412,
         "maximum_price_guard_hit_turns": 0,
         "minimum_price_guard_hit_turns": 0,
+        "no_match_turn_count": 0,
         "nominal_tce_usd_per_day_max": 73943.64,
         "nominal_tce_usd_per_day_median": 45458.1,
         "nominal_tce_usd_per_day_p05": 33641.76,
@@ -684,44 +718,10 @@
     }
   ],
   "pricing_coefficients_changed": false,
-  "schema_version": "asset-simulation-review-validation-v1",
+  "schema_version": "asset-simulation-review-validation-v2",
   "seeded_window": {
     "annual_transitions": 20,
     "calendar_years": 21,
     "shipping_turns": 756
-  },
-  "upstream_output_regression": {
-    "all_equal": true,
-    "annual_transitions": 20,
-    "base_commit": "75722a1db5867eec9a2f0a1fa96fa30b1df88cb4",
-    "calendar_years": 21,
-    "result_hashes": {
-      "0": {
-        "macro": "5cadbf4b269ea64c5bfc86ca55a3f87cbf33f7d488e8d82d7f9fc4f1f0034ee4",
-        "oil_price": "da58a8da921a5f36628c6eeac590819b89628deba4419de0e84a4f530eca78b8",
-        "shipping": "f5bda0a87ecafc610968b43a381b03f2c3666d63b84b84c5a48b1e65a67644a1"
-      },
-      "1": {
-        "macro": "8890c466f8e4137a6195b0c2d4647fff934510bda9421662cb1778b8e6df31f6",
-        "oil_price": "d2713db7f2d291ec5ad29d7a4f594174df40d78a892b102b92a70bf962a117c8",
-        "shipping": "0e1ebc7ca2e89d4bbea1461eb1c66bb31e3ab879ed95c24d363e163214707d28"
-      },
-      "42": {
-        "macro": "6522240dbc8d87e38d46b1f858421ec0f7bcfcd454336a9e7af3d40c79b86831",
-        "oil_price": "3a88c2e856758c38be7215479395a142c55790ced3fac57a5013742bc573a22d",
-        "shipping": "b07bd9a612039c256e304a985641993fa0fe8af26d4b866afb9e561218bf5478"
-      },
-      "5": {
-        "macro": "864b98e9f6ca0ac795a79e0e9c09e6f2431c0ed31768020f2d611697ebbdabc6",
-        "oil_price": "1f30567601fa8d440c4e02d8b10c728192297813b8abd3e86aaf7e8e18e23c1d",
-        "shipping": "940cd98495bd34cf3badbcd8379ade8b248df2018dfb683d789d8833b5eeed49"
-      },
-      "7": {
-        "macro": "96fb168cf6c498cda58197e29516f6a831d2ef4b4943def31a45366fefba859a",
-        "oil_price": "23d409257d6fb4d73367ef4796e0939aed385badfa6d9ac14263f379eaee51a1",
-        "shipping": "7ec31de8b2b84b253c7328ca27bc412b56034a5b0869feeb10857c2073b40229"
-      }
-    },
-    "seed_count": 5
   }
 }

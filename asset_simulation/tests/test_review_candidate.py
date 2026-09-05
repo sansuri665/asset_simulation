@@ -183,14 +183,19 @@ class DecisionBoundaryTests(unittest.TestCase):
         view = self.snapshot()
         self.assertEqual(2027, view['macro']['year'])
         self.assertEqual((2028, 6), (view['shipping']['year'], view['shipping']['month']))
-        self.assertTrue(all((r['year'], r['month']) <= (2028, 6) for r in view['oilPrices']))
+        self.assertEqual({'year': 2027, 'month': 12}, view['oilPriceAsOf'])
+        self.assertTrue(all(r['year'] <= 2027 for r in view['oilPrices']))
         text = json.dumps(view)
         for forbidden in ('annual_close_anchor', 'upstream_global_identity_hash', 'end_year', 'nextYearInputs', 'long_run_demand_regime'):
             self.assertNotIn(forbidden, text)
-        self.assertEqual(2028, self.snapshot(month=12)['macro']['year'])
+        december = self.snapshot(month=12)
+        self.assertEqual(2028, december['macro']['year'])
+        self.assertEqual({'year': 2028, 'month': 12}, december['oilPriceAsOf'])
 
     def test_initial_macro_row_available_at_start(self):
-        self.assertEqual(2025, self.snapshot(year=2025, month=1)['macro']['year'])
+        initial = self.snapshot(year=2025, month=1)
+        self.assertEqual(2025, initial['macro']['year'])
+        self.assertEqual({'year': 2025, 'month': 1}, initial['oilPriceAsOf'])
 
     def test_longer_world_has_identical_visible_snapshot_and_hash(self):
         run = run_global_macro(42, 6)
@@ -207,6 +212,36 @@ class DecisionBoundaryTests(unittest.TestCase):
         mutated = replace(self.prices, monthly=monthly)
         view = build_decision_snapshot(self.macro, self.world, mutated, as_of_year=2028, as_of_month=6)
         self.assertEqual(self.snapshot(), view)
+
+    def test_unsettled_year_end_anchor_cannot_change_visible_snapshot(self):
+        rows = deepcopy(self.macro.rows)
+        current_year = next(row for row in rows if row['year'] == 2028)
+        current_year['brent_oil_price_usd'] *= 1.5
+        changed_macro = replace(
+            self.macro,
+            rows=tuple(rows),
+            identity={
+                **self.macro.identity,
+                'identity_hash': 'counterfactual-unsettled-2028-anchor',
+            },
+        )
+        changed_june = build_decision_snapshot(
+            changed_macro,
+            run_oil_shipping_world(changed_macro),
+            run_oil_price_projection(changed_macro),
+            as_of_year=2028,
+            as_of_month=6,
+        )
+        self.assertEqual(self.snapshot(), changed_june)
+
+        changed_december = build_decision_snapshot(
+            changed_macro,
+            run_oil_shipping_world(changed_macro),
+            run_oil_price_projection(changed_macro),
+            as_of_year=2028,
+            as_of_month=12,
+        )
+        self.assertNotEqual(self.snapshot(month=12), changed_december)
 
     def test_wrong_input_identity_rejected(self):
         other = run_oil_price_projection(run_global_macro(7, 5))

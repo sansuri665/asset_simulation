@@ -1,8 +1,8 @@
-name: Main review candidate regression
+name: Main regression
 
 on:
   push:
-    branches: [main-review-fixes-candidate, main]
+    branches: [main]
   pull_request:
   workflow_dispatch:
 
@@ -10,7 +10,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: review-regression-${{ github.ref }}
+  group: main-regression-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -51,22 +51,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0
           persist-credentials: false
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Audit original upstream worlds
+      - name: Audit upstream worlds
         run: python -m asset_simulation.audit_oil_shipping_demand --seeds 0,1,2,3,4,5,6,7 --years 60 > "$RUNNER_TEMP/upstream-audit.json"
-      - name: Audit repaired pricing worlds
+      - name: Audit single-route pricing worlds
         run: python -m asset_simulation.audit_single_route_pricing --seeds 0,1,5,7,42 --years 20 > "$RUNNER_TEMP/pricing-audit.json"
-      - name: Calendar controls and exact upstream hash comparison
+      - name: Reproduce self-contained calendar controls
         run: python tools/run_review_checks.py --output "$RUNNER_TEMP/review-validation.json"
       - name: Preserve numerical evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: seeded-review-audit-evidence
+          name: seeded-main-audit-evidence
           path: |
             ${{ runner.temp }}/upstream-audit.json
             ${{ runner.temp }}/pricing-audit.json

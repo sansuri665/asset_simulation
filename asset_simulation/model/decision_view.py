@@ -83,17 +83,24 @@ def build_decision_snapshot(
         row for row in shipping_world.turns
         if (int(row['year']), int(row['month'])) <= target
     ]
+    # Monthly oil bars are interpolated from annual closing anchors. Until an
+    # annual row has settled, an apparently completed bar would still embed
+    # that unknown year-end anchor. Row zero is an available initial condition.
+    price_year_cutoff = max(global_run.start_year, annual_cutoff)
     prices_visible = [
         _select(row, PRICE_FIELDS) for row in price_projection.monthly
-        if (int(row['year']), int(row['month'])) <= target
+        if int(row['year']) <= price_year_cutoff
+        and (int(row['year']), int(row['month'])) <= target
     ]
     if not shipping_visible or not prices_visible:
         raise ValueError('cutoff has no completed monthly observation')
     current = shipping_visible[-1]
     if (int(current['year']), int(current['month'])) != target:
         raise ValueError('shipping world does not contain the requested month')
-    if (int(prices_visible[-1]['year']), int(prices_visible[-1]['month'])) != target:
-        raise ValueError('price projection does not contain the requested month')
+    price_as_of = {
+        'year': int(prices_visible[-1]['year']),
+        'month': int(prices_visible[-1]['month']),
+    }
     shipping = _select(current, SHIPPING_FIELDS)
     shipping['routes'] = [_select(row, ROUTE_FIELDS) for row in current['routes']]
     shipping['regional_balances'] = [
@@ -105,8 +112,10 @@ def build_decision_snapshot(
         'scope': 'decision_month_close',
         'seed': global_run.seed,
         'asOf': {'year': as_of_year, 'month': as_of_month},
-        'informationCutoff': 'completed_months_and_completed_annual_rows_only',
+        'informationCutoff': 'completed_month_and_causally_settled_annual_anchors_only',
         'macro': _select(macro_visible[-1], MACRO_FIELDS),
+        'oilPriceAsOf': price_as_of,
+        'oilPriceAvailability': 'initial_year_or_completed_annual_anchor_only',
         'oilPrices': prices_visible,
         'shipping': shipping,
     }
