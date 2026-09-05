@@ -1,0 +1,90 @@
+name: Stage6B class-agnostic mixed fleet
+on:
+  push:
+    branches: [stage6b-class-agnostic-mixed-fleet]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: stage6b-mixed-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.11', '3.13']
+    env:
+      PYTHONHASHSEED: '0'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Complete Python regression
+        run: |
+          set -o pipefail
+          python -m unittest discover -s asset_simulation/tests -v 2>&1 | tee "$RUNNER_TEMP/mixed-tests.log"
+      - name: Viewer parameter regression
+        run: node tools/test_viewer_parameters.cjs | tee "$RUNNER_TEMP/viewer.log"
+      - name: Full-cargo mixed fleets, substitutions and seeded audits
+        if: matrix.python == '3.11'
+        run: python -m asset_simulation.audit_stage6b_mixed --years 20 --output "$RUNNER_TEMP/mixed-audit.json" --turns-output "$RUNNER_TEMP/seed42-mixed.json"
+      - name: Inherited upstream and physical-contract audits
+        if: matrix.python == '3.11'
+        run: |
+          python -m asset_simulation.audit_oil_shipping_demand --seeds 0,1,2,3,4,5,6,7 --years 60 > "$RUNNER_TEMP/upstream-audit.json"
+          python -m asset_simulation.audit_stage6a --years 20 --output "$RUNNER_TEMP/catalog-audit.json"
+      - name: Archive exact committed source
+        if: matrix.python == '3.11'
+        run: |
+          git rev-parse HEAD > "$RUNNER_TEMP/source-commit.txt"
+          git archive --format=zip HEAD -o "$RUNNER_TEMP/mixed-source.zip"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: stage6b-mixed-${{ matrix.python }}-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/mixed-tests.log
+            ${{ runner.temp }}/viewer.log
+            ${{ runner.temp }}/mixed-audit.json
+            ${{ runner.temp }}/seed42-mixed.json
+            ${{ runner.temp }}/upstream-audit.json
+            ${{ runner.temp }}/catalog-audit.json
+            ${{ runner.temp }}/source-commit.txt
+            ${{ runner.temp }}/mixed-source.zip
+  retire_verified_legacy_once:
+    # User-authorized retirement of ONE exact historical ref. Never applies to main.
+    # The once-only guard, exact SHA check and ancestry check prevent deleting new work.
+    needs: regression
+    if: github.event_name == 'push' && github.repository == 'sansuri665/asset_simulation' && github.ref == 'refs/heads/stage6b-class-agnostic-mixed-fleet' && github.run_number == 1 && github.run_attempt == 1
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Retire only the verified superseded Stage6B ref
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          NEW=stage6b-class-agnostic-mixed-fleet
+          OLD=stage6b-multi-origin-east-asia-market
+          EXPECTED=1d9f824ad6c099e7671446698f2fc5053054f38c
+          test "$OLD" != main
+          LIVE=$(git ls-remote origin "refs/heads/$NEW" | cut -f1)
+          test "$LIVE" = "$GITHUB_SHA"
+          PREVIOUS=$(git ls-remote origin "refs/heads/$OLD" | cut -f1)
+          if [ -z "$PREVIOUS" ]; then echo 'Legacy branch already absent'; exit 0; fi
+          if [ "$PREVIOUS" != "$EXPECTED" ]; then echo 'Legacy branch advanced: preserved without deletion'; exit 0; fi
+          git merge-base --is-ancestor "$EXPECTED" HEAD
+          MAIN_BEFORE=$(git ls-remote origin refs/heads/main | cut -f1)
+          gh api --method DELETE "repos/sansuri665/asset_simulation/git/refs/heads/$OLD"
+          test -z "$(git ls-remote origin "refs/heads/$OLD")"
+          test "$MAIN_BEFORE" = "$(git ls-remote origin refs/heads/main | cut -f1)"
+          echo 'Retired only the unchanged legacy Stage6B branch; its commit is retained as an ancestor.'
