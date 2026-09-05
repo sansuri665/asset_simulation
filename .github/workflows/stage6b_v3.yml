@@ -8,7 +8,7 @@ permissions:
   contents: read
 concurrency:
   group: stage6bv3-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 jobs:
   regression:
     runs-on: ubuntu-latest
@@ -30,12 +30,14 @@ jobs:
           set -o pipefail
           python -m unittest discover -s asset_simulation/tests -v 2>&1 | tee validation/tests.log
       - name: Viewer regression
-        run: node tools/test_viewer_parameters.cjs | tee validation/viewer.log
-      - name: Stage6B-v3 complete fleet, batch, partial-load and availability audit
+        run: |
+          set -o pipefail
+          node tools/test_viewer_parameters.cjs | tee validation/viewer.log
+      - name: V3 Seed42, 60-year window and isolated mechanism audits
         if: matrix.python == '3.11'
         run: |
           set -o pipefail
-          python -m asset_simulation.audit_stage6b_v3 --years 20 --long-years 60 --output validation/stage6bv3-audit.json --turns-output validation/seed42-v3.json 2>&1 | tee validation/audit.log
+          python -m asset_simulation.audit_stage6b_v3 --seeds 42 --years 20 --long-years 60 --output validation/stage6bv3-audit.json --turns-output validation/seed42-v3.json 2>&1 | tee validation/audit.log
       - name: Inherited demand and physical contract audits
         if: matrix.python == '3.11'
         run: |
@@ -57,7 +59,7 @@ jobs:
           path: validation
   retire_verified_v2_once:
     needs: regression
-    if: github.event_name == 'push' && github.repository == 'sansuri665/asset_simulation' && github.ref == 'refs/heads/stage6b-v3-transparent-market' && github.run_number == 1
+    if: github.event_name == 'push' && github.repository == 'sansuri665/asset_simulation' && github.ref == 'refs/heads/stage6b-v3-transparent-market'
     runs-on: ubuntu-latest
     permissions:
       contents: write
