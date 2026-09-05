@@ -22,3 +22,6 @@
 新增独立 `single_route_pricing` v0.2.1；它只读供需和计划库存偏离并输出TCE，不属于已实现的船队。
 定价不接入现有Viewer，也不反写原油需求。研究接口保留；新的 `/api/decision` 只发布月末可见字段，由年度锚插值的油价月线只发布初始年或已完成年度。
 详细修复范围、兼容性与验证见 `docs/current/MAIN_REVIEW_FIXES.md`。
+
+### Stage5A 实验分支
+固定编号VLCC状态机、整数桶运输执行、船队规模扫描与未校准定价见 `current/STAGE5A_PHYSICAL_MARKET.md`。不包含成本或公司模型；不修改现有服务。

@@ -34,12 +34,15 @@ jobs:
           python -m unittest discover -s asset_simulation/tests -v 2>&1 | tee "$RUNNER_TEMP/tests.log"
       - name: Viewer parameter regression
         run: node tools/test_viewer_parameters.cjs
+      - name: Existing upstream and pricing audits
+        if: matrix.python == '3.11'
+        run: |
+          python -m asset_simulation.audit_oil_shipping_demand --seeds 0,1,2,3,4,5,6,7 --years 60 > "$RUNNER_TEMP/upstream-audit.json"
+          python -m asset_simulation.audit_single_route_pricing --seeds 0,1,5,7,42 --years 20 > "$RUNNER_TEMP/pricing-audit.json"
       - name: Stage5A fleet sweeps and controls
         if: matrix.python == '3.11'
         run: |
-          if [ -f asset_simulation/audit_stage5a.py ]; then
-            python -m asset_simulation.audit_stage5a --years 20 --output "$RUNNER_TEMP/stage5a-audit.json"
-          fi
+          python -m asset_simulation.audit_stage5a --years 20 --output "$RUNNER_TEMP/stage5a-audit.json" --turns-output "$RUNNER_TEMP/seed42-fleet245.json"
       - name: Archive exact checked-out source
         if: always() && matrix.python == '3.11'
         run: git archive --format=zip HEAD > "$RUNNER_TEMP/stage5a-source.zip"
@@ -50,4 +53,7 @@ jobs:
           path: |
             ${{ runner.temp }}/tests.log
             ${{ runner.temp }}/stage5a-audit.json
+            ${{ runner.temp }}/seed42-fleet245.json
+            ${{ runner.temp }}/upstream-audit.json
+            ${{ runner.temp }}/pricing-audit.json
             ${{ runner.temp }}/stage5a-source.zip
