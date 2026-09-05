@@ -1,0 +1,56 @@
+name: Stage6C preview dynamic freight board
+on:
+  push:
+    branches: [stage6c-preview-dynamic-freight-board]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: stage6c-preview-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.11', '3.13']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Complete Python regression
+        run: |
+          mkdir -p validation
+          set -o pipefail
+          python -m unittest discover -s asset_simulation/tests -v 2>&1 | tee validation/tests.log
+      - name: Viewer regression
+        run: |
+          set -o pipefail
+          node tools/test_viewer_parameters.cjs | tee validation/viewer.log
+      - name: Actual Seed replays and dynamic trial controls
+        if: matrix.python == '3.11'
+        run: |
+          set -o pipefail
+          python -m asset_simulation.audit_stage6c_preview --seeds 0,1,42 --years 5 --output validation/preview-audit.json --turns-output validation/seed42.json 2>&1 | tee validation/audit.log
+          python tools/demo_stage6c_board.py --output validation/demo.json
+      - name: Inherited upstream and geometry audits
+        if: matrix.python == '3.11'
+        run: |
+          set -o pipefail
+          python -m asset_simulation.audit_oil_shipping_demand --seeds 0,1,2,3,4,5,6,7 --years 60 2>&1 | tee validation/upstream.log
+          python -m asset_simulation.audit_stage6a --years 5 --output validation/stage6a.json --tables-dir validation/stage6a-tables
+      - name: Archive exact source
+        if: matrix.python == '3.11'
+        run: |
+          git rev-parse HEAD > validation/source-commit.txt
+          git archive --format=zip HEAD > validation/source.zip
+          cp asset_simulation/docs/current/STAGE6C_PREVIEW_*.md validation/
+          cp asset_simulation/docs/current/STAGE6C_PREVIEW_VALIDATION.json validation/
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: stage6c-preview-${{ matrix.python }}-${{ github.sha }}
+          path: validation
