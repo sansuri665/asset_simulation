@@ -1,0 +1,53 @@
+name: Stage6A global shipping contracts
+on:
+  push:
+    branches: [stage6a-global-shipping-contracts]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: stage6a-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      matrix:
+        python: ['3.11', '3.13']
+    env:
+      PYTHONHASHSEED: '0'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Full Python regression
+        run: |
+          set -o pipefail
+          python -m unittest discover -s asset_simulation/tests -v 2>&1 | tee "$RUNNER_TEMP/tests.log"
+      - name: Viewer parameters
+        run: node tools/test_viewer_parameters.cjs
+      - name: Stage6A all-pair class and ballast audit
+        run: python -m asset_simulation.audit_stage6a --years 20 --output "$RUNNER_TEMP/stage6a-audit.json" --tables-dir "$RUNNER_TEMP/stage6a-tables"
+      - name: Inherited upstream and fixed10 regressions
+        if: matrix.python == '3.11'
+        run: |
+          python -m asset_simulation.audit_oil_shipping_demand --seeds 0,1,2,3,4,5,6,7 --years 60 > "$RUNNER_TEMP/upstream-audit.json"
+          python -m asset_simulation.audit_stage5a --years 20 --output "$RUNNER_TEMP/stage5a-audit.json"
+      - name: Archive exact source
+        if: always() && matrix.python == '3.11'
+        run: git archive --format=zip HEAD > "$RUNNER_TEMP/stage6a-source.zip"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: stage6a-${{ matrix.python }}-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/tests.log
+            ${{ runner.temp }}/stage6a-audit.json
+            ${{ runner.temp }}/stage6a-tables
+            ${{ runner.temp }}/upstream-audit.json
+            ${{ runner.temp }}/stage5a-audit.json
+            ${{ runner.temp }}/stage6a-source.zip
