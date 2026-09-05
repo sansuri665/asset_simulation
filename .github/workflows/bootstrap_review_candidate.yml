@@ -1,0 +1,71 @@
+name: Build main review candidate
+
+on:
+  push:
+    branches: [main-review-fixes-candidate]
+    paths:
+      - tools/build_review_candidate.py
+      - .github/workflows/bootstrap_review_candidate.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: main-review-candidate-builder
+  cancel-in-progress: false
+
+jobs:
+  build-and-test:
+    if: github.ref == 'refs/heads/main-review-fixes-candidate'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      PYTHONHASHSEED: '0'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main-review-fixes-candidate
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Verify main baseline and candidate-only write target
+        run: |
+          test "$(git rev-parse origin/main)" = 75722a1db5867eec9a2f0a1fa96fa30b1df88cb4
+          test "$(git branch --show-current)" = main-review-fixes-candidate
+          test -f tools/build_review_candidate.py
+      - name: Apply exact review repairs
+        run: python tools/build_review_candidate.py
+      - name: Complete Python regression suite
+        run: |
+          set -o pipefail
+          python -m unittest discover -s asset_simulation/tests -v 2>&1 | tee "$RUNNER_TEMP/candidate-tests.log"
+      - name: Execute JavaScript parameter regressions
+        run: node tools/test_viewer_parameters.cjs
+      - name: Audit eight upstream seeds over sixty annual transitions
+        run: python -m asset_simulation.audit_oil_shipping_demand --seeds 0,1,2,3,4,5,6,7 --years 60 > "$RUNNER_TEMP/upstream-audit.json"
+      - name: Audit five repaired pricing seeds
+        run: python -m asset_simulation.audit_single_route_pricing --seeds 0,1,5,7,42 --years 20 > "$RUNNER_TEMP/pricing-audit.json"
+      - name: Reproduce old bug and compare upstream output hashes
+        run: python tools/run_review_checks.py --output asset_simulation/docs/current/REVIEW_FIX_VALIDATION.json
+      - name: Commit verified source only to the candidate branch
+        run: |
+          rm tools/build_review_candidate.py
+          git diff --check
+          git add asset_simulation tools README.md
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'Apply reviewed calendar, margin and decision-boundary repairs'
+          git push origin HEAD:refs/heads/main-review-fixes-candidate
+          echo "CANDIDATE_COMMIT=$(git rev-parse HEAD)"
+      - name: Preserve test and audit evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: review-candidate-build-evidence
+          path: |
+            ${{ runner.temp }}/candidate-tests.log
+            ${{ runner.temp }}/upstream-audit.json
+            ${{ runner.temp }}/pricing-audit.json
+            asset_simulation/docs/current/REVIEW_FIX_VALIDATION.json
