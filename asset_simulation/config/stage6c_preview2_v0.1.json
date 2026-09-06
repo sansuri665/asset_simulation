@@ -1,0 +1,21 @@
+{
+  "model_version": "stage6c-preview2-dynamic-cargo-formation-v0.1.0",
+  "step_bbl": 250000,
+  "max_iterations": 64,
+  "planning_horizon_turns": 8,
+  "inventory_shadow_sensitivity": 0.8,
+  "source_switch_threshold_fraction": 0.12,
+  "maximum_source_reallocation_fraction": 0.30,
+  "maximum_inventory_swing_fraction": 0.25,
+  "scope": {
+    "natural_od_plan": "upstream_or_previous_plan_is_initial_prior_not_final_allocation",
+    "exports": "physical_source_oil_and_export_limits_only_no_exporter_agent",
+    "imports": "explicit_requirements_plus_inventory_timing_buffer_no_demand_destruction",
+    "inventory_shadow": "relative_freight_anchor_times_continuous_stock_anxiety_not_crude_price",
+    "source_switching": "small_step_bounded_per_opening_no_hard_od_share",
+    "ships": "read_only_external_trial_plan_no_hidden_owner_optimizer",
+    "commit": "reuse_stage6c_preview_final_trial_and_atomic_physical_executor",
+    "cost_model": false,
+    "crude_price_model": false
+  }
+}
