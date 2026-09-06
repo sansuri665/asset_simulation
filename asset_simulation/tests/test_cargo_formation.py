@@ -63,15 +63,16 @@ class CargoFormationContracts(unittest.TestCase):
         s = BoardSession(self.spec, fleet_counts={'vlcc': 24, 'suezmax': 12}, initialization='cold')
         snap = s.open_turn(source_release_bbl=ZERO)
         all_ships = offered(snap)
-        natural = {'gulf': 3*V, 'west_africa': 3*V}
-        gulf_tight = {'gulf': all_ships['gulf'][:1], 'west_africa': all_ships['west_africa']}
+        natural = {'gulf': 2*V, 'west_africa': V}
+        balanced = all_ships
         waf_tight = {'gulf': all_ships['gulf'], 'west_africa': all_ships['west_africa'][:1]}
-        a = form_cargo_plan(snap, gulf_tight, natural)
+        a = form_cargo_plan(snap, balanced, natural)
         b = form_cargo_plan(snap, waf_tight, natural)
         pa, pb = a.report()['final_cargo_plan_bbl'], b.report()['final_cargo_plan_bbl']
-        self.assertLessEqual(pa['gulf'], pb['gulf'])
-        self.assertGreaterEqual(pa['west_africa'], pb['west_africa'])
-        for result, ships in ((a, gulf_tight), (b, waf_tight)):
+        self.assertNotEqual(pa, pb)
+        self.assertGreater(pb['gulf'], pa['gulf'])
+        self.assertLess(pb['west_africa'], pa['west_africa'])
+        for result, ships in ((a, balanced), (b, waf_tight)):
             routes = {r.origin: r.ordered_ship_ids for r in result.final_trial.plan.routes}
             self.assertEqual(routes, {o: tuple(ships[o]) for o in self.spec.origins})
             self.assertTrue(result.report()['contracts']['no_hidden_ship_optimizer'])
