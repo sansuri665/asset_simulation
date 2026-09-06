@@ -3,7 +3,7 @@
   "step_bbl": 250000,
   "max_iterations": 64,
   "planning_horizon_turns": 8,
-  "inventory_shadow_sensitivity": 0.8,
+  "inventory_shadow_sensitivity": 1.6,
   "source_switch_threshold_fraction": 0.12,
   "maximum_source_reallocation_fraction": 0.30,
   "maximum_inventory_swing_fraction": 0.25,
