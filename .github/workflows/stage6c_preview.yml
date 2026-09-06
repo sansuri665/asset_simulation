@@ -40,8 +40,8 @@ jobs:
         if: matrix.python == '3.11'
         run: |
           set -o pipefail
-          python -m asset_simulation.audit_stage6c_preview --seeds 42 --years 2 --output validation/preview-parent-audit.json 2>&1 | tee validation/preview-parent.log
-          python -m asset_simulation.audit_stage6a --years 2 --output validation/stage6a.json --tables-dir validation/stage6a-tables
+          python -m asset_simulation.audit_stage6c_preview --seeds 42 --years 5 --output validation/preview-parent-audit.json 2>&1 | tee validation/preview-parent.log
+          python -m asset_simulation.audit_stage6a --years 5 --output validation/stage6a.json --tables-dir validation/stage6a-tables
       - name: Archive exact source
         if: matrix.python == '3.11'
         run: |
