@@ -197,12 +197,19 @@ def form_cargo_plan(
         receivers = [o for o in origins if spare[o] > 0]
         if receivers and total < upper_total and (not report['valid'] or signal < 0):
             receiver = min(receivers, key=lambda o: (prices[o], origins.index(o)))
-            if not report['valid'] or prices[receiver] <= shadow:
+            # If stock is below normal and a source shortage pushed current
+            # orders below the natural total, restore that import quantity
+            # before asking whether extra inventory build is worth its freight.
+            restore_natural = signal < 0 and total < natural_total
+            if not report['valid'] or restore_natural or prices[receiver] <= shadow:
                 add = min(formation.step_bbl, spare[receiver], upper_total - total)
+                if restore_natural:
+                    add = min(add, natural_total - total)
                 if add:
                     candidate = dict(plan)
                     candidate[receiver] += add
-                    action = {'kind': 'inventory_replenishment', 'origin': receiver, 'bbl': add}
+                    action = {'kind': 'forced_shortfall_replacement' if restore_natural else 'inventory_replenishment',
+                              'origin': receiver, 'bbl': add}
 
         if candidate is None and report['valid'] and signal > 0 and total > lower_total:
             donors = [o for o in origins if plan[o] > 0]
