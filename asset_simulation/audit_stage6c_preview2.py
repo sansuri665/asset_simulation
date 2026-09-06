@@ -53,22 +53,26 @@ def controls():
         snap = s.open_turn(source_release_bbl={'gulf': 2*V, 'west_africa': 8*V})
         formed = form_cargo_plan(snap, offered(snap), {'gulf': 5*V, 'west_africa': V})
         shortage_cases[name] = formed.report()
-    s = BoardSession(spec, fleet_counts={'vlcc': 24}, initialization='cold')
+    s = BoardSession(spec, fleet_counts={'vlcc': 24, 'suezmax': 12}, initialization='cold')
     snap = s.open_turn(source_release_bbl=ZERO)
     ships = offered(snap)
-    natural_equal = {'gulf': 3*V, 'west_africa': 3*V}
-    balanced = form_cargo_plan(snap, ships, natural_equal)
+    natural_feedback = {'gulf': 2*V, 'west_africa': V}
+    balanced = form_cargo_plan(snap, ships, natural_feedback)
     waf_tight = form_cargo_plan(
-        snap, {'gulf': ships['gulf'], 'west_africa': ships['west_africa'][:1]}, natural_equal
+        snap, {'gulf': ships['gulf'], 'west_africa': ships['west_africa'][:1]}, natural_feedback
     )
+    balanced_report = balanced.report()
+    waf_tight_report = waf_tight.report()
     before = sha256_json(asdict(snap))
-    reference = form_cargo_plan(snap, ships, natural_equal)
+    reference = form_cargo_plan(snap, ships, natural_feedback)
     for _ in range(200):
-        form_cargo_plan(snap, ships, natural_equal)
-    pure = before == sha256_json(asdict(snap)) and reference == form_cargo_plan(snap, ships, natural_equal)
+        form_cargo_plan(snap, ships, natural_feedback)
+    pure = before == sha256_json(asdict(snap)) and reference == form_cargo_plan(snap, ships, natural_feedback)
     urgent = BoardSession(spec, fleet_counts={'vlcc': 12}, initialization='cold', destination_stock_bbl=1)
     ux = urgent.open_turn(source_release_bbl=ZERO, new_requirements=(ImportRequirement('urgent', 0, 2),))
     broken = form_cargo_plan(ux, {'gulf': (), 'west_africa': ()}, {'gulf': V, 'west_africa': V}).report()
+    balanced_plan = balanced_report['final_cargo_plan_bbl']
+    waf_tight_plan = waf_tight_report['final_cargo_plan_bbl']
     return {
         'inventory_cases': inventory_cases,
         'gulf_shortage': {
@@ -82,11 +86,16 @@ def controls():
             } for k, v in shortage_cases.items()
         },
         'ship_feedback': {
-            'balanced_plan': balanced.report()['final_cargo_plan_bbl'],
-            'waf_tight_plan': waf_tight.report()['final_cargo_plan_bbl'],
-            'balanced_prices': balanced.report()['final_route_service_value_real_usd_per_bbl'],
-            'waf_tight_prices': waf_tight.report()['final_route_service_value_real_usd_per_bbl'],
+            'natural_plan_bbl': natural_feedback,
+            'balanced_plan': balanced_plan,
+            'waf_tight_plan': waf_tight_plan,
+            'balanced_prices': balanced_report['final_route_service_value_real_usd_per_bbl'],
+            'waf_tight_prices': waf_tight_report['final_route_service_value_real_usd_per_bbl'],
             'same_snapshot': balanced.snapshot_id == waf_tight.snapshot_id,
+            'formed_plan_changed': balanced_plan != waf_tight_plan,
+            'cargo_shifted_away_from_tight_waf':
+                waf_tight_plan['gulf'] > balanced_plan['gulf'] and
+                waf_tight_plan['west_africa'] < balanced_plan['west_africa'],
         },
         'pure_after_200_reformations': pure,
         'urgent_shortage_not_faked': (not broken['final_trial_valid']) and broken['needs_ship_response'],
@@ -105,6 +114,7 @@ def main():
     low = c['inventory_cases']['low']
     gs_hi = c['gulf_shortage']['high_inventory']
     gs_lo = c['gulf_shortage']['low_inventory']
+    ship = c['ship_feedback']
     gates = {
         'cargo_formation_contract_tests': tested.wasSuccessful(),
         'same_snapshot_reformation_is_pure': c['pure_after_200_reformations'],
@@ -112,7 +122,8 @@ def main():
         'low_inventory_replaces_more_gulf_shortage':
             gs_lo['final_plan_bbl']['west_africa'] > gs_hi['final_plan_bbl']['west_africa'],
         'urgent_current_shortage_not_repaired_by_future_order': c['urgent_shortage_not_faked'],
-        'ship_plan_changes_cargo_feedback_without_mutation': c['ship_feedback']['same_snapshot'],
+        'ship_plan_changes_formed_cargo_without_mutation':
+            ship['same_snapshot'] and ship['formed_plan_changed'] and ship['cargo_shifted_away_from_tight_waf'],
     }
     out = {
         'model': 'stage6c-preview2-dynamic-cargo-formation-v0.1.0',
