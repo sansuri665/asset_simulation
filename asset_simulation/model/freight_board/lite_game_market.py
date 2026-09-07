@@ -26,12 +26,22 @@ class _LiteMarketMixin:
                     "class_id": ship["class_id"],
                     "status": ship["status"],
                     "load_factor": ship["load_factor"],
+                    "assigned_cargo_bbl": ship["assigned_cargo_bbl"],
                 })
+            queue_ranks = [position["queue_rank"] for position in positions
+                           if position["queue_rank"] is not None]
+            loaded_ranks = [position["queue_rank"] for position in positions
+                            if position["queue_rank"] is not None
+                            and position["assigned_cargo_bbl"] > 0]
             row[origin] = {
                 "offered": len(allocated),
+                "loaded": sum(x["assigned_cargo_bbl"] > 0 for x in allocated),
                 "full": sum(x["status"] == "full" for x in allocated),
                 "marginal": sum(x["status"] == "marginal" for x in allocated),
                 "unused": sum(x["status"] == "unused" for x in allocated),
+                "queue_first": min(queue_ranks) if queue_ranks else None,
+                "queue_last": max(queue_ranks) if queue_ranks else None,
+                "loaded_queue_last": max(loaded_ranks) if loaded_ranks else None,
                 "positions": positions,
             }
         return row
@@ -43,6 +53,7 @@ class _LiteMarketMixin:
         routes = {}
         for origin in self.spec.origins:
             route = report["routes"][origin]
+            allocation = route["allocation"]
             evidence = route["availability_evidence"]
             by_basis: dict[str, dict[str, int]] = {}
             for item in evidence:
@@ -50,17 +61,26 @@ class _LiteMarketMixin:
                 bucket = by_basis.setdefault(basis, {"ship_count": 0, "capacity_bbl": 0})
                 bucket["ship_count"] += 1
                 bucket["capacity_bbl"] += item["capacity_bbl"]
+            queue_index = {ship_id: index + 1 for index, ship_id in enumerate(self.queues[origin])}
+            loaded_queue_ranks = [
+                queue_index[ship["ship_id"]]
+                for ship in allocation["ships"]
+                if ship["assigned_cargo_bbl"] > 0 and ship["ship_id"] in queue_index
+            ]
             routes[origin] = {
                 "cargo_bbl": route["trial_cargo_bbl"],
+                "loaded_bbl": allocation["loaded_bbl"],
                 "price_real_usd_per_bbl": route["net_service_value_real_usd_per_bbl"],
                 "benchmark_real_tce": route["route_benchmark_real_tce"],
                 "benchmark_nominal_tce": route["route_benchmark_nominal_tce"],
                 "queue_ship_count": len(self.queues[origin]),
-                "full_ship_count": route["allocation"]["full_ship_count"],
-                "marginal_ship_id": route["allocation"]["marginal_ship_id"],
-                "marginal_load_factor": route["allocation"]["marginal_load_factor"],
-                "unused_ship_count": route["allocation"]["unused_ship_count"],
-                "unserved_cargo_bbl": route["allocation"]["unserved_trial_cargo_bbl"],
+                "loading_cutoff_queue_rank": max(loaded_queue_ranks) if loaded_queue_ranks else None,
+                "full_ship_count": allocation["full_ship_count"],
+                "marginal_ship_id": allocation["marginal_ship_id"],
+                "marginal_load_factor": allocation["marginal_load_factor"],
+                "unused_ship_count": allocation["unused_ship_count"],
+                "unserved_cargo_bbl": allocation["unserved_trial_cargo_bbl"],
+                "capacity_shortfall": allocation["unserved_trial_cargo_bbl"] > 0,
                 "capacity_evidence": by_basis,
             }
         destination = report["inventory"]["destination"]
@@ -265,12 +285,12 @@ class _LiteMarketMixin:
 
 
     def submit_round(self, counts: Mapping[str, Any] | None = None, *, use_advisor: bool = False,
-                     keep: bool = False, round_token: str | None = None) -> dict[str, Any]:
+                     keep: bool = False, round_token: str | None) -> dict[str, Any]:
         with self._lock:
             if self.phase != "round" or self.human_company_id is None:
                 raise ValueError("no active human market round")
-            if round_token is not None and round_token != self.round_token:
-                raise ValueError("stale game round token")
+            if not isinstance(round_token, str) or round_token != self.round_token:
+                raise ValueError("missing or stale game round token")
             cid = self.human_company_id
             if use_advisor:
                 counts = self.advisor()["suggested_action"]
@@ -355,12 +375,12 @@ class _LiteMarketMixin:
         self.phase = "game_over" if self.turn_index >= TOTAL_TURNS else "turn_complete"
 
 
-    def next_turn(self, *, round_token: str | None = None) -> dict[str, Any]:
+    def next_turn(self, *, round_token: str | None) -> dict[str, Any]:
         with self._lock:
             if self.phase != "turn_complete":
                 raise ValueError("next turn is only available after final settlement")
-            if round_token is not None and round_token != self.round_token:
-                raise ValueError("stale game turn token")
+            if not isinstance(round_token, str) or round_token != self.round_token:
+                raise ValueError("missing or stale game turn token")
             self.phase = "between_turns"
             self._open_turn()
             return self.public_state()

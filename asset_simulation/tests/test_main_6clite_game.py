@@ -52,11 +52,36 @@ class LiteGameContracts(unittest.TestCase):
         self.assertEqual(next_state["round"], 2)
         with self.assertRaises(ValueError):
             restored.submit_round(keep=True, round_token=stale)
+        with self.assertRaisesRegex(ValueError, "missing or stale game round token"):
+            restored.submit_round(keep=True, round_token=None)
+        settled = LiteGameSession.restore(self.settled_checkpoint)
+        with self.assertRaisesRegex(ValueError, "missing or stale game turn token"):
+            settled.next_turn(round_token=None)
         restored_again = LiteGameSession.restore(self.settled_checkpoint)
         restored_state = restored_again.public_state()
         self.assertEqual(restored_state["turn"], state["turn"])
         self.assertEqual(restored_state["leaderboard"], state["leaderboard"])
         self.assertEqual(restored_state["human_company_id"], state["human_company_id"])
+
+    def test_route_view_separates_cargo_loading_shortfall_and_queue_cutoff(self):
+        state = self.settled_state
+        for origin, route in state["market"]["routes"].items():
+            self.assertEqual(route["cargo_bbl"], route["loaded_bbl"] + route["unserved_cargo_bbl"])
+            self.assertEqual(route["capacity_shortfall"], route["unserved_cargo_bbl"] > 0)
+            cutoff = route["loading_cutoff_queue_rank"]
+            if route["loaded_bbl"]:
+                self.assertIsNotNone(cutoff)
+                self.assertGreaterEqual(cutoff, 1)
+                self.assertLessEqual(cutoff, route["queue_ship_count"])
+        self.assertIsNotNone(state["human"]["market_positions"])
+        for position in state["human"]["market_positions"].values():
+            if position["offered"]:
+                self.assertGreaterEqual(position["queue_first"], 1)
+                self.assertGreaterEqual(position["queue_last"], position["queue_first"])
+                self.assertEqual(position["loaded"], position["full"] + position["marginal"])
+            else:
+                self.assertIsNone(position["queue_first"])
+                self.assertIsNone(position["queue_last"])
 
     def test_reentry_goes_to_queue_tail(self):
         restored = LiteGameSession.restore(self.settled_checkpoint)
@@ -104,8 +129,11 @@ class LiteGameViewerAndRegistryTests(unittest.TestCase):
         js = (VIEWER_ROOT / "js" / "game.js").read_text(encoding="utf-8")
         self.assertIn("双航路油运博弈", html)
         self.assertIn("AI SHIPPING ADVISOR", html)
+        self.assertIn("未满足货盘", html)
+        self.assertIn("装船截止位", html)
         self.assertIn("/api/game/new", js)
         self.assertIn("/api/game/round", js)
+        self.assertIn("loaded_queue_last", js)
         game = create_game(7)
         self.assertIs(get_game(game.game_id), game)
 

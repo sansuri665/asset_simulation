@@ -99,6 +99,12 @@ class _LiteViewMixin:
             if self.human_company_id is not None:
                 cid = self.human_company_id
                 eligible = self._eligible(cid)
+                if self.current_indication is not None:
+                    market_positions = self._company_market_row(self.current_indication, cid)
+                elif self.public_market is not None:
+                    market_positions = self.public_market.get("companies", {}).get(str(cid))
+                else:
+                    market_positions = None
                 base["human"] = {
                     "company": self._company_profile(cid),
                     "fleet": self._fleet_view(cid),
@@ -107,7 +113,7 @@ class _LiteViewMixin:
                         "east_asia_idle_count": len(eligible["east_asia_idle"]),
                     },
                     "current_action": self._counts_from_action(cid, self.company_actions[cid]) if self.company_actions else None,
-                    "market_positions": None if self.current_indication is None else self._company_market_row(self.current_indication, cid),
+                    "market_positions": market_positions,
                     "advisor": self.advisor(),
                     "last_turn_result": None if not self.turn_history else self.turn_history[-1]["company_results"][str(cid)],
                 }
