@@ -1,0 +1,51 @@
+name: Main 6C Lite fixed-fleet game
+on:
+  push:
+    branches: [main-6Clite]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: main-6clite-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.11', '3.13']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Complete Python regression
+        run: |
+          mkdir -p validation
+          set -o pipefail
+          python -m unittest discover -s asset_simulation/tests -v 2>&1 | tee validation/tests.log
+      - name: Viewer JavaScript syntax
+        run: |
+          node --check asset_simulation/viewer/js/game.js
+          node tools/test_viewer_parameters.cjs | tee validation/viewer.log
+      - name: Lite playable audit
+        if: matrix.python == '3.11'
+        run: |
+          set -o pipefail
+          python -m asset_simulation.audit_main_6clite --seed 42 --turns 2 --output validation/main-6clite-audit.json 2>&1 | tee validation/main-6clite-audit.log
+      - name: Inherited Preview3 audit smoke
+        if: matrix.python == '3.11'
+        run: |
+          python -m unittest asset_simulation.tests.test_preview3_bilateral_market -v
+      - name: Archive exact source
+        if: matrix.python == '3.11'
+        run: |
+          git rev-parse HEAD > validation/source-commit.txt
+          git archive --format=zip HEAD > validation/source.zip
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: main-6clite-${{ matrix.python }}-${{ github.sha }}
+          path: validation

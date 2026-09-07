@@ -77,3 +77,15 @@ py -3 -m asset_simulation.audit_oil_shipping_demand --seeds 0,1,2,3,4,5,6,7 --ye
 - 报价、运输匹配、成本结算分离。零供给可以有指示价格，但没有执行价格或收入。
 
 详情见 `asset_simulation/docs/current/MAIN_REVIEW_FIXES.md`。
+
+## Main–6C Lite 双航路游戏（实验分支）
+
+`main-6Clite` 在 Preview3 的双边市场上增加固定船队、10家公司、三轮同时报价、AI参谋与本地HTML游戏界面。标准局为2030–2039，共360个10运营日回合；2030前使用同Seed运行半年中性warm start。
+
+```powershell
+py -3 -m asset_simulation.lite_server
+```
+
+或运行 `start_game.bat` / `start_game.ps1`，打开 <http://127.0.0.1:8784/game>。
+
+Lite暂不加入造船、船价、融资和航次成本，排行榜使用 Gross Freight Service Value。完整规则见 `asset_simulation/docs/current/MAIN_6CLITE_GAME.md`。

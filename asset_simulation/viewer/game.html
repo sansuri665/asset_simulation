@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Main-6C Lite · 双航路油运博弈</title>
+  <link rel="stylesheet" href="/static/css/game.css" />
+</head>
+<body>
+  <div class="shell">
+    <header class="topbar">
+      <div>
+        <div class="eyebrow">MAIN–6C LITE</div>
+        <h1>双航路油运博弈</h1>
+      </div>
+      <div class="topmeta">
+        <span id="dateLabel">2030–2039</span>
+        <span id="turnLabel">固定船队 · 3轮市场</span>
+        <span id="seedLabel">Seed —</span>
+      </div>
+    </header>
+
+    <main>
+      <section id="setupPanel" class="setup card">
+        <div class="setup-copy">
+          <div class="eyebrow">NEW CAMPAIGN</div>
+          <h2>从 2030 年接手一家正在运营的油轮公司</h2>
+          <p>同一 Seed 决定 2030–2039 的物理世界。2030 前会先运行半年中性 warm start，因此开局时船已经分散在 Gulf、West Africa、East Asia 和真实航程中。</p>
+        </div>
+        <div class="setup-actions">
+          <label>World Seed<input id="seedInput" type="number" value="42" step="1" /></label>
+          <button id="newGameButton" class="primary">生成 2030 开局</button>
+          <label class="file-button">读取存档<input id="loadInput" type="file" accept="application/json,.json" /></label>
+        </div>
+      </section>
+
+      <section id="candidatePanel" class="hidden">
+        <div class="section-title">
+          <div><div class="eyebrow">CHOOSE COMPANY</div><h2>选择你要接手的公司</h2></div>
+          <p>三家公司总资产完全相同，但 2030 年 1 月的船位不同。AI参谋会在开局后陪你决策。</p>
+        </div>
+        <div id="candidateGrid" class="candidate-grid"></div>
+      </section>
+
+      <section id="gamePanel" class="hidden">
+        <div class="roundbar card">
+          <div>
+            <div class="eyebrow">MARKET WINDOW</div>
+            <div class="round-title"><span id="roundBadge">R1</span><strong id="roundName">View</strong></div>
+          </div>
+          <div id="roundHint" class="round-hint">表达你的初始判断。</div>
+          <div class="company-chip"><span>YOU</span><strong id="humanCompanyName">—</strong></div>
+        </div>
+
+        <div class="main-grid">
+          <section class="market-column">
+            <div class="route-grid">
+              <article class="route-card gulf" data-origin="gulf">
+                <div class="route-head"><div><div class="eyebrow">PERSIAN GULF</div><h2>Gulf → East Asia</h2></div><div class="route-price"><b id="gulfTce">—</b><span>Real TCE/day</span></div></div>
+                <div class="metrics">
+                  <div><span>货盘</span><b id="gulfCargo">—</b></div>
+                  <div><span>卖方可售</span><b id="gulfOffer">—</b></div>
+                  <div><span>当前队列</span><b id="gulfQueue">—</b></div>
+                  <div><span>边际船</span><b id="gulfMarginal">—</b></div>
+                </div>
+                <div class="capacity-strip" id="gulfCapacity"></div><div class="own-position" id="gulfOwn">你的船：—</div>
+              </article>
+
+              <article class="route-card waf" data-origin="west_africa">
+                <div class="route-head"><div><div class="eyebrow">WEST AFRICA</div><h2>WAF → East Asia</h2></div><div class="route-price"><b id="wafTce">—</b><span>Real TCE/day</span></div></div>
+                <div class="metrics">
+                  <div><span>货盘</span><b id="wafCargo">—</b></div>
+                  <div><span>卖方可售</span><b id="wafOffer">—</b></div>
+                  <div><span>当前队列</span><b id="wafQueue">—</b></div>
+                  <div><span>边际船</span><b id="wafMarginal">—</b></div>
+                </div>
+                <div class="capacity-strip" id="wafCapacity"></div><div class="own-position" id="wafOwn">你的船：—</div>
+              </article>
+            </div>
+
+            <article class="card inventory-card">
+              <div class="section-title compact"><div><div class="eyebrow">EAST ASIA</div><h3>库存与未来 6 回合</h3></div><div id="inventorySignal" class="signal-pill">—</div></div>
+              <div id="inventoryTimeline" class="timeline"></div>
+            </article>
+
+            <article class="card tape-card">
+              <div class="section-title compact"><div><div class="eyebrow">MARKET TAPE</div><h3>最近市场结果</h3></div></div>
+              <div id="marketTape" class="tape"></div>
+            </article>
+          </section>
+
+          <aside class="side-column">
+            <article class="card action-card">
+              <div class="section-title compact"><div><div class="eyebrow">YOUR FLEET</div><h3>本轮意向</h3></div><div id="fleetTotal" class="signal-pill">—</div></div>
+              <div id="fleetStatus" class="fleet-status"></div>
+
+              <div class="control-group">
+                <h4>当前 Prompt 报盘</h4>
+                <label>Gulf <input id="offerGulf" type="number" min="0" step="1" /><span id="offerGulfMax">/ 0</span></label>
+                <label>WAF <input id="offerWaf" type="number" min="0" step="1" /><span id="offerWafMax">/ 0</span></label>
+                <p>留在原队列可保位置；撤出后重新加入会进入队尾。</p>
+              </div>
+
+              <div class="control-group">
+                <h4>East Asia 空船压载目标</h4>
+                <label>→ Gulf <input id="ballastGulf" type="number" min="0" step="1" /></label>
+                <label>→ WAF <input id="ballastWaf" type="number" min="0" step="1" /></label>
+                <p id="eaIdleHelp">剩余空船保持等待。改投只改变 future tonnage，不会瞬移到当前队列。</p>
+              </div>
+
+              <div class="button-row">
+                <button id="advisorButton">采用 AI 建议</button>
+                <button id="keepButton">保持当前意向</button>
+                <button id="submitButton" class="primary">提交本轮</button>
+              </div>
+            </article>
+
+            <article class="card advisor-card">
+              <div class="section-title compact"><div><div class="eyebrow">AI SHIPPING ADVISOR</div><h3>参谋建议</h3></div></div>
+              <div id="advisorSuggestion" class="advisor-suggestion">—</div>
+              <ul id="advisorReasons"></ul>
+              <div id="advisorRisk" class="risk-box">—</div>
+              <p class="micro">参谋与其它AI一样，只能读取当前公开状态，不读取未来Seed。</p>
+            </article>
+
+            <article class="card leaderboard-card">
+              <div class="section-title compact"><div><div class="eyebrow">FLEET LEAGUE</div><h3>Gross Service Value</h3></div></div>
+              <div id="leaderboard" class="leaderboard"></div>
+            </article>
+          </aside>
+        </div>
+      </section>
+
+      <section id="turnCompletePanel" class="hidden turn-complete card">
+        <div><div class="eyebrow">PHYSICAL TURN COMMITTED</div><h2>这 10 个运营日已经成为历史</h2><p id="turnResultText">—</p></div>
+        <div class="turn-buttons"><button id="saveButton">导出存档</button><button id="nextTurnButton" class="primary">进入下一回合</button></div>
+      </section>
+
+      <section id="gameOverPanel" class="hidden card game-over">
+        <div class="eyebrow">2039 · CAMPAIGN COMPLETE</div><h2>十年航运史已经结束</h2><p>最终排名以当前版本的 Gross Freight Service Value 统计；成本、融资与船价尚未加入。</p>
+        <button id="gameOverSave">导出最终存档</button>
+      </section>
+    </main>
+
+    <div id="toast" class="toast hidden"></div>
+  </div>
+  <script src="/static/js/game.js"></script>
+</body>
+</html>
