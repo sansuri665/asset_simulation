@@ -93,3 +93,7 @@
 
 ### Stage6C-preview：动态试填报（独立候选分支）
 `model.freight_board` 继承6B-v3物理执行，增加冻结快照上的纯 `quote_trial`、按外部船单顺序计算边际装载、真实源端供给与独立目的地需求/库存、逐船型运力归一化，以及 `BoardSession.commit` 单次原子提交。无成本、无自动订单/套利优化；旧v3计算文件保留。详见 `docs/current/STAGE6C_PREVIEW_DYNAMIC_BOARD.md` 和 `STAGE6C_PREVIEW_RESULTS.md`。
+
+
+### Main–Stage6C Preview3：双边货盘与正式报盘（独立分支）
+`main-6Cpreview3` 继承 Preview2 并通过只读适配器连接 main 的 crude-only 航线货量。新增 term＋spot 卖方可售意愿、方向明确的库存违规修复、无同回合反向振荡的小步货盘形成，以及 `indicative → firm → commit/cancel` 单回合线路锁定。它不反写或替代 main，仍只执行 Gulf／West Africa→East Asia，不含原油价格、成本或全球25 OD 市场。详见 `STAGE6C_PREVIEW3_BILATERAL_MARKET.md`。

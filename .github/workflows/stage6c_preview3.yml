@@ -1,0 +1,53 @@
+name: Main Stage6C Preview3 bilateral market
+on:
+  push:
+    branches: [main-6Cpreview3]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: main-stage6c-preview3-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.11', '3.13']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Complete Python regression
+        run: |
+          mkdir -p validation
+          set -o pipefail
+          python -m unittest discover -s asset_simulation/tests -v 2>&1 | tee validation/tests.log
+      - name: Viewer regression
+        run: |
+          set -o pipefail
+          node tools/test_viewer_parameters.cjs | tee validation/viewer.log
+      - name: Preview3 multi-turn bilateral audit
+        if: matrix.python == '3.11'
+        run: |
+          set -o pipefail
+          python -m asset_simulation.audit_stage6c_preview3 --seeds 0,1,42 --years 5 --output validation/preview3-audit.json 2>&1 | tee validation/preview3-audit.log
+          python tools/demo_stage6c_preview3.py --seed 42 --years 5 --turns 12 --output validation/preview3-demo.json | tee validation/preview3-demo.log
+      - name: Inherited Preview2 contract audit
+        if: matrix.python == '3.11'
+        run: |
+          set -o pipefail
+          python -m asset_simulation.audit_stage6c_preview2 --output validation/preview2-audit.json 2>&1 | tee validation/preview2-audit.log
+      - name: Archive exact source
+        if: matrix.python == '3.11'
+        run: |
+          git rev-parse HEAD > validation/source-commit.txt
+          git archive --format=zip HEAD > validation/source.zip
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: main-stage6c-preview3-${{ matrix.python }}-${{ github.sha }}
+          path: validation
